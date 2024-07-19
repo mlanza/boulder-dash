@@ -4,10 +4,16 @@ import dom from "./atomic_/dom.js";
 import {reg} from "./cmd.js";
 import * as s from "./ecs/slate.js";
 
-
 const addNoun = s.addComponent("nouns"),
       addDescribed = s.addComponent("described"),
       addPushable = s.addComponent("pushable"),
+      addDiggable = s.addComponent("diggable"),
+      addGravity = s.addComponent("gravity"),
+      addLethal = s.addComponent("lethal"),
+      addRounded = s.addComponent("rounded"),
+      addSeeking = s.addComponent("seeking"),
+      addCollected = s.addComponent("collected"),
+      addExplosive = s.addComponent("explosive"),
       addPositioned = s.addComponent("positioned"),
       addControlled = s.addComponent("controlled");
 
@@ -15,13 +21,28 @@ const blank = _.chain(
   s.slate(),
   s.defComponent("nouns"),
   s.defComponent("pushable"),
+  s.defComponent("diggable"),
+  s.defComponent("rounded"),
+  s.defComponent("lethal"),
+  s.defComponent("seeking"),
+  s.defComponent("collected"),
+  s.defComponent("explosive"),
+  s.defComponent("gravity"),
   s.defComponent("positioned"),
   s.defComponent("controlled"));
+
+  function steelWall(coords){
+    return _.pipe(
+      s.addEntity(),
+      addNoun("steel-wall"),
+      addPositioned(coords));
+  }
 
 function wall(coords){
   return _.pipe(
     s.addEntity(),
     addNoun("wall"),
+    addExplosive(),
     addPositioned(coords));
 }
 
@@ -35,6 +56,17 @@ function rockford(coords){
       left: {key: "ArrowLeft"},
       right: {key: "ArrowRight"}
     }),
+    addExplosive(),
+    addPositioned(coords));
+}
+
+function diamond(coords){
+  return _.pipe(
+    s.addEntity(),
+    addNoun("diamond"),
+    addCollected(),
+    addExplosive(),
+    addRounded(),
     addPositioned(coords));
 }
 
@@ -42,18 +74,37 @@ function dirt(coords){
   return _.pipe(
     s.addEntity(),
     addNoun("dirt"),
+    addDiggable(),
+    addExplosive(),
     addPositioned(coords));
 }
+
+function enemy(noun, direction){
+  return function(coords){
+    return _.pipe(
+      s.addEntity(),
+      addNoun(noun),
+      addSeeking(direction),
+      addExplosive(),
+      addPositioned(coords));
+  }
+}
+
+const firefly = enemy("firefly", "clockwise");
+const butterfly = enemy("butterfly", "counterclockwise");
 
 function boulder(coords){
   return _.pipe(
     s.addEntity(),
     addNoun("boulder"),
     addPushable(),
+    addExplosive(),
+    addRounded(),
+    addGravity(1),
     addPositioned(coords));
 }
 
-const adds = _.get({".": dirt, "r": rockford, "o": boulder, "w": wall}, _, _.constantly(_.identity));
+const adds = _.get({".": dirt, "r": rockford, "o": boulder, "w": wall, "s": steelWall, "d": diamond}, _, _.constantly(_.identity));
 
 const board = `
 wwwwwwwwww
