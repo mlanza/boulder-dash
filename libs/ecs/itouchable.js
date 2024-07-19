@@ -5,5 +5,5 @@ export const ITouchable = _.protocol({
   wipe: null
 });
 
-export const touched = ITouchable.touched;
+export const touched = _.comp(_.seq, ITouchable.touched);
 export const wipe = ITouchable.wipe;
