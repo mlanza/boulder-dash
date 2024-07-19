@@ -42,8 +42,18 @@ function wipe(self){
   return new TouchMap(_.map([]), self.map);
 }
 
+function count(self){
+  return _.count(self.map);
+}
+
+function seq(self){
+  return _.seq(self.map);
+}
+
 $.doto(TouchMap,
   _.implement(ITouchable, {touched, wipe}),
+  _.implement(_.ICounted, {count}),
+  _.implement(_.ISeqable, {seq}),
   _.implement(_.ILookup, {lookup}),
   _.implement(_.IAssociative, {assoc, contains}),
   _.implement(_.IMap, {dissoc}));
