@@ -2,7 +2,7 @@ import * as _ from "./core.js";
 
 import { protocol, implement, IMergable, IReducible, does } from "./core.js";
 
-export { doto, guid, implement, rand, randNth, shuffle, specify, uid } from "./core.js";
+export { doto, fork, guid, implement, rand, randNth, shuffle, specify, uid } from "./core.js";
 
 function each(f, xs) {
   let ys = _.seq(xs);
@@ -182,7 +182,9 @@ const raise = IEventProvider.raise;
 const release = IEventProvider.release;
 
 const IMiddleware = protocol({
-  handle: null
+  handle: null,
+  addMiddleware: null,
+  addHandler: null
 });
 
 function handle2(self, message) {
@@ -191,17 +193,7 @@ function handle2(self, message) {
 
 const handle$6 = _.overload(null, null, handle2, IMiddleware.handle);
 
-const IPersistent = _.protocol({
-  persistent: null
-});
-
-const persistent$2 = IPersistent.persistent;
-
-const ITransient = _.protocol({
-  transient: null
-});
-
-const transient = ITransient.transient;
+const {addMiddleware: addMiddleware$1, addHandler: addHandler$1} = IMiddleware;
 
 const IAssociative = _.protocol({
   assoc: null
@@ -265,6 +257,7 @@ function assocIn(self, keys, value) {
   switch (keys.length) {
    case 1:
     assoc$4(self, key, value);
+    break;
 
    default:
     assoc$4(self, key, assocIn(_.get(self, key), _.toArray(_.rest(keys)), value));
@@ -275,20 +268,20 @@ const IMap = _.protocol({
   dissoc: null
 });
 
-const dissoc$3 = IMap.dissoc;
+const dissoc$4 = IMap.dissoc;
 
 const ISet = _.protocol({
   disj: null
 });
 
-const disj$1 = ISet.disj;
+const disj$2 = ISet.disj;
 
 const ICollection = _.protocol({
   conj: null,
   unconj: null
 });
 
-const conj$3 = _.overload(null, _.noop, ICollection.conj, doing(ICollection.conj));
+const conj$4 = _.overload(null, _.noop, ICollection.conj, doing(ICollection.conj));
 
 const unconj$1 = _.overload(null, _.noop, ICollection.unconj, doing(ICollection.unconj));
 
@@ -296,7 +289,7 @@ const IEmptyableCollection = _.protocol({
   empty: null
 });
 
-const empty$3 = IEmptyableCollection.empty;
+const empty$5 = IEmptyableCollection.empty;
 
 const IAppendable = _.protocol({
   append: null
@@ -336,7 +329,7 @@ function beforeN(self, ...els) {
   let ref = self;
   while (els.length) {
     let el = els.pop();
-    ITransientInsertable.before(ref, el);
+    IInsertable.before(ref, el);
     ref = el;
   }
 }
@@ -394,8 +387,12 @@ const IQueryable = _.protocol({
 
 const query = IQueryable.query;
 
+var config = {
+  logger: console
+};
+
 function log$1(...args) {
-  ILogger.log(_.config.logger, ...args);
+  ILogger.log(config.logger, ...args);
 }
 
 const ILogger = _.protocol({
@@ -404,8 +401,18 @@ const ILogger = _.protocol({
 
 const log = ILogger.log;
 
+function warn(...args) {
+  ILogger.log(config.logger?.["warn"], ...args);
+}
+
+function error(...args) {
+  ILogger.log(config.logger?.["error"], ...args);
+}
+
 var p = Object.freeze({
   __proto__: null,
+  addHandler: addHandler$1,
+  addMiddleware: addMiddleware$1,
   after: after$1,
   append: append$1,
   assoc: assoc$4,
@@ -414,18 +421,18 @@ var p = Object.freeze({
   chan: chan,
   closed: closed$3,
   complete: complete$3,
-  conj: conj$3,
-  disj: disj$1,
+  conj: conj$4,
+  disj: disj$2,
   dispatch: dispatch$1,
-  dissoc: dissoc$3,
-  empty: empty$3,
+  dissoc: dissoc$4,
+  empty: empty$5,
   err: err$3,
+  error: error,
   handle: handle$6,
   log: log,
   omit: omit$1,
   on: on,
   once: once,
-  persistent: persistent$2,
   prepend: prepend$1,
   pub: pub$3,
   query: query,
@@ -437,11 +444,11 @@ var p = Object.freeze({
   send: send,
   sub: sub$4,
   swap: swap$2,
-  transient: transient,
   trigger: trigger,
   unconj: unconj$1,
   update: update,
-  updateIn: updateIn
+  updateIn: updateIn,
+  warn: warn
 });
 
 function hist$2(limit) {
@@ -455,27 +462,6 @@ function hist$2(limit) {
       }
       history = revised;
       return rf(memo, history);
-    }));
-  };
-}
-
-function isolate$1() {
-  return function(rf) {
-    let queue = [];
-    return _.overload(rf, rf, (function(memo, value) {
-      let acc = memo;
-      const ready = queue.length === 0;
-      queue.push(value);
-      if (ready) {
-        while (queue.length) {
-          try {
-            acc = rf(acc, queue[0]);
-          } finally {
-            queue.shift();
-          }
-        }
-      }
-      return acc;
     }));
   };
 }
@@ -830,8 +816,10 @@ function fromSource(source) {
   }));
 }
 
+const fromEvent$1 = chan;
+
 function toObservable(self) {
-  const f = _.satisfies(_.ICoercible, "toObservable", self);
+  const f = _.method(_.coerce, self, Observable);
   if (f) {
     return f(self);
   } else if (_.satisfies(ISubscribe, "sub", self)) {
@@ -841,17 +829,9 @@ function toObservable(self) {
   }
 }
 
-_.extend(_.ICoercible, {
-  toObservable: null
-});
+_.addMethod(_.coerce, [ Observable, Observable ], _.identity);
 
-_.doto(Observable, _.implement(_.ICoercible, {
-  toObservable: _.identity
-}));
-
-_.doto(Promise, _.implement(_.ICoercible, {
-  toObservable: fromPromise$1
-}));
+_.addMethod(_.coerce, [ Promise, Observable ], fromPromise$1);
 
 Object.assign(Observable, {
   latest: latest$1,
@@ -861,7 +841,7 @@ Object.assign(Observable, {
   indexed: indexed,
   computed: computed$1,
   fromSource: fromSource,
-  fromEvent: chan,
+  fromEvent: fromEvent$1,
   fromPromise: fromPromise$1,
   interact: interact$1,
   fixed: fixed$1,
@@ -884,13 +864,13 @@ function deref$2(self) {
   return value;
 }
 
-var behave$i = _.does(reducible, mergable, _.keying("Observable"), _.implement(_.IDeref, {
+var behave$l = _.does(reducible, mergable, _.keying("Observable"), _.implement(_.IDeref, {
   deref: deref$2
 }), _.implement(ISubscribe, {
   sub: sub$3
 }));
 
-behave$i(Observable);
+behave$l(Observable);
 
 function before(self, reference, inserted) {
   const pos = self.indexOf(reference);
@@ -917,7 +897,7 @@ function unconj(self, value) {
   }
 }
 
-function empty$2(self) {
+function empty$4(self) {
   self.length = 0;
 }
 
@@ -929,7 +909,7 @@ function assoc$3(self, idx, value) {
   self[idx] = value;
 }
 
-function dissoc$2(self, idx) {
+function dissoc$3(self, idx) {
   self.splice(idx, 1);
 }
 
@@ -940,20 +920,14 @@ function omit(self, value) {
   }
 }
 
-function persistent$1(self) {
-  return self;
-}
-
-var behave$h = _.does(_.implement(IPersistent, {
-  persistent: persistent$1
-}), _.implement(IInsertable, {
+var behave$k = _.does(_.implement(IInsertable, {
   before: before,
   after: after
 }), _.implement(ICollection, {
   conj: append,
   unconj: unconj
 }), _.implement(IEmptyableCollection, {
-  empty: empty$2
+  empty: empty$4
 }), _.implement(IOmissible, {
   omit: omit
 }), _.implement(IAssociative, {
@@ -961,18 +935,20 @@ var behave$h = _.does(_.implement(IPersistent, {
 }), _.implement(IReversible, {
   reverse: reverse
 }), _.implement(IMap, {
-  dissoc: dissoc$2
+  dissoc: dissoc$3
 }), _.implement(IAppendable, {
   append: append
 }), _.implement(IPrependable, {
   prepend: prepend
 }));
 
-behave$h(Array);
+behave$k(Array);
 
-function isMap(self) {
-  return _.is(self, Map);
-}
+var _Map, _$is$2, _ref$3;
+
+const isMap = (_ref$3 = _, _$is$2 = _ref$3.is, _Map = Map, function is(_argPlaceholder) {
+  return _$is$2.call(_ref$3, _argPlaceholder, _Map);
+});
 
 function map1(obj) {
   return new Map(obj);
@@ -982,18 +958,18 @@ function map0() {
   return new Map;
 }
 
-_.overload(map0, map1);
+const nativeMap = _.overload(map0, map1);
 
 function assoc$2(self, key, value) {
   self.set(key, value);
 }
 
-function dissoc$1(self, key, value) {
+function dissoc$2(self, key, value) {
   self.delete(key, value);
 }
 
-var behave$g = _.does(_.keying("Map"), _.implement(IMap, {
-  dissoc: dissoc$1
+var behave$j = _.does(_.keying("Map"), _.implement(IMap, {
+  dissoc: dissoc$2
 }), _.implement(IAssociative, {
   assoc: assoc$2
 }));
@@ -1001,14 +977,16 @@ var behave$g = _.does(_.keying("Map"), _.implement(IMap, {
 const behaviors = {};
 
 Object.assign(behaviors, {
-  Map: behave$g
+  Map: behave$j
 });
 
-behave$g(Map);
+behave$j(Map);
 
-function isWeakMap(self) {
-  return _.is(self, WeakMap);
-}
+var _WeakMap, _$is$1, _ref$2;
+
+const isWeakMap = (_ref$2 = _, _$is$1 = _ref$2.is, _WeakMap = WeakMap, function is(_argPlaceholder) {
+  return _$is$1.call(_ref$2, _argPlaceholder, _WeakMap);
+});
 
 function weakMap1(obj) {
   return new WeakMap(obj);
@@ -1020,13 +998,13 @@ function weakMap0() {
 
 const weakMap = _.overload(weakMap0, weakMap1);
 
-var behave$f = _.does(behave$g, _.keying("WeakMap"));
+var behave$i = _.does(behave$j, _.keying("WeakMap"));
 
 Object.assign(behaviors, {
-  WeakMap: behave$f
+  WeakMap: behave$i
 });
 
-behave$f(WeakMap);
+behave$i(WeakMap);
 
 function set(entries) {
   return new Set(entries || []);
@@ -1036,31 +1014,55 @@ function emptySet() {
   return new Set;
 }
 
-function empty$1(self) {
+function empty$3(self) {
   self.clear();
 }
 
-function disj(self, value) {
+function disj$1(self, value) {
   self.delete(value);
 }
 
-function conj$2(self, value) {
+function conj$3(self, value) {
   self.add(value);
 }
 
-var behave$e = _.does(_.implement(IEmptyableCollection, {
-  empty: empty$1
+var behave$h = _.does(_.implement(IEmptyableCollection, {
+  empty: empty$3
 }), _.implement(ICollection, {
-  conj: conj$2
+  conj: conj$3
 }), _.implement(ISet, {
-  disj: disj
+  disj: disj$1
 }));
 
 Object.assign(behaviors, {
-  Set: behave$e
+  Set: behave$h
 });
 
-behave$e(Set);
+behave$h(Set);
+
+var _WeakSet, _$is, _ref$1;
+
+const isWeakSet = (_ref$1 = _, _$is = _ref$1.is, _WeakSet = WeakSet, function is(_argPlaceholder) {
+  return _$is.call(_ref$1, _argPlaceholder, _WeakSet);
+});
+
+function weakSet1(arr) {
+  return new WeakSet(arr);
+}
+
+function weakSet0() {
+  return new WeakSet;
+}
+
+const weakSet = _.overload(weakSet0, weakSet1);
+
+var behave$g = _.does(behave$h, _.keying("WeakSet"));
+
+Object.assign(behaviors, {
+  WeakSet: behave$g
+});
+
+behave$g(WeakSet);
 
 function pub$2(self, value) {
   if (value !== self.state) {
@@ -1100,7 +1102,7 @@ function dispose(self) {
   _.satisfies(_.IDisposable, self.observer) && _.dispose(self.observer);
 }
 
-var behave$d = _.does(reducible, mergable, _.keying("Atom"), _.implement(_.IDisposable, {
+var behave$f = _.does(reducible, mergable, _.keying("Atom"), _.implement(_.IDisposable, {
   dispose: dispose
 }), _.implement(_.IDeref, {
   deref: deref$1
@@ -1117,7 +1119,7 @@ var behave$d = _.does(reducible, mergable, _.keying("Atom"), _.implement(_.IDisp
   closed: closed$2
 }));
 
-behave$d(Atom);
+behave$f(Atom);
 
 function Cursor(source, path) {
   this.source = source;
@@ -1154,7 +1156,7 @@ function sub$1(self, observer) {
   }));
 }
 
-var behave$c = _.does(_.keying("Cursor"), _.implement(_.IPath, {
+var behave$e = _.does(_.keying("Cursor"), _.implement(_.IPath, {
   path: path
 }), _.implement(_.IDeref, {
   deref: deref
@@ -1168,14 +1170,14 @@ var behave$c = _.does(_.keying("Cursor"), _.implement(_.IPath, {
   pub: reset
 }));
 
-behave$c(Cursor);
+behave$e(Cursor);
 
-function conj$1(self, entry) {
+function conj$2(self, entry) {
   const key = _.key(entry), val = _.val(entry);
   self[key] = val;
 }
 
-function dissoc(self, key) {
+function dissoc$1(self, key) {
   if (_.contains(self, key)) {
     delete self[key];
   }
@@ -1187,29 +1189,23 @@ function assoc$1(self, key, value) {
   }
 }
 
-function empty(self) {
+function empty$2(self) {
   for (const key of Object.keys()) {
     delete self[key];
   }
 }
 
-function persistent(self) {
-  return self;
-}
-
-var behave$b = _.does(_.implement(IPersistent, {
-  persistent: persistent
-}), _.implement(ICollection, {
-  conj: conj$1
+var behave$d = _.does(_.implement(ICollection, {
+  conj: conj$2
 }), _.implement(IEmptyableCollection, {
-  empty: empty
+  empty: empty$2
 }), _.implement(IAssociative, {
   assoc: assoc$1
 }), _.implement(IMap, {
-  dissoc: dissoc
+  dissoc: dissoc$1
 }));
 
-behave$b(Object);
+behave$d(Object);
 
 function pub$1(self, message) {
   if (!self.terminated) {
@@ -1240,18 +1236,109 @@ function closed$1(self) {
   return self.terminated;
 }
 
-var behave$a = _.does(_.keying("Observer"), _.implement(IPublish, {
+var behave$c = _.does(_.keying("Observer"), _.implement(IPublish, {
   pub: pub$1,
   err: err$1,
   complete: complete$1,
   closed: closed$1
 }));
 
-behave$a(Observer);
+behave$c(Observer);
+
+function getHashIndex(self, key) {
+  const h = _.hash(key);
+  const candidates = self.mapped[h] || null;
+  const idx = _.detectIndex((function([k, v]) {
+    return _.equiv(key, k);
+  }), candidates);
+  return {
+    h: h,
+    idx: idx,
+    candidates: candidates
+  };
+}
+
+function assoc(self, key, value) {
+  const {h: h, idx: idx, candidates: candidates} = getHashIndex(self, key);
+  if (!candidates) {
+    assoc$4(self.mapped, h, [ [ key, value ] ]);
+  } else if (idx == null) {
+    var _param, _$conj, _ref;
+    update(self.mapped, h, (_ref = _, _$conj = _ref.conj, _param = [ key, value ], function conj(_argPlaceholder) {
+      return _$conj.call(_ref, _argPlaceholder, _param);
+    }));
+  } else {
+    assocIn(self.mapped, [ h, idx ], [ key, value ]);
+  }
+  if (idx == null) {
+    self.length += 1;
+  }
+}
+
+function dissoc(self, key) {
+  const {h: h, idx: idx, candidates: candidates} = getHashIndex(self, key);
+  if (idx == null) {
+    return;
+  }
+  if (_.count(candidates) === 1) {
+    dissoc$4(self.mapped, h);
+  }
+  assoc$4(self.mapped, h, _.filtera((function([k, v]) {
+    return !_.equiv(key, k);
+  }), candidates));
+  self.length -= 1;
+}
+
+function conj$1(self, [key, value]) {
+  assoc(self, key, value);
+}
+
+function empty$1(self) {
+  self.mapped = {};
+  self.length = 0;
+}
+
+var behave$b = _.does(_.implement(ICollection, {
+  conj: conj$1
+}), _.implement(IEmptyableCollection, {
+  empty: empty$1
+}), _.implement(IMap, {
+  dissoc: dissoc
+}), _.implement(IAssociative, {
+  assoc: assoc
+}));
+
+behave$b(_.PersistentMap);
+
+function empty(self) {
+  self.coll = _.persistentMap();
+}
+
+function conj(self, value) {
+  if (!_.includes(self, value)) {
+    assoc$4(self.coll, value, value);
+  }
+}
+
+function disj(self, value) {
+  if (_.includes(self, value)) {
+    dissoc$4(self.coll, value);
+  }
+}
+
+var behave$a = _.does(_.implement(ISet, {
+  disj: disj
+}), _.implement(IEmptyableCollection, {
+  empty: empty
+}), _.implement(ICollection, {
+  conj: conj
+}));
+
+behave$a(_.PersistentSet);
 
 function sub(self, observer) {
   if (!self.terminated) {
-    conj$3(self.observers, observer);
+    conj$4(self.observers, observer);
     return _.once((function() {
       unconj$1(self.observers, observer);
     }));
@@ -1279,7 +1366,7 @@ function err(self, error) {
     notify(self, (_p2 = p, _p$err = _p2.err, _error = error, function err(_argPlaceholder2) {
       return _p$err.call(_p2, _argPlaceholder2, _error);
     }));
-    empty$3(self.observers);
+    empty$5(self.observers);
   }
 }
 
@@ -1289,7 +1376,7 @@ function complete(self) {
       how: "complete"
     };
     notify(self, complete$3);
-    empty$3(self.observers);
+    empty$5(self.observers);
   }
 }
 
@@ -1322,8 +1409,8 @@ function bus(middlewares) {
   return new Bus(middlewares || []);
 }
 
-function conj(self, middleware) {
-  conj$3(self.middlewares, middleware);
+function addMiddleware(self, middleware) {
+  conj$4(self.middlewares, middleware);
 }
 
 function handle$5(self, message, next) {
@@ -1340,12 +1427,11 @@ function dispatch(self, message) {
   handle$5(self, message);
 }
 
-var behave$8 = _.does(_.keying("Bus"), _.implement(ICollection, {
-  conj: conj
-}), _.implement(IDispatch, {
+var behave$8 = _.does(_.keying("Bus"), _.implement(IDispatch, {
   dispatch: dispatch
 }), _.implement(IMiddleware, {
-  handle: handle$5
+  handle: handle$5,
+  addMiddleware: addMiddleware
 }));
 
 behave$8(Bus);
@@ -1475,7 +1561,7 @@ function handlerMiddleware0() {
 
 const handlerMiddleware = _.overload(handlerMiddleware0, handlerMiddleware1, handlerMiddleware3);
 
-function assoc(self, key, handler) {
+function addHandler(self, key, handler) {
   assoc$4(self.handlers, key, handler);
 }
 
@@ -1488,10 +1574,9 @@ function handle$2(self, message, next) {
   }
 }
 
-var behave$3 = _.does(_.keying("HandlerMiddleware"), _.implement(IAssociative, {
-  assoc: assoc
-}), _.implement(IMiddleware, {
-  handle: handle$2
+var behave$3 = _.does(_.keying("HandlerMiddleware"), _.implement(IMiddleware, {
+  handle: handle$2,
+  addHandler: addHandler
 }));
 
 behave$3(HandlerMiddleware);
@@ -1560,6 +1645,22 @@ const behave = (_ref = _, _$behaves = _ref.behaves, _behaviors = behaviors, func
   return _$behaves.call(_ref, _behaviors, _argPlaceholder);
 });
 
+function into2(to, from) {
+  return _.reduce((function(memo, value) {
+    conj$4(memo, value);
+    return memo;
+  }), to, from);
+}
+
+function into3(to, xform, from) {
+  return _.transduce(xform, (function(memo, value) {
+    conj$4(memo, value);
+    return memo;
+  }), to, from);
+}
+
+const into = _.overload(null, null, into2, into3);
+
 function collect(atom) {
   return function(value) {
     var _value, _$conj, _ref2;
@@ -1586,7 +1687,7 @@ ISubscribe.transducing = connect3;
 
 const connect = _.overload(null, null, connect2, connect3, connectN);
 
-const map = shared(atom, Observable.map);
+const map = _.overload(nativeMap, nativeMap, shared(atom, Observable.map));
 
 const then = shared(atom, Observable.resolve, Observable.map);
 
@@ -1626,66 +1727,6 @@ const fromPromise = _.overload(null, (_fromPromise = fromPromise2, function from
   return _fromPromise(_argPlaceholder3, null);
 }), fromPromise2);
 
-function isolate1(f) {
-  const queue = [];
-  return function() {
-    const ready = queue.length === 0;
-    queue.push(arguments);
-    if (ready) {
-      while (queue.length) {
-        const args = _.first(queue);
-        try {
-          f.apply(null, args);
-          trigger(args[0], "mutate", {
-            bubbles: true
-          });
-        } finally {
-          queue.shift();
-        }
-      }
-    }
-  };
-}
-
-const isolate = _.overload(isolate$1, isolate1);
-
-function render3(el, obs, f) {
-  return sub$4(obs, isolate0(), (function(state) {
-    f(el, state);
-    trigger(el, "mutate", {
-      bubbles: true
-    });
-  }));
-}
-
-function render2(state, f) {
-  var _state, _f, _render;
-  return _render = render3, _state = state, _f = f, function render3(_argPlaceholder4) {
-    return _render(_argPlaceholder4, _state, _f);
-  };
-}
-
-const render = _.overload(null, null, render2, render3);
-
-function renderDiff3(el, obs, f) {
-  return sub$4(obs, isolate$1(), hist$2(2), (function(history) {
-    const args = [ el ].concat(history);
-    f.apply(this, args);
-    trigger(el, "mutate", {
-      bubbles: true
-    });
-  }));
-}
-
-function renderDiff2(state, f) {
-  var _state2, _f2, _renderDiff;
-  return _renderDiff = renderDiff3, _state2 = state, _f2 = f, function renderDiff3(_argPlaceholder5) {
-    return _renderDiff(_argPlaceholder5, _state2, _f2);
-  };
-}
-
-const renderDiff = _.overload(null, null, renderDiff2, renderDiff3);
-
 (function() {
   function pub(self, msg) {
     self(msg);
@@ -1724,7 +1765,7 @@ function dispatchable(Cursor) {
   }));
 })();
 
-_.ICoercible.addMethod([ Set, Array ], Array.from);
+_.addMethod(_.coerce, [ Set, Array ], Array.from);
 
 (function() {
   function log(self, ...args) {
@@ -1735,12 +1776,21 @@ _.ICoercible.addMethod([ Set, Array ], Array.from);
   }));
 })();
 
+(function() {
+  function log(self, ...args) {
+    self(...args);
+  }
+  _.doto(Function, _.implement(ILogger, {
+    log: log
+  }));
+})();
+
 _.doto(_.Nil, _.implement(ILogger, {
   log: _.noop
 }));
 
-function severity(logger, severity) {
-  const f = logger[severity].bind(logger);
+function severity2(logger, severity) {
+  const f = _.get(logger, severity, _.noop);
   function log(self, ...args) {
     f(...args);
   }
@@ -1751,6 +1801,12 @@ function severity(logger, severity) {
     log: log
   }));
 }
+
+function severity1(severity) {
+  return severity2(config.logger, severity);
+}
+
+const severity = _.overload(null, severity1, severity2);
 
 function inspect(logger, ...effects) {
   function log$1(self, ...args) {
@@ -1791,8 +1847,8 @@ function tee(f) {
 
 function peek(logger) {
   var _logger, _p$log, _p;
-  return tee((_p = p, _p$log = _p.log, _logger = logger, function log(_argPlaceholder6) {
-    return _p$log.call(_p, _logger, _argPlaceholder6);
+  return tee((_p = p, _p$log = _p.log, _logger = logger, function log(_argPlaceholder4) {
+    return _p$log.call(_p, _logger, _argPlaceholder4);
   }));
 }
 
@@ -1812,7 +1868,7 @@ function called4(fn, message, context, logger) {
 }
 
 function called3(fn, message, context) {
-  return called4(fn, message, context, _.config.logger);
+  return called4(fn, message, context, config.logger);
 }
 
 function called2(fn, message) {
@@ -1821,4 +1877,12 @@ function called2(fn, message) {
 
 const called = _.overload(null, null, called2, called3, called4);
 
-export { Atom, Bus, Command, Cursor, DrainEventsMiddleware, Event, EventMiddleware, HandlerMiddleware, IAppendable, IAssociative, ICollection, IDispatch, IEmptyableCollection, IEventProvider, IEvented, IInsertable, ILogger, IMap, IMiddleware, IOmissible, IPersistent, IPrependable, IPublish, IQueryable, IResettable, IReversible, ISend, ISet, ISubscribe, ISwappable, ITransient, LockingMiddleware, Observable, Observer, Subject, TeeMiddleware, after$1 as after, alter, append$1 as append, assoc$4 as assoc, assocIn, atom, before$1 as before, behave, behaviors, bus, called, atom as cell, chan, closed$3 as closed, collect, command, complete$3 as complete, computed, conj$3 as conj, connect, constructs, cursor, defs, disj$1 as disj, dispatch$1 as dispatch, dispatchable, dissoc$3 as dissoc, doall, doing, dorun, doseq, dotimes, drainEventsMiddleware, each, eachIndexed, eachkv, eachvk, effect, empty$3 as empty, emptySet, err$3 as err, event, eventMiddleware, fixed, fromEvent, fromPromise, handle$6 as handle, handlerMiddleware, hist, interact, isMap, isWeakMap, isolate, latest, lockingMiddleware, log, logging, map, observable, observer, omit$1 as omit, on, once, peek, persistent$2 as persistent, pipe, prepend$1 as prepend, pub$3 as pub, query, raise, release, render, renderDiff, reset$1 as reset, resettable, reverse$1 as reverse, see, seed, send, set, share, shared, sharing, splay, sub$4 as sub, subject, swap$2 as swap, tee, teeMiddleware, then, tick, toObservable, toggles, transient, trigger, unconj$1 as unconj, update, updateIn, weakMap, when };
+_.addMethod(_.coerce, [ Array, Object ], (arr => into({}, arr)));
+
+_.addMethod(_.coerce, [ Object, Array ], (obj => into([], obj)));
+
+_.addMethod(_.coerce, [ _.PersistentSet, Array ], (set => into([], set)));
+
+_.addMethod(_.coerce, [ Array, _.PersistentSet ], (arr => into(_.set([]), arr)));
+
+export { Atom, Bus, Command, Cursor, DrainEventsMiddleware, Event, EventMiddleware, HandlerMiddleware, IAppendable, IAssociative, ICollection, IDispatch, IEmptyableCollection, IEventProvider, IEvented, IInsertable, ILogger, IMap, IMiddleware, IOmissible, IPrependable, IPublish, IQueryable, IResettable, IReversible, ISend, ISet, ISubscribe, ISwappable, LockingMiddleware, Observable, Observer, Subject, TeeMiddleware, addHandler$1 as addHandler, addMiddleware$1 as addMiddleware, after$1 as after, alter, append$1 as append, assoc$4 as assoc, assocIn, atom, before$1 as before, behave, behaviors, bus, called, atom as cell, chan, closed$3 as closed, collect, command, complete$3 as complete, computed, config, conj$4 as conj, connect, constructs, cursor, defs, disj$2 as disj, dispatch$1 as dispatch, dispatchable, dissoc$4 as dissoc, doall, doing, dorun, doseq, dotimes, drainEventsMiddleware, each, eachIndexed, eachkv, eachvk, effect, empty$5 as empty, emptySet, err$3 as err, error, event, eventMiddleware, fixed, fromEvent, fromPromise, handle$6 as handle, handlerMiddleware, hist, interact, into, isMap, isWeakMap, isWeakSet, latest, lockingMiddleware, log, logging, map, nativeMap, observable, observer, omit$1 as omit, on, once, peek, pipe, prepend$1 as prepend, pub$3 as pub, query, raise, release, reset$1 as reset, resettable, reverse$1 as reverse, see, seed, send, set, share, shared, sharing, splay, sub$4 as sub, subject, swap$2 as swap, tee, teeMiddleware, then, tick, toObservable, toggles, trigger, unconj$1 as unconj, update, updateIn, warn, weakMap, weakSet, when };
