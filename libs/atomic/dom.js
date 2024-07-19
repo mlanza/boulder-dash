@@ -43,18 +43,17 @@ const IEmbeddable = _.protocol({
 const embeddables$2 = IEmbeddable.embeddables;
 
 function embed3(add, parent, children) {
-  var _ref, _ref2, _children, _embeddables, _$mapcat, _ref3, _parent$ownerDocument, _embeddables2, _param, _$$each, _$;
-  _ref = (_ref2 = (_children = children, _.flatten(_children)), (_ref3 = _, _$mapcat = _ref3.mapcat, 
-  _embeddables = (_embeddables2 = embeddables$2, _parent$ownerDocument = parent.ownerDocument, 
-  function embeddables(_argPlaceholder2) {
+  var _embeddables, _$mapcat, _ref, _parent$ownerDocument, _embeddables2, _param, _$$each, _$;
+  _.chain(children, _.flatten, (_ref = _, _$mapcat = _ref.mapcat, _embeddables = (_embeddables2 = embeddables$2, 
+  _parent$ownerDocument = parent.ownerDocument, function embeddables(_argPlaceholder2) {
     return _embeddables2(_argPlaceholder2, _parent$ownerDocument);
   }), function mapcat(_argPlaceholder) {
-    return _$mapcat.call(_ref3, _embeddables, _argPlaceholder);
-  })(_ref2)), (_$ = $, _$$each = _$.each, _param = function(child) {
+    return _$mapcat.call(_ref, _embeddables, _argPlaceholder);
+  }), (_$ = $, _$$each = _$.each, _param = function(child) {
     _.isFunction(child) ? child(parent, add) : add(parent, child);
   }, function each(_argPlaceholder3) {
     return _$$each.call(_$, _param, _argPlaceholder3);
-  })(_ref);
+  }));
 }
 
 function embed2(parent, children) {
@@ -67,11 +66,11 @@ const embed = _.overload(null, null, embed2, embed3);
 
 const IMountable = _.protocol({});
 
-var _IMountable, _$satisfies, _ref$3;
+var _IMountable, _$satisfies, _ref$2;
 
-const isMountable = (_ref$3 = _, _$satisfies = _ref$3.satisfies, _IMountable = IMountable, 
+const isMountable = (_ref$2 = _, _$satisfies = _ref$2.satisfies, _IMountable = IMountable, 
 function satisfies(_argPlaceholder) {
-  return _$satisfies.call(_ref$3, _IMountable, _argPlaceholder);
+  return _$satisfies.call(_ref$2, _IMountable, _argPlaceholder);
 });
 
 function mounts(self) {
@@ -163,8 +162,6 @@ function attrs(node) {
   return new Attrs(node);
 }
 
-var _Array, _$array, _ref$2;
-
 function count$3(self) {
   return self.node.attributes.length;
 }
@@ -225,12 +222,11 @@ function empty$1(self) {
   }
 }
 
-var behave$d = _.does(_.keying("Attrs"), _.ICoercible.addMethod((_ref$2 = _, _$array = _ref$2.array, 
-_Array = Array, function array(_argPlaceholder) {
-  return _$array.call(_ref$2, _argPlaceholder, _Array);
-}), (function(self) {
-  return _.toArray(next2(self, 0));
-})), _.implement(_.ICounted, {
+var behave$d = _.does(_.keying("Attrs"), (function(Type) {
+  _.addMethod(_.coerce, [ Type, Array ], (function(self) {
+    return _.toArray(next2(self, 0));
+  }));
+}), _.implement(_.ICounted, {
   count: count$3
 }), _.implement(_.ISeqable, {
   seq: seq$3
@@ -1362,7 +1358,7 @@ Object.assign(behaviors, {
 
 behave$8(XMLDocument);
 
-var _behaviors, _$behaves, _ref, _param5, _$into, _ref9;
+var _behaviors, _$behaves, _ref, _DocumentFragment, _$coerce, _ref3, _param, _$into, _ref4;
 
 const behave = (_ref = _, _$behaves = _ref.behaves, _behaviors = behaviors, function behaves(_argPlaceholder) {
   return _$behaves.call(_ref, _behaviors, _argPlaceholder);
@@ -1481,12 +1477,12 @@ function removeStyle3(self, key, value) {
 
 const removeStyle = _.overload(null, null, removeStyle2, removeStyle3);
 
-function addClass(self, name) {
-  self.classList.add(name);
+function addClass(self, ...names) {
+  self.classList.add(...names);
 }
 
-function removeClass(self, name) {
-  self.classList.remove(name);
+function removeClass(self, ...names) {
+  self.classList.remove(...names);
 }
 
 function toggleClass2(self, name) {
@@ -1502,50 +1498,6 @@ const toggleClass = _.overload(null, null, toggleClass2, toggleClass3);
 function hasClass(self, name) {
   return self.classList.contains(name);
 }
-
-function mount3(render, config, el) {
-  return mount4(_.constantly(null), render, config, el);
-}
-
-function mount4(create, render, config, el) {
-  var _el, _param, _$$on, _$, _el2, _config, _bus, _render, _el3;
-  config.what && $.trigger(el, config.what + ":installing", {
-    bubbles: true,
-    detail: {
-      config: config
-    }
-  });
-  $.trigger(el, "installing", {
-    bubbles: true,
-    detail: {
-      config: config
-    }
-  });
-  const bus = create(config), detail = {
-    config: config,
-    bus: bus
-  };
-  _el = el, (_$ = $, _$$on = _$.on, _param = function(e) {
-    Object.assign(e.detail, detail);
-  }, function on(_argPlaceholder5) {
-    return _$$on.call(_$, _argPlaceholder5, "mounting mounted", _param);
-  })(_el);
-  _el2 = el, (_render = render, _config = config, _bus = bus, function render(_argPlaceholder6) {
-    return _render(_argPlaceholder6, _config, _bus);
-  })(_el2);
-  _el3 = el, mounts(_el3);
-  config.what && $.trigger(el, config.what + ":installed", {
-    bubbles: true,
-    detail: detail
-  });
-  $.trigger(el, "installed", {
-    bubbles: true,
-    detail: detail
-  });
-  return bus;
-}
-
-const mount = _.overload(null, null, null, mount3, mount4);
 
 const markup = _.obj((function(name, ...contents) {
   const attrs = _.map((function(entry) {
@@ -1568,22 +1520,11 @@ function tags2(engine, keys) {
 }
 
 function tags3(engine, f, keys) {
-  var _ref3, _ref4, _ref5, _keys, _param2, _$concat, _ref6, _$scan, _ref7, _param3, _param4, _$fold, _ref8;
   const tag = _.factory(engine);
-  return _ref3 = (_ref4 = (_ref5 = (_keys = keys, (_ref6 = _, _$concat = _ref6.concat, 
-  _param2 = [ null ], function concat(_argPlaceholder7) {
-    return _$concat.call(_ref6, _argPlaceholder7, _param2);
-  })(_keys)), (_ref7 = _, _$scan = _ref7.scan, function scan(_argPlaceholder8) {
-    return _$scan.call(_ref7, 2, _argPlaceholder8);
-  })(_ref5)), _.toArray(_ref4)), (_ref8 = _, _$fold = _ref8.fold, _param3 = function(memo, keys) {
-    const [key, nextKey] = _.toArray(keys);
-    if (_.isString(key)) {
-      memo[key] = f(_.isArray(nextKey) ? _.isString(_.first(nextKey)) ? tag(...nextKey) : tag(key, ...nextKey) : tag(key));
-    }
+  return _.fold((function(memo, key) {
+    memo[key] = f(tag(key));
     return memo;
-  }, _param4 = {}, function fold(_argPlaceholder9) {
-    return _$fold.call(_ref8, _param3, _param4, _argPlaceholder9);
-  })(_ref3);
+  }), {}, keys);
 }
 
 function svg(doc = document, tags = [ "svg", "g", "symbol", "defs", "clipPath", "metadata", "path", "line", "circle", "rect", "ellipse", "polygon", "polyline", "image", "text", "tspan" ]) {
@@ -1611,11 +1552,10 @@ const option = _.assume(isHTMLDocument, document, _.overload(null, null, (functi
   }, value);
 })));
 
-_.extend(_.ICoercible, {
-  toFragment: null
+const toFragment = (_ref3 = _, _$coerce = _ref3.coerce, _DocumentFragment = DocumentFragment, 
+function coerce(_argPlaceholder5) {
+  return _$coerce.call(_ref3, _argPlaceholder5, _DocumentFragment);
 });
-
-const toFragment = _.ICoercible.toFragment;
 
 (function() {
   function embeddables(self, doc) {
@@ -1624,9 +1564,8 @@ const toFragment = _.ICoercible.toFragment;
   function toFragment(self, doc) {
     return (doc || document).createRange().createContextualFragment(self);
   }
-  _.doto(String, _.implement(_.ICoercible, {
-    toFragment: toFragment
-  }), _.implement(IEmbeddable, {
+  _.addMethod(_.coerce, [ String, DocumentFragment ], toFragment);
+  _.doto(String, _.implement(IEmbeddable, {
     embeddables: embeddables
   }));
 })();
@@ -1658,25 +1597,24 @@ const toFragment = _.ICoercible.toFragment;
   function toFragment(self, doc) {
     return (doc || document).createRange().createContextualFragment("");
   }
-  _.doto(_.Nil, _.implement(_.ICoercible, {
-    toFragment: toFragment
-  }), _.implement(IEmbeddable, {
+  _.addMethod(_.coerce, [ _.Nil, DocumentFragment ], toFragment);
+  _.doto(_.Nil, _.implement(IEmbeddable, {
     embeddables: _.emptyList
   }));
 })();
 
-_.ICoercible.addMethod([ NodeList, Array ], Array.from);
+_.addMethod(_.coerce, [ NodeList, Array ], Array.from);
 
-_.ICoercible.addMethod([ SpaceSeparated, Array ], _.comp(Array.from, _.seq));
+_.addMethod(_.coerce, [ SpaceSeparated, Array ], _.comp(Array.from, _.seq));
 
-_.ICoercible.addMethod([ NestedAttrs, Object ], _.deref);
+_.addMethod(_.coerce, [ NestedAttrs, Object ], _.deref);
 
-_.ICoercible.addMethod([ URLSearchParams, Object ], (_ref9 = _, _$into = _ref9.into, 
-_param5 = {}, function into(_argPlaceholder10) {
-  return _$into.call(_ref9, _param5, _argPlaceholder10);
+_.addMethod(_.coerce, [ URLSearchParams, Object ], (_ref4 = _, _$into = _ref4.into, 
+_param = {}, function into(_argPlaceholder6) {
+  return _$into.call(_ref4, _param, _argPlaceholder6);
 }));
 
-_.ICoercible.addMethod([ Object, URLSearchParams ], (function(obj) {
+_.addMethod(_.coerce, [ Object, URLSearchParams ], (function(obj) {
   const params = new URLSearchParams;
   for (const [key, value] of Object.entries(obj)) {
     params.set(key, value);
@@ -1701,4 +1639,4 @@ function stylesheet1(href) {
 
 const stylesheet = _.overload(null, stylesheet1, stylesheet2);
 
-export { Attrs, IContent, IEmbeddable, IHideable, IHtml, IMountable, ISelectable, IText, IValue, InvalidHostElementError, NestedAttrs, Props, SpaceSeparated, addClass, addStyle, assert, attr, attrs, behave, behaviors, classes, click, contents$2 as contents, depressed, element, elementns, embed, embeddables$2 as embeddables, enable, focus, fragment, hasClass, hash, hide$1 as hide, hover, html$1 as html, isElement, isHTMLDocument, isMountable, isVisible, markup, matches, mount, mounts, nestedAttrs, option, prop, props, ready, removeAttr, removeClass, removeStyle, replaceWith, sel$2 as sel, sel1$1 as sel1, show$1 as show, spaceSep, style, stylesheet, svg, tag, tags, text$2 as text, toFragment, toggle$1 as toggle, toggleClass, urlSearchParams, value$2 as value, wrap };
+export { Attrs, IContent, IEmbeddable, IHideable, IHtml, IMountable, ISelectable, IText, IValue, InvalidHostElementError, NestedAttrs, Props, SpaceSeparated, addClass, addStyle, assert, attr, attrs, behave, behaviors, classes, click, contents$2 as contents, depressed, element, elementns, embed, embeddables$2 as embeddables, enable, focus, fragment, hasClass, hash, hide$1 as hide, hover, html$1 as html, isElement, isHTMLDocument, isMountable, isVisible, markup, matches, mounts, nestedAttrs, option, prop, props, ready, removeAttr, removeClass, removeStyle, replaceWith, sel$2 as sel, sel1$1 as sel1, show$1 as show, spaceSep, style, stylesheet, svg, tag, tags, text$2 as text, toFragment, toggle$1 as toggle, toggleClass, urlSearchParams, value$2 as value, wrap };

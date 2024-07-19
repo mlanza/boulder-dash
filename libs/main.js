@@ -2,6 +2,87 @@ import _ from "./atomic_/core.js";
 import $ from "./atomic_/shell.js";
 import dom from "./atomic_/dom.js";
 import {reg} from "./cmd.js";
+import * as s from "./ecs/slate.js";
+
+
+const addNoun = s.addComponent("nouns"),
+      addDescribed = s.addComponent("described"),
+      addPushable = s.addComponent("pushable"),
+      addPositioned = s.addComponent("positioned"),
+      addControlled = s.addComponent("controlled");
+
+const blank = _.chain(
+  s.slate(),
+  s.defComponent("nouns"),
+  s.defComponent("pushable"),
+  s.defComponent("positioned"),
+  s.defComponent("controlled"));
+
+function wall(coords){
+  return _.pipe(
+    s.addEntity(),
+    addNoun("wall"),
+    addPositioned(coords));
+}
+
+function rockford(coords){
+  return _.pipe(
+    s.addEntity(),
+    addNoun("Rockford"),
+    addControlled({
+      up: {key: "ArrowUp"},
+      down: {key: "ArrowDown"},
+      left: {key: "ArrowLeft"},
+      right: {key: "ArrowRight"}
+    }),
+    addPositioned(coords));
+}
+
+function dirt(coords){
+  return _.pipe(
+    s.addEntity(),
+    addNoun("dirt"),
+    addPositioned(coords));
+}
+
+function boulder(coords){
+  return _.pipe(
+    s.addEntity(),
+    addNoun("boulder"),
+    addPushable(),
+    addPositioned(coords));
+}
+
+const adds = _.get({".": dirt, "r": rockford, "o": boulder, "w": wall}, _, _.constantly(_.identity));
+
+const board = `
+wwwwwwwwww
+w...oo.. w
+w..oooo. w
+wr...... w
+wwwwwwwwww
+`;
+
+const load = _.pipe(
+  _.split(_, "\n"),
+  _.map(_.trim, _),
+  _.filter(_.seq, _),
+  _.mapIndexed(function(row, chars){
+    return _.mapIndexed(function(col, char){
+      const coords = [col, row],
+            piece = adds(char);
+      return {coords, piece};
+    }, _.seq(chars));
+  }, _),
+  _.spread(_.concat),
+  _.reduce(function(memo, {coords, piece}){
+    return _.chain(memo, piece(coords));
+  }, blank, _),
+  s.wipe);
+
+const b = _.chain(board, load);
+
+/* ---- */
 
 const stage = dom.sel1("#stage");
 const ctx = stage.getContext('2d');
@@ -10,7 +91,7 @@ const dim = 32;
 const working = document.createElement('canvas');
 const tmp = working.getContext('2d',{ willReadFrequently: true });
 
-function load(src){
+function sprite(src){
   return new Promise(function(resolve, reject){
     const img = new Image();
     img.onload = function(){
@@ -20,7 +101,7 @@ function load(src){
   });
 }
 
-const sprites = await load('../images/sprites.png');
+const sprites = await sprite('../images/sprites.png');
 const black = { r: 0, g: 0, b: 0, a: 255 };
 const gray = { r: 63, g: 63, b: 63, a: 255 };
 const brown = { r: 156, g: 101, b: 63, a: 255 };
