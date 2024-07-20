@@ -5,27 +5,29 @@ import * as p from "./itouchable.js";
 import {ITouchable} from "./itouchable.js";
 export {wipe, touched} from "./itouchable.js";
 
-function Slate(lastid, entities, components){
+function World(lastid, entities, components, events){
   this.lastid = lastid;
   this.entities = entities;
   this.components = components;
+  this.events = events; //used to direct the stage, to tell the ui how to reconcile the world model
 }
 
 function wipe(self){
-  return new Slate(
-    self.lastid,
+  return new World(
+    null,
     p.wipe(self.entities),
     _.reducekv(function(memo, key, map){
       return _.assoc(memo, key, p.wipe(map));
-    }, {}, self.components));
+    }, {}, self.components),
+    []);
 }
 
-$.doto(Slate,
+$.doto(World,
   _.record,
   _.implement(ITouchable, {wipe}));
 
-export function slate(){
-  return new Slate(null, touchMap(), {});
+export function world(){
+  return new World(null, touchMap(), {}, []);
 }
 
 export function defComponent(type){
@@ -56,7 +58,7 @@ export function getEntities(state, crit){
         _.getIn(_, ["components", type]),
         p.touched,
         _.filter(_.pipe(_.second, pred || _.constantly(true)), _),
-        _.map(_.first, _));
+        _.mapa(_.first, _));
       return _.assoc(memo, type, ids);
     }, {}, _), _.vals, _.spread(function(set, ...sets){
       return _.reduce(_.intersection, set, sets);
@@ -65,9 +67,22 @@ export function getEntities(state, crit){
 
 export function getComponents(state, which, ids){
   return _.map(function(id){
-    return _.reduce(function(memo, type){
+    const components = _.reduce(function(memo, type){
       const value = _.getIn(state, ["components", type, id]);
       return _.assoc(memo, type, value);
     }, {}, which);
+    return {id, components};
   }, ids);
+}
+
+export function addEvents(state, events){
+  return _.update(state, "events", _.conj(_, ...events));
+}
+
+export const added = _.eq(_, "added");
+export const removed = _.eq(_, "removed");
+export const updated = _.eq(_, "updated");
+
+export function events(state){
+  return state.events;
 }
