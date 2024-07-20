@@ -205,8 +205,8 @@ function reconcile({type, details}){
       const [x, y] = positioned;
       dom.append(el,
         $.doto(div({"data-what": noun, id}),
-          dom.addStyle(_, "top", `${32 * y}px`),
-          dom.addStyle(_, "left", `${32 * x}px`)));
+          dom.attr(_, "data-x", x),
+          dom.attr(_, "data-y", y)));
       break;
     }
   }
