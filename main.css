@@ -1,10 +1,33 @@
 body {
-  background-color: black;
   background-color: #36454f;
   background-color: #242F36;
-
+  background-color: tan;
+  background-color: black;
 }
 #stage {
-  border: solid 1px maroon;
-  scale: 1;
+  position: relative;
+  margin: 1em;
+  width: 1280px;
+  height: 704px;
+}
+[data-what] {
+  position: absolute;
+  height: 32px;
+  width: 32px;
+  background-image: url(./images/sprites.png);
+}
+[data-what='Rockford'] {
+  background-position: 0 0;
+}
+[data-what='explosion'] {
+  background-position: -64px 0;
+}
+[data-what='wall'] {
+  background-position: -96px -192px;
+}
+[data-what='boulder'] {
+  background-position: 0 -224px;
+}
+[data-what='dirt'] {
+  background-position: -32px -224px;
 }

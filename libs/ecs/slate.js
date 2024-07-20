@@ -47,3 +47,27 @@ export const addComponent = _.curry(function(type, value, state){
   }
   return _.assocIn(state, ["components", type, _.get(state, "lastid")], value);
 });
+
+
+export function getEntities(state, crit){
+  return _.chain(crit,
+    _.reducekv(function(memo, type, pred){
+      const ids = _.chain(state,
+        _.getIn(_, ["components", type]),
+        p.touched,
+        _.filter(_.pipe(_.second, pred || _.constantly(true)), _),
+        _.map(_.first, _));
+      return _.assoc(memo, type, ids);
+    }, {}, _), _.vals, _.spread(function(set, ...sets){
+      return _.reduce(_.intersection, set, sets);
+    }));
+}
+
+export function getComponents(state, which, ids){
+  return _.map(function(id){
+    return _.reduce(function(memo, type){
+      const value = _.getIn(state, ["components", type, id]);
+      return _.assoc(memo, type, value);
+    }, {}, which);
+  }, ids);
+}
