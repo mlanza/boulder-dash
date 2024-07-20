@@ -31,3 +31,304 @@ body {
 [data-what='dirt'] {
   background-position: -32px -224px;
 }
+[data-x='0'] {
+  left: 0;
+}
+[data-x='1'] {
+  left: 32px;
+}
+[data-x='2'] {
+  left: 64px;
+}
+[data-x='3'] {
+  left: 96px;
+}
+[data-x='4'] {
+  left: 128px;
+}
+[data-x='5'] {
+  left: 160px;
+}
+[data-x='6'] {
+  left: 192px;
+}
+[data-x='7'] {
+  left: 224px;
+}
+[data-x='8'] {
+  left: 256px;
+}
+[data-x='9'] {
+  left: 288px;
+}
+[data-x='10'] {
+  left: 320px;
+}
+[data-x='11'] {
+  left: 352px;
+}
+[data-x='12'] {
+  left: 384px;
+}
+[data-x='13'] {
+  left: 416px;
+}
+[data-x='14'] {
+  left: 448px;
+}
+[data-x='15'] {
+  left: 480px;
+}
+[data-x='16'] {
+  left: 512px;
+}
+[data-x='17'] {
+  left: 544px;
+}
+[data-x='18'] {
+  left: 576px;
+}
+[data-x='19'] {
+  left: 608px;
+}
+[data-x='20'] {
+  left: 640px;
+}
+[data-x='21'] {
+  left: 672px;
+}
+[data-x='22'] {
+  left: 704px;
+}
+[data-x='23'] {
+  left: 736px;
+}
+[data-x='24'] {
+  left: 768px;
+}
+[data-x='25'] {
+  left: 800px;
+}
+[data-x='26'] {
+  left: 832px;
+}
+[data-x='27'] {
+  left: 864px;
+}
+[data-x='28'] {
+  left: 896px;
+}
+[data-x='29'] {
+  left: 928px;
+}
+[data-x='30'] {
+  left: 960px;
+}
+[data-x='31'] {
+  left: 992px;
+}
+[data-x='32'] {
+  left: 1024px;
+}
+[data-x='33'] {
+  left: 1056px;
+}
+[data-x='34'] {
+  left: 1088px;
+}
+[data-x='35'] {
+  left: 1120px;
+}
+[data-x='36'] {
+  left: 1152px;
+}
+[data-x='37'] {
+  left: 1184px;
+}
+[data-x='38'] {
+  left: 1216px;
+}
+[data-x='39'] {
+  left: 1248px;
+}
+[data-x='40'] {
+  left: 1280px;
+}
+[data-x='41'] {
+  left: 1312px;
+}
+[data-x='42'] {
+  left: 1344px;
+}
+[data-x='43'] {
+  left: 1376px;
+}
+[data-x='44'] {
+  left: 1408px;
+}
+[data-x='45'] {
+  left: 1440px;
+}
+[data-x='46'] {
+  left: 1472px;
+}
+[data-x='47'] {
+  left: 1504px;
+}
+[data-x='48'] {
+  left: 1536px;
+}
+[data-x='49'] {
+  left: 1568px;
+}
+[data-y='0'] {
+  top: 0;
+}
+[data-y='1'] {
+  top: 32px;
+}
+[data-y='2'] {
+  top: 64px;
+}
+[data-y='3'] {
+  top: 96px;
+}
+[data-y='4'] {
+  top: 128px;
+}
+[data-y='5'] {
+  top: 160px;
+}
+[data-y='6'] {
+  top: 192px;
+}
+[data-y='7'] {
+  top: 224px;
+}
+[data-y='8'] {
+  top: 256px;
+}
+[data-y='9'] {
+  top: 288px;
+}
+[data-y='10'] {
+  top: 320px;
+}
+[data-y='11'] {
+  top: 352px;
+}
+[data-y='12'] {
+  top: 384px;
+}
+[data-y='13'] {
+  top: 416px;
+}
+[data-y='14'] {
+  top: 448px;
+}
+[data-y='15'] {
+  top: 480px;
+}
+[data-y='16'] {
+  top: 512px;
+}
+[data-y='17'] {
+  top: 544px;
+}
+[data-y='18'] {
+  top: 576px;
+}
+[data-y='19'] {
+  top: 608px;
+}
+[data-y='20'] {
+  top: 640px;
+}
+[data-y='21'] {
+  top: 672px;
+}
+[data-y='22'] {
+  top: 704px;
+}
+[data-y='23'] {
+  top: 736px;
+}
+[data-y='24'] {
+  top: 768px;
+}
+[data-y='25'] {
+  top: 800px;
+}
+[data-y='26'] {
+  top: 832px;
+}
+[data-y='27'] {
+  top: 864px;
+}
+[data-y='28'] {
+  top: 896px;
+}
+[data-y='29'] {
+  top: 928px;
+}
+[data-y='30'] {
+  top: 960px;
+}
+[data-y='31'] {
+  top: 992px;
+}
+[data-y='32'] {
+  top: 1024px;
+}
+[data-y='33'] {
+  top: 1056px;
+}
+[data-y='34'] {
+  top: 1088px;
+}
+[data-y='35'] {
+  top: 1120px;
+}
+[data-y='36'] {
+  top: 1152px;
+}
+[data-y='37'] {
+  top: 1184px;
+}
+[data-y='38'] {
+  top: 1216px;
+}
+[data-y='39'] {
+  top: 1248px;
+}
+[data-y='40'] {
+  top: 1280px;
+}
+[data-y='41'] {
+  top: 1312px;
+}
+[data-y='42'] {
+  top: 1344px;
+}
+[data-y='43'] {
+  top: 1376px;
+}
+[data-y='44'] {
+  top: 1408px;
+}
+[data-y='45'] {
+  top: 1440px;
+}
+[data-y='46'] {
+  top: 1472px;
+}
+[data-y='47'] {
+  top: 1504px;
+}
+[data-y='48'] {
+  top: 1536px;
+}
+[data-y='49'] {
+  top: 1568px;
+}
+
