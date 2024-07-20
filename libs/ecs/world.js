@@ -104,10 +104,7 @@ export function getComponents(self, which, ids){
   }, ids);
 }
 
-export function addEvents(self, events){
-  return _.update(self, "events", _.conj(_, ...events));
-}
-
+export const addEvents = _.assoc(_, "events", _);
 export const added = _.eq(_, "added");
 export const removed = _.eq(_, "removed");
 export const updated = _.eq(_, "updated");
