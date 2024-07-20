@@ -194,7 +194,7 @@ function reconcile({type, details}){
   switch(type){
     case "unrender": {
       const {id} = details;
-      _.maybe(dom.sel1(`#${id}`, el), dom.omit(el, _));
+      _.maybe(document.getElementById(id), dom.omit(el, _));
       break;
     }
 
