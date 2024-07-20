@@ -10,25 +10,25 @@ body {
   width: 1280px;
   height: 704px;
 }
-[data-what] {
+[data-noun] {
   position: absolute;
   height: 32px;
   width: 32px;
   background-image: url(./images/sprites.png);
 }
-[data-what='Rockford'] {
+[data-noun='Rockford'] {
   background-position: 0 0;
 }
-[data-what='explosion'] {
+[data-noun='explosion'] {
   background-position: -64px 0;
 }
-[data-what='wall'] {
+[data-noun='wall'] {
   background-position: -96px -192px;
 }
-[data-what='boulder'] {
+[data-noun='boulder'] {
   background-position: 0 -224px;
 }
-[data-what='dirt'] {
+[data-noun='dirt'] {
   background-position: -32px -224px;
 }
 [data-x='0'] {
@@ -331,4 +331,3 @@ body {
 [data-y='49'] {
   top: 1568px;
 }
-

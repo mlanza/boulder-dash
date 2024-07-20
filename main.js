@@ -136,8 +136,9 @@ const load = _.pipe(
 
 const $state = $.atom(_.chain(board, load));
 const $keys = $.atom(["ArrowRight"]); //dom.depressed(document.body);
+const $positioned = $.atom(_.map([]));
 
-reg({$state, $keys});
+reg({$state, $keys, $positioned});
 
 function control(world){
   const keys = _.seq(_.deref($keys));
@@ -194,6 +195,7 @@ function reconcile({type, details}){
   switch(type){
     case "unrender": {
       const {id} = details;
+      $.swap($positioned, _.dissoc(_, id));
       _.maybe(document.getElementById(id), dom.omit(el, _));
       break;
     }
@@ -201,8 +203,9 @@ function reconcile({type, details}){
     case "render": {
       const {id, positioned, noun} = details;
       const [x, y] = positioned;
+      $.swap($positioned, _.assoc(_, positioned, id));
       dom.append(el,
-        $.doto(div({"data-what": noun, id}),
+        $.doto(div({"data-noun": noun, id}),
           dom.attr(_, "data-x", x),
           dom.attr(_, "data-y", y)));
       break;
