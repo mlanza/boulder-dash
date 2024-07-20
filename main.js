@@ -135,19 +135,35 @@ const load = _.pipe(
   }, blank, _));
 
 const $state = $.atom(_.chain(board, load));
-const $keys = $.atom(["ArrowUp"]); //dom.depressed(document.body);
+const $keys = $.atom(["ArrowUp", "ShiftKey"]); //dom.depressed(document.body);
 const $positioned = $.atom(_.map([]));
 
 reg({$state, $keys, $positioned});
 
+const vertical = _.get({"ArrowUp": -1, "ArrowDown": 1}, _, 0);
+const horizontal = _.get({"ArrowLeft": -1, "ArrowRight": 1}, _, 0);
+function at(coords){
+  return _.get(_.deref($positioned), coords);
+}
+
 function control(world){
   const keys = _.seq(_.deref($keys));
   if (keys){
+    const shift = _.includes(keys, "ShiftKey");
+    const key = _.first(_.omit(keys, "ShiftKey"));
     const controlled = _.chain(
-      w.getEntities(world, {positioned: null, controlled: null}),
-      w.getComponents(world, ["positioned", "controlled"], _),
-      _.toArray);
-    return world;
+      w.queryEntities(world, {positioned: null, controlled: null}),
+      w.getEntities(world, ["positioned", "controlled"], _));
+    return _.reduce(function(memo, {id, components}){
+      const {positioned} = components;
+      const [x, y] = positioned;
+      const beyond = [x + horizontal(key), y + vertical(key)];
+      const beyondId = at(beyond);
+      const ent = _.first(w.getEntities(world, ["diggable", "pushable", "positioned", "noun"], [beyondId]));
+      return _.chain(memo,
+        ent?.components?.diggable ? dig(beyondId) : ent?.components?.pushable ? push(beyondId, key) : _.identity,
+        move(id, key));
+    }, world, controlled);
   } else {
     return world;
   }
@@ -160,26 +176,32 @@ function event(type){ //basic event (can be further enriched)
   }
 }
 
-function dig(coords){
+function move(id, key){
   return function(world){
-    const ids = w.getEntities(world, {positioned: _.complement(w.removed)}, _.complement(w.removed));
-    const dirt = _.detect(function({id, components}){
-      const {positioned} = components;
-      return _.eq(coords, positioned);
-    }, w.getComponents(world, ["positioned"], ids));
-    const id = dirt?.id;
+    return world; //TODO
+  };
+}
+
+function push(id, key){
+  return function(world){
+    return world; //TODO
+  };
+}
+
+function dig(id){
+  return function(world){
     return w.removeEntities(world, [id]);
   }
 }
 
 function render(world){ //system
   return _.chain(
-    w.getEntities(world, {positioned: null}, _.or(w.removed, w.added)),
-    w.getComponents(world, ["positioned", "noun"], _),
+    w.getTouchedEntities(world, _.or(w.added, w.removed)),
+    w.getEntities(world, ["positioned", "noun"], _),
     _.sort(_.asc(_.getIn(_, ["touched", "positioned"])), _.asc(_.getIn(_, ["components", "positioned", 1])), _.asc(_.getIn(_, ["components", "positioned", 0])), _),
     _.mapa(function({id, components, touched}){
       const {positioned, noun} = components;
-      switch(touched.positioned){
+      switch(touched.entity){
         case "added":
           return {type: "render", details: {id, positioned, noun}};
         case "removed":
@@ -213,7 +235,9 @@ function reconcile({type, details}){
   }
 }
 
-$.sub($state, _.map(w.events), $.each(reconcile, _))
+$.sub($state, _.map(w.events), $.each(reconcile, _));
+
+$.swap($state, render);
+$.swap($state, p.wipe);
 $.swap($state, control);
-$.swap($state, dig([1,2]));
 $.swap($state, render);
