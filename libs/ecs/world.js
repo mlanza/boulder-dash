@@ -5,11 +5,11 @@ import * as p from "./itouchable.js";
 import {ITouchable} from "./itouchable.js";
 export {wipe, touched} from "./itouchable.js";
 
-function World(lastid, entities, components, events){
+function World(lastid, entities, components, effects){
   this.lastid = lastid;
   this.entities = entities;
   this.components = components;
-  this.events = events; //used to direct the stage, to tell the ui how to reconcile the world model
+  this.effects = effects; //used to direct the stage, to tell the ui how to reconcile the world model
 }
 
 function wipe(self){
@@ -87,25 +87,27 @@ export function removeEntities(self, ids){
     _.reducekv(function(memo, key, map){
      return _.assoc(memo, key, _.reduce(_.dissoc, map, ids));
     }, {}, self.components),
-    self.events);
+    self.effects);
 }
 
-export function getEntity(self, which, id){
+export function getEntity(self, id, which = _.keys(_.get(self, "components"))){
   const touch = _.plug(p.touched, _, id);
   const components = _.reduce(function(memo, type){
     const value = _.getIn(self, ["components", type, id]);
     return _.assoc(memo, type, value);
   }, {}, which);
   const touched = _.reduce(function(memo, type){
-    const touched = _.chain(self, _.getIn(_, ["components", type]), touch);
+    const [v, touched] = _.maybe(self, _.getIn(_, ["components", type]), touch) || [null, "n/a"];
     return _.assoc(memo, type, touched);
   }, {}, which);
-  const entity = _.chain(self, touch);
+  const [v, entity] = _.chain(self, touch);
   return {id, components, touched: _.merge(touched, {entity})};
 }
 
-export function getEntities(self, which, ids){
-  return _.map(_.partial(getEntity, self, which), ids);
+export function getEntities(self, ids, which = _.keys(_.get(self, "components"))){
+  return _.map(function(id){
+    return getEntity(self, id, which);
+  }, ids);
 }
 
 export function getTouchedEntities(self, pred = any){
@@ -117,11 +119,14 @@ export function getTouchedEntities(self, pred = any){
     _.mapa(_.first, _));
 }
 
-export const addEvents = _.assoc(_, "events", _);
+export function addEffects(self, effects){
+  return _.update(self, "effects", _.conj(_, ...effects));
+}
+
 export const added = _.eq(_, "added");
 export const removed = _.eq(_, "removed");
 export const updated = _.eq(_, "updated");
 
-export function events(self){
-  return self.events;
+export function effects(self){
+  return self.effects;
 }
