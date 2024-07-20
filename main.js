@@ -1,8 +1,8 @@
-import _ from "./atomic_/core.js";
-import $ from "./atomic_/shell.js";
-import dom from "./atomic_/dom.js";
-import {reg} from "./cmd.js";
-import * as s from "./ecs/slate.js";
+import _ from "./libs/atomic_/core.js";
+import $ from "./libs/atomic_/shell.js";
+import dom from "./libs/atomic_/dom.js";
+import {reg} from "./libs/cmd.js";
+import * as s from "./libs/ecs/slate.js";
 
 const addNoun = s.addComponent("nouns"),
       addDescribed = s.addComponent("described"),
