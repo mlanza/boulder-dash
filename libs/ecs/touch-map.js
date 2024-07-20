@@ -29,7 +29,7 @@ function lookup(self, key){
 }
 
 function touched1(self){
-  return _.keys(self.touched);
+  return _.seq(self.touched);
 }
 
 function touched2(self, key){

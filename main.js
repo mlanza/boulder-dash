@@ -4,6 +4,9 @@ import dom from "./libs/atomic_/dom.js";
 import {reg} from "./libs/cmd.js";
 import * as s from "./libs/ecs/slate.js";
 
+const div = dom.tag("div");
+const el = dom.sel1("#stage");
+
 const addNoun = s.addComponent("nouns"),
       addDescribed = s.addComponent("described"),
       addPushable = s.addComponent("pushable"),
@@ -128,13 +131,29 @@ const load = _.pipe(
   _.spread(_.concat),
   _.reduce(function(memo, {coords, piece}){
     return _.chain(memo, piece(coords));
-  }, blank, _),
-  s.wipe);
+  }, blank, _));
+
+function render(comps){
+  return _.map(function({positioned, nouns}){
+    const [x, y] = positioned;
+    return $.doto(div({"data-what": nouns}),
+      dom.addStyle(_, "top", `${32 * y}px`),
+      dom.addStyle(_, "left", `${32 * x}px`));
+  }, comps);
+}
 
 const b = _.chain(board, load);
+const ids = s.getEntities(b, {positioned: null});
+const comps = _.chain(
+  s.getComponents(b, ["positioned", "nouns"], ids),
+  _.sort(_.asc(_.getIn(_, ["positioned", 0])), _.asc(_.getIn(_, ["positioned", 1])), _));
+
+dom.html(el, _.toArray(render(comps)));
+
+reg({comps, ids, b});
 
 /* ---- */
-
+/*
 const stage = dom.sel1("#stage");
 const ctx = stage.getContext('2d');
 const dim = 32;
@@ -209,15 +228,16 @@ $.each(function([x, y]){
   xs = _.next(xs);
 }, positions);
 
-/*
+
 explode1(1, 0);
 explode2(2, 0);
 explode3(3, 0);
+
+
+
+
+
+
+
+
 */
-
-
-
-
-
-
-
