@@ -167,9 +167,7 @@ function dig(coords){
       return _.eq(coords, positioned);
     }, w.getComponents(world, ["positioned"], ids));
     const id = dirt?.id;
-    return _.chain(world,
-      w.removeEntities(_, [id]),
-      w.addEvents(_, [{type: "unrender", details: {id}}]));
+    return w.removeEntities(world, [id]);
   }
 }
 
@@ -177,7 +175,7 @@ function render(world){ //system
   return _.chain(
     w.getEntities(world, {positioned: null}, _.or(w.removed, w.added)),
     w.getComponents(world, ["positioned", "noun"], _),
-    _.sort(_.asc(_.getIn(_, ["components", "positioned", 1])), _.asc(_.getIn(_, ["components", "positioned", 0])), _),
+    _.sort(_.asc(_.getIn(_, ["touched", "positioned"])), _.asc(_.getIn(_, ["components", "positioned", 1])), _.asc(_.getIn(_, ["components", "positioned", 0])), _),
     _.mapa(function({id, components, touched}){
       const {positioned, noun} = components;
       switch(touched.positioned){
