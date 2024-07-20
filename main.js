@@ -142,8 +142,13 @@ reg({$state, $keys, $positioned});
 
 const vertical = _.get({"ArrowUp": -1, "ArrowDown": 1}, _, 0);
 const horizontal = _.get({"ArrowLeft": -1, "ArrowRight": 1}, _, 0);
+
 function at(coords){
   return _.get(_.deref($positioned), coords);
+}
+
+function nearby([x, y], key, offset = 1){
+  return [x + horizontal(key) * offset, y + vertical(key) * offset];
 }
 
 function control(world){
@@ -156,8 +161,7 @@ function control(world){
       w.getEntities(world, ["positioned", "controlled"], _));
     return _.reduce(function(memo, {id, components}){
       const {positioned} = components;
-      const [x, y] = positioned;
-      const beyond = [x + horizontal(key), y + vertical(key)];
+      const beyond = nearby(positioned, key);
       const beyondId = at(beyond);
       const ent = _.first(w.getEntities(world, ["diggable", "pushable", "positioned", "noun"], [beyondId]));
       return _.chain(memo,
