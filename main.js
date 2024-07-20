@@ -108,7 +108,7 @@ function boulder(coords){
     addPositioned(coords));
 }
 
-const adds = _.get({".": dirt, "r": rockford, "o": boulder, "w": wall, "s": steelWall, "d": diamond}, _, _.constantly(_.identity));
+const spawn = _.get({".": dirt, "r": rockford, "o": boulder, "w": wall, "s": steelWall, "d": diamond}, _, _.constantly(_.identity));
 
 const board = `
 wwwwwwwwww
@@ -125,7 +125,7 @@ const load = _.pipe(
   _.mapIndexed(function(row, chars){
     return _.mapIndexed(function(col, char){
       const coords = [col, row],
-            piece = adds(char);
+            piece = spawn(char);
       return {coords, piece};
     }, _.seq(chars));
   }, _),
@@ -135,7 +135,7 @@ const load = _.pipe(
   }, blank, _));
 
 const $state = $.atom(_.chain(board, load));
-const $keys = $.atom(["ArrowRight"]); //dom.depressed(document.body);
+const $keys = $.atom(["ArrowUp"]); //dom.depressed(document.body);
 const $positioned = $.atom(_.map([]));
 
 reg({$state, $keys, $positioned});
