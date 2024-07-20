@@ -22,9 +22,21 @@ function wipe(self){
     []);
 }
 
+function touched1(self){
+  return _.chain(self, _.get(_, "entities"), p.touched);
+}
+
+function touched2(self, id){
+  return _.chain(self, _.get(_, "entities"), _.plug(p.touched, _, id));
+}
+
+const touched = _.overload(null, touched1, touched2);
+
 $.doto(World,
   _.record,
-  _.implement(ITouchable, {wipe}));
+  _.implement(ITouchable, {touched, wipe}));
+
+export const any = _.constantly(true);
 
 export function world(){
   return new World(null, touchMap(), {}, []);
@@ -35,54 +47,71 @@ export function defComponent(type){
 }
 
 export function addEntity(identifier = _.pipe(_.nullary($.uid), _.str), value = null){
-  return function(state){
+  return function(self){
     const uid = identifier(value);
-    return _.chain(state,
+    return _.chain(self,
       _.assoc(_, "lastid", uid),
       _.assocIn(_, ["entities", uid], value));
   }
 }
 
-export const addComponent = _.curry(function(type, value, state){
-  if (!_.getIn(state, ["components", type])) {
+export const addComponent = _.curry(function(type, value, self){
+  if (!_.getIn(self, ["components", type])) {
     throw new Error(`There are no ${type} components.`);
   }
-  return _.assocIn(state, ["components", type, _.get(state, "lastid")], value);
+  return _.assocIn(self, ["components", type, _.get(self, "lastid")], value);
 });
 
-
-export function getEntities(state, crit){
+export function getEntities(self, crit, pred = any){
   return _.chain(crit,
     _.reducekv(function(memo, type, pred){
-      const ids = _.chain(state,
+      const ids = _.chain(self,
         _.getIn(_, ["components", type]),
         p.touched,
-        _.filter(_.pipe(_.second, pred || _.constantly(true)), _),
+        _.filter(_.pipe(_.second, pred || any), _),
         _.mapa(_.first, _));
       return _.assoc(memo, type, ids);
-    }, {}, _), _.vals, _.spread(function(set, ...sets){
+    }, {}, _),
+    _.vals,
+    _.spread(function(set, ...sets){
       return _.reduce(_.intersection, set, sets);
-    }));
+    }),
+    _.filtera(_.pipe(_.partial(p.touched, self), pred), _));
 }
 
-export function getComponents(state, which, ids){
+export function removeEntities(self, ids){
+  return new World(self.lastid,
+    _.reduce(_.dissoc, self.entities, ids),
+    _.reducekv(function(memo, key, map){
+     return _.assoc(memo, key, _.reduce(_.dissoc, map, ids));
+    }, {}, self.components),
+    self.events);
+}
+
+export function getComponents(self, which, ids){
   return _.map(function(id){
+    const touch = _.plug(p.touched, _, id);
     const components = _.reduce(function(memo, type){
-      const value = _.getIn(state, ["components", type, id]);
+      const value = _.getIn(self, ["components", type, id]);
       return _.assoc(memo, type, value);
     }, {}, which);
-    return {id, components};
+    const touched = _.reduce(function(memo, type){
+      const touched = _.chain(self, _.getIn(_, ["components", type]), touch);
+      return _.assoc(memo, type, touched);
+    }, {}, which);
+    const entity = _.chain(self, touch);
+    return {id, components, touched: _.merge(touched, {entity})};
   }, ids);
 }
 
-export function addEvents(state, events){
-  return _.update(state, "events", _.conj(_, ...events));
+export function addEvents(self, events){
+  return _.update(self, "events", _.conj(_, ...events));
 }
 
 export const added = _.eq(_, "added");
 export const removed = _.eq(_, "removed");
 export const updated = _.eq(_, "updated");
 
-export function events(state){
-  return state.events;
+export function events(self){
+  return self.events;
 }
