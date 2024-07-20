@@ -1,0 +1,10 @@
+body {
+  background-color: black;
+  background-color: #36454f;
+  background-color: #242F36;
+
+}
+#stage {
+  border: solid 1px maroon;
+  scale: 1;
+}
