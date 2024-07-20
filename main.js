@@ -158,12 +158,12 @@ function control(world){
     const key = _.first(_.omit(keys, "ShiftKey"));
     const controlled = _.chain(
       w.queryEntities(world, {positioned: null, controlled: null}),
-      w.getEntities(world, ["positioned", "controlled"], _));
+      w.getEntities(world, _, ["positioned", "controlled"]));
     return _.reduce(function(memo, {id, components}){
       const {positioned} = components;
       const beyond = nearby(positioned, key);
       const beyondId = at(beyond);
-      const ent = _.first(w.getEntities(world, ["diggable", "pushable", "positioned", "noun"], [beyondId]));
+      const ent = _.first(w.getEntities(world, [beyondId], ["diggable", "pushable", "positioned", "noun"]));
       return _.chain(memo,
         ent?.components?.diggable ? dig(beyondId) : ent?.components?.pushable ? push(beyondId, key) : _.identity,
         move(id, key));
@@ -173,7 +173,7 @@ function control(world){
   }
 }
 
-function event(type){ //basic event (can be further enriched)
+function effect(type){ //basic effect (can be further enriched)
   return function({id, components, touched}){
     const details = _.merge({id, touched}, components);
     return {type, details};
@@ -192,36 +192,35 @@ function push(id, key){
   };
 }
 
+function removeEntities(world, ids){
+  const events = _.mapa(effect("unrender"), w.getEntities(world, ids, ["positioned"]));
+  return _.chain(world,
+    w.removeEntities(_, ids),
+    w.addEffects(_, events)); //TODO I don't like this here
+}
+
 function dig(id){
   return function(world){
-    return w.removeEntities(world, [id]);
+    return removeEntities(world, [id]);
   }
 }
 
 function render(world){ //system
   return _.chain(
-    w.getTouchedEntities(world, _.or(w.added, w.removed)),
-    w.getEntities(world, ["positioned", "noun"], _),
+    w.getTouchedEntities(world, w.added),
+    w.getEntities(world, _, ["positioned", "noun"]),
     _.sort(_.asc(_.getIn(_, ["touched", "positioned"])), _.asc(_.getIn(_, ["components", "positioned", 1])), _.asc(_.getIn(_, ["components", "positioned", 0])), _),
-    _.mapa(function({id, components, touched}){
-      const {positioned, noun} = components;
-      switch(touched.entity){
-        case "added":
-          return {type: "render", details: {id, positioned, noun}};
-        case "removed":
-          return {type: "unrender", details: {id}};
-      }
-      throw new Error(`Unknown touch ${touch?.positioned}`);
-    }, _),
-    w.addEvents(world, _));
+    _.mapa(effect("render"), _),
+    w.addEffects(world, _));
 }
 
 function reconcile({type, details}){
   $.log("reconciling", type, details);
+
   switch(type){
     case "unrender": {
-      const {id} = details;
-      $.swap($positioned, _.dissoc(_, id));
+      const {id, positioned} = details;
+      $.swap($positioned, _.dissoc(_, positioned));
       _.maybe(document.getElementById(id), dom.omit(el, _));
       break;
     }
@@ -239,9 +238,23 @@ function reconcile({type, details}){
   }
 }
 
-$.sub($state, _.map(w.events), $.each(reconcile, _));
+$.sub($state, _.map(w.effects), $.each(reconcile, _));
+
+
+function events(state){
+  const ents = _.toArray(w.getEntities(state, w.getTouchedEntities(state)));
+  debugger
+}
+
 
 $.swap($state, render);
+//_.chain($state, _.deref, events);
+
 $.swap($state, p.wipe);
 $.swap($state, control);
+$.swap($state, p.wipe);
 $.swap($state, render);
+$.swap($state, p.wipe);
+
+//$.swap($state, _.pipe(render, control, render));
+
