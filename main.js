@@ -3,11 +3,12 @@ import $ from "./libs/atomic_/shell.js";
 import dom from "./libs/atomic_/dom.js";
 import {reg} from "./libs/cmd.js";
 import w from "./libs/ecs_/world.js";
+import p from "./libs/ecs_/itouchable.js";
 
 const div = dom.tag("div");
 const el = dom.sel1("#stage");
 
-const addNoun = w.addComponent("nouns"),
+const addNoun = w.addComponent("noun"),
       addDescribed = w.addComponent("described"),
       addPushable = w.addComponent("pushable"),
       addDiggable = w.addComponent("diggable"),
@@ -22,7 +23,7 @@ const addNoun = w.addComponent("nouns"),
 
 const blank = _.chain(
   w.world(),
-  w.defComponent("nouns"),
+  w.defComponent("noun"),
   w.defComponent("pushable"),
   w.defComponent("diggable"),
   w.defComponent("rounded"),
@@ -151,33 +152,67 @@ function control(world){
   }
 }
 
+function event(type){ //basic event (can be further enriched)
+  return function({id, components, touched}){
+    const details = _.merge({id, touched}, components);
+    return {type, details};
+  }
+}
+
+function dig(coords){
+  return function(world){
+    const ids = w.getEntities(world, {positioned: _.complement(w.removed)}, _.complement(w.removed));
+    const dirt = _.detect(function({id, components}){
+      const {positioned} = components;
+      return _.eq(coords, positioned);
+    }, w.getComponents(world, ["positioned"], ids));
+    const id = dirt?.id;
+    return _.chain(world,
+      w.removeEntities(_, [id]),
+      w.addEvents(_, [{type: "unrender", details: {id}}]));
+  }
+}
+
 function render(world){ //system
-  const type = "render";
-  const ids = w.getEntities(world, {positioned: w.added});
-  const events = _.chain(
-    w.getComponents(world, ["positioned", "nouns"], ids),
+  return _.chain(
+    w.getEntities(world, {positioned: null}, _.or(w.removed, w.added)),
+    w.getComponents(world, ["positioned", "noun"], _),
     _.sort(_.asc(_.getIn(_, ["components", "positioned", 1])), _.asc(_.getIn(_, ["components", "positioned", 0])), _),
-    _.mapa(function({id, components}){
-      const details = _.merge({id}, components);
-      return {type, details};
-    }, _));
-  return w.addEvents(world, events);
+    _.mapa(function({id, components, touched}){
+      const {positioned, noun} = components;
+      switch(touched.positioned){
+        case "added":
+          return {type: "render", details: {id, positioned, noun}};
+        case "removed":
+          return {type: "unrender", details: {id}};
+      }
+      throw new Error(`Unknown touch ${touch?.positioned}`);
+    }, _),
+    w.addEvents(world, _));
 }
 
 function reconcile({type, details}){
+  $.log("reconciling", type, details);
   switch(type){
-    case "render":
-      const {id, positioned, nouns} = details;
+    case "unrender": {
+      const {id} = details;
+      _.maybe(dom.sel1(`#${id}`, el), dom.omit(el, _));
+      break;
+    }
+
+    case "render": {
+      const {id, positioned, noun} = details;
       const [x, y] = positioned;
       dom.append(el,
-        $.doto(div({"data-what": nouns, id}),
+        $.doto(div({"data-what": noun, id}),
           dom.addStyle(_, "top", `${32 * y}px`),
           dom.addStyle(_, "left", `${32 * x}px`)));
       break;
+    }
   }
 }
 
 $.sub($state, _.map(w.events), $.each(reconcile, _))
-
-$.swap($state, render);
 $.swap($state, control);
+$.swap($state, dig([1,2]));
+$.swap($state, render);
