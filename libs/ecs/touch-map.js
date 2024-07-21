@@ -36,8 +36,8 @@ function touched2(self, key){
         p = _.contains(self.prior, key),
         curr = _.get(self.curr, key),
         prior = _.get(self.prior, key);
-  const mode = c && !p ? "added" : p && !c ? "removed" : _.eq(curr, prior) ? null : "updated";
-  return [key, mode, curr, prior];
+  const touch = c && !p ? "added" : p && !c ? "removed" : _.eq(curr, prior) ? null : "updated";
+  return [key, touch, curr, prior];
 }
 
 const touched = _.overload(null, touched1, touched2);

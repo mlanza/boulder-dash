@@ -110,15 +110,6 @@ export function getEntities(self, ids, which = _.keys(_.get(self, "components"))
   }, ids);
 }
 
-export function getTouchedEntities(self, pred = any){
-  return _.chain(self,
-    p.touched,
-    _.filter(function([id, touched]){
-      return pred(touched);
-    }, _),
-    _.mapa(_.first, _));
-}
-
 export function addEffects(self, effects){
   return _.update(self, "effects", _.conj(_, ...effects));
 }
