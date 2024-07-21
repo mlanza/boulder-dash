@@ -193,10 +193,10 @@ function push(id, key){
 }
 
 function removeEntities(world, ids){
-  const events = _.mapa(effect("unrender"), w.getEntities(world, ids, ["positioned"]));
+  const effects = _.mapa(effect("unrender"), w.getEntities(world, ids, ["positioned"]));
   return _.chain(world,
     w.removeEntities(_, ids),
-    w.addEffects(_, events)); //TODO I don't like this here
+    w.addEffects(_, effects)); //TODO I don't like this here
 }
 
 function dig(id){
