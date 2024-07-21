@@ -206,8 +206,10 @@ function dig(id){
 }
 
 function render(world){ //system
-  return _.chain(
-    w.getTouchedEntities(world, w.added),
+  return _.chain(world,
+    p.touched,
+    _.filter(_.comp(w.added, _.second), _),
+    _.map(_.first, _),
     w.getEntities(world, _, ["positioned", "noun"]),
     _.sort(_.asc(_.getIn(_, ["touched", "positioned"])), _.asc(_.getIn(_, ["components", "positioned", 1])), _.asc(_.getIn(_, ["components", "positioned", 0])), _),
     _.mapa(effect("render"), _),
@@ -240,21 +242,18 @@ function reconcile({type, details}){
 
 $.sub($state, _.map(w.effects), $.each(reconcile, _));
 
-
 function events(state){
-  const ents = _.toArray(w.getEntities(state, w.getTouchedEntities(state)));
-  debugger
+  const touched = _.chain(state, p.touched, _.toArray);
+  debugger;
+  //TODO
 }
 
-
 $.swap($state, render);
-//_.chain($state, _.deref, events);
-
+_.chain($state, _.deref, events);
 $.swap($state, p.wipe);
 $.swap($state, control);
+_.chain($state, _.deref, events);
 $.swap($state, p.wipe);
 $.swap($state, render);
 $.swap($state, p.wipe);
-
-//$.swap($state, _.pipe(render, control, render));
 
