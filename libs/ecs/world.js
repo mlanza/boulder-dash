@@ -101,10 +101,9 @@ export function entity3(self, id, components){
 export const entity = _.overload(null, null, entity2, entity3);
 
 function changed2(self, id){
-  const [v, touched] = p.touched(self, id);
+  const touched = p.touched(self, id);
   const components = _.reducekv(function(memo, key, map){
-    const [v, touched] = p.touched(map, id);
-    return _.assoc(memo, key, touched);
+    return _.assoc(memo, key, p.touched(map, id));
    }, {}, self.components);
   return {id, touched, components, hist: _.partial(change, self)};
 }
