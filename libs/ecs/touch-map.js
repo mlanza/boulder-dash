@@ -24,6 +24,10 @@ function dissoc(self, key){
   return new TouchMap(self.seen, _.dissoc(self.curr, key), self.prior);
 }
 
+function keys(self){
+  return _.keys(self.curr);
+}
+
 function lookup(self, key){
   return _.get(self.curr, key);
 }
@@ -35,10 +39,9 @@ function touched1(self){
 function touched2(self, key){
   const c = _.contains(self.curr, key),
         p = _.contains(self.prior, key),
-        curr = _.get(self.curr, key),
-        prior = _.get(self.prior, key);
-  const touch = c && !p ? "added" : p && !c ? "removed" : _.eq(curr, prior) ? null : "updated";
-  return [key, touch, curr, prior];
+        h = hist(self);
+  const touch = c && !p ? "added" : p && !c ? "removed" : _.eq(...h) ? null : "updated";
+  return [key, touch, ...h];
 }
 
 const touched = _.overload(null, touched1, touched2);
@@ -61,7 +64,7 @@ $.doto(TouchMap,
   _.implement(_.ISeqable, {seq}),
   _.implement(_.ILookup, {lookup}),
   _.implement(_.IAssociative, {assoc, contains}),
-  _.implement(_.IMap, {dissoc}));
+  _.implement(_.IMap, {dissoc, keys}));
 
 export function was(self, key){
   return _.get(self.prior, key);
@@ -81,4 +84,16 @@ export function ever(self, key){
 
 export function ephemeral(self, key){
   return ever(self, key) && !existed(self, key) && !exists(self, key);
+}
+
+export function removed(self){
+  return _.difference(_.set(_.keys(self.prior)), _.set(_.keys(self.curr)));
+}
+
+export function added(self){
+  return _.difference(_.set(_.keys(self.curr)), _.set(_.keys(self.prior)));
+}
+
+export function hist(self, key){
+  return _.mapa(_.get(_, key), [self.curr, self.prior]);
 }
