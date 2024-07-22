@@ -157,18 +157,15 @@ function control(world){
   if (keys){
     const shift = _.includes(keys, "ShiftKey");
     const key = _.first(_.omit(keys, "ShiftKey"));
-    const controlled = _.chain(
-      w.queryEntities(world, {positioned: null, controlled: null}),
-      w.getEntities(world, _, ["positioned", "controlled"]));
-    return _.reduce(function(memo, {id, components}){
-      const {positioned} = components;
+    return _.reduce(function(memo, id){
+      const {positioned} = w.entity(world, id, ["positioned", "controlled"]);
       const beyond = nearby(positioned, key);
       const beyondId = at(beyond);
-      const ent = _.first(w.getEntities(world, [beyondId], ["diggable", "pushable", "positioned", "noun"]));
+      const adjacent = w.entity(world, beyondId, ["diggable", "pushable", "positioned", "noun"]);
       return _.chain(memo,
-        ent?.components?.diggable ? dig(beyondId) : ent?.components?.pushable ? push(beyondId, key) : _.identity,
+        adjacent.diggable ? dig(beyondId) : adjacent.pushable ? push(beyondId, key) : _.identity,
         move(id, key));
-    }, world, controlled);
+    }, world, w.entities(world, "controlled"));
   } else {
     return world;
   }
@@ -193,12 +190,12 @@ function dig(id){
 }
 
 $.sub($changed, _.filter(_.seq), function(changed){
-  $.each(function({id, components, diff}){
+  $.each(function({id, components, hist}){
     const {positioned} = components;
     switch(positioned){
       case "added": {
-        const noun = _.chain(diff(id, "noun"), _.first);
-        const [x, y] = _.chain(diff(id, "positioned"), _.first);
+        const noun = _.chain(hist(id, "noun"), _.first);
+        const [x, y] = _.chain(hist(id, "positioned"), _.first);
         $.swap($positioned, _.assoc(_, [x ,y], id));
         dom.append(el,
           $.doto(div({"data-noun": noun, id}),
@@ -207,7 +204,7 @@ $.sub($changed, _.filter(_.seq), function(changed){
         break;
       }
       case "removed": {
-        const coords = _.chain(diff(id, "positioned"), _.first);
+        const coords = _.chain(hist(id, "positioned"), _.first);
         $.swap($positioned, _.dissoc(_, coords));
         _.maybe(document.getElementById(id), dom.omit(el, _));
         break;

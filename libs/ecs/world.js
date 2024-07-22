@@ -1,6 +1,6 @@
 import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
-import {touchMap} from "./touch-map.js";
+import {touchMap, hist} from "./touch-map.js";
 import * as p from "./itouchable.js";
 import {ITouchable} from "./itouchable.js";
 export {wipe, touched} from "./itouchable.js";
@@ -63,21 +63,21 @@ export const addComponent = _.curry(function(type, value, self){
   return _.assocIn(self, ["components", type, _.get(self, "lastId")], value == null ? true : value);
 });
 
-export function queryEntities(self, crit){
-  return _.chain(crit,
-    _.reducekv(function(memo, type, pred){
-      const ids = _.chain(self,
-        _.getIn(_, ["components", type]),
-        pred ? p.touched : _.seq,
-        _.filter(_.pipe(_.second, pred || any), _),
-        _.mapa(_.first, _));
-      return _.assoc(memo, type, ids);
-    }, {}, _),
-    _.vals,
+function entities1(self){
+  return _.chain(self, _.get(_, "entities"), _.keys);
+}
+
+function entities2(self, ...components){
+  return _.chain(components,
+    _.map(function(type){
+      return _.chain(self, _.getIn(_, ["components", type]), _.keys);
+    }, _),
     _.spread(function(set, ...sets){
       return _.reduce(_.intersection, set, sets);
     }));
 }
+
+export const entities = _.overload(null, entities1, entities2);
 
 export function removeEntities(self, ids){
   return new World(self.lastId,
@@ -87,29 +87,18 @@ export function removeEntities(self, ids){
     }, {}, self.components));
 }
 
-export function getEntity(self, id, which = _.keys(_.get(self, "components"))){
-  const touch = _.plug(p.touched, _, id);
-  const components = _.reduce(function(memo, type){
-    const value = _.getIn(self, ["components", type, id]);
-    return _.assoc(memo, type, value);
-  }, {}, which);
-  const touched = _.reduce(function(memo, type){
-    const [v, touched] = _.maybe(self, _.getIn(_, ["components", type]), touch) || [null, "n/a"];
-    return _.assoc(memo, type, touched);
-  }, {}, which);
-  const [v, entity] = _.chain(self, touch);
-  return {id, components, touched: _.merge(touched, {entity})};
+export function entity2(self, id){
+  return entity3(self, id, _.keys(_.get(self, "components")));
 }
 
-export function getEntities(self, ids, which = _.keys(_.get(self, "components"))){
-  return _.map(function(id){
-    return getEntity(self, id, which);
-  }, ids);
+export function entity3(self, id, components){
+  const value = _.getIn(self, ["entities", id]); //TODO make noniterable prop
+  return _.reduce(function(memo, component){
+    return _.assoc(memo, component, _.getIn(self, ["components", component, id]));
+  }, {id, value}, components);
 }
 
-export const added = _.eq(_, "added");
-export const removed = _.eq(_, "removed");
-export const updated = _.eq(_, "updated");
+export const entity = _.overload(null, null, entity2, entity3);
 
 function changed2(self, id){
   const [v, touched] = p.touched(self, id);
@@ -117,7 +106,7 @@ function changed2(self, id){
     const [v, touched] = p.touched(map, id);
     return _.assoc(memo, key, touched);
    }, {}, self.components);
-  return {id, touched, components, diff: _.partial(change, self)};
+  return {id, touched, components, hist: _.partial(change, self)};
 }
 
 function changed1(self){
@@ -129,13 +118,11 @@ function changed1(self){
 export const changed = _.overload(null, changed1, changed2);
 
 function change2(world, id){
-  const map = _.get(world, "entities");
-  return _.mapa(_.get(_, id), [map.curr, map.prior]);
+  return hist(_.get(world, "entities"), id);
 }
 
 function change3(world, id, component){
-  const map = _.getIn(world, ["components", component]);
-  return _.mapa(_.get(_, id), [map?.curr, map?.prior]);
+  return hist(_.getIn(world, ["components", component]), id);
 }
 
 const change = _.overload(null, null, change2, change3);
