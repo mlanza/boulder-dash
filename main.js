@@ -7,6 +7,7 @@ import p from "./libs/ecs_/itouchable.js";
 
 const div = dom.tag("div");
 const el = dom.sel1("#stage");
+const R = w.uids();
 
 const addNoun = w.addComponent("noun"),
       addDescribed = w.addComponent("described"),
@@ -52,7 +53,7 @@ function wall(coords){
 
 function rockford(coords){
   return _.pipe(
-    w.addEntity(),
+    w.addEntity(R),
     addNoun("Rockford"),
     addControlled({
       up: ["ArrowUp"],

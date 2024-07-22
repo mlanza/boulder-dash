@@ -21,28 +21,28 @@ function wipe(self){
 }
 
 function touched1(self){
-  return _.chain(self, _.get(_, "entities"), p.touched);
+  return _.chain(self.entities, p.touched);
 }
 
 function touched2(self, id){
-  return _.chain(self, _.get(_, "entities"), _.plug(p.touched, _, id));
+  return _.chain(self.entities, _.plug(p.touched, _, id));
 }
 
 const touched = _.overload(null, touched1, touched2);
 
 function selects(manner){
   function entity2(self, id){
-    return entity4(self, id, _.keys(_.get(self, "components")));
+    return entity4(self, id, _.keys(self.components));
   }
 
   function entity4(self, id, components){
     return _.reduce(function(memo, component){
-      return _.chain(self,
-        _.getIn(_, ["components", component]),
+      return _.chain(self.components,
+        _.get(_, component),
         manner,
         _.get(_, id),
         _.assoc(memo, component, _));
-    }, {id}, components);
+    }, {}, components);
   }
 
   return _.overload(null, null, entity2, entity4);
@@ -51,13 +51,46 @@ function selects(manner){
 export const current = selects(tm.current);
 export const prior = selects(tm.prior);
 export const entity = current;
+const lookup = _.binary(entity);
+
+function assoc(self, id, components) {
+  return new World(null,
+    _.assoc(self.entities, id, null),
+    _.reducekv(function(memo, type, value){
+      if (!self.components[type]) {
+        throw new Error(`There are no ${type} components.`);
+      }
+      return _.assocIn(memo, [type, id], value);
+    }, self.components, components));
+}
+
+function contains(self, id){
+  return _.contains(self.entities, id);
+}
 
 export function known(self){
   return _.union(_.set(_.keys(self.entities.curr)), _.set(_.keys(self.entities.prior)));
 }
 
+function dissoc(self, id){
+  return removeEntity(self, id);
+}
+
+function keys(self){
+  return _.keys(self.entities);
+}
+
+function seq(self){
+  return _.map(function(id){
+    return [id, _.get(self, id)];
+  }, _.keys(self));
+}
+
 $.doto(World,
-  _.record,
+  _.implement(_.IMap, {keys, dissoc}),
+  _.implement(_.ILookup, {lookup}),
+  _.implement(_.IAssociative, {assoc, contains}),
+  _.implement(_.ISeqable, {seq}),
   _.implement(ITouchable, {touched, wipe}));
 
 export const any = _.constantly(true);
@@ -67,7 +100,9 @@ export function world(){
 }
 
 export function defComponent(type){
-  return _.assocIn(_, ["components", type], tm.touchMap([]));
+  return function(self){
+    return new World(self.lastId, self.entities, _.assoc(self.components, type, tm.touchMap([])));
+  }
 }
 
 const alt = _.chance(8675309);
@@ -75,18 +110,16 @@ export const uids = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 
 export function addEntity(uid = uids()){
   return function(self){
-    return _.chain(self,
-      _.assoc(_, "lastId", uid),
-      _.assocIn(_, ["entities", uid], null));
+    return new World(uid, _.assoc(self.entities, uid, null), self.components);
   }
 }
 
 export function updateEntity(uid){
   return function(self){
-    if (!_.contains(_.get(self, "entities"), uid)) {
+    if (!_.contains(self.entities, uid)) {
       throw new Error(`Cannot update unknown entity ${uid}`);
     }
-    return _.assoc(self, "lastId", uid);
+    return new World(uid, self.entities, self.components);
   }
 }
 
@@ -99,20 +132,20 @@ export function removeEntity(self, ...ids){
 }
 
 export const addComponent = _.curry(function(type, value, self){
-  if (!_.getIn(self, ["components", type])) {
+  if (!self.components[type]) {
     throw new Error(`There are no ${type} components.`);
   }
-  return _.assocIn(self, ["components", type, _.get(self, "lastId")], value == null ? true : value);
+  return new World(self.lastId, self.entities, _.assocIn(self.components,[type, self.lastId], value == null ? true : value));
 });
 
 function entities1(self){
-  return _.chain(self, _.get(_, "entities"), _.keys);
+  return _.keys(self.entities);
 }
 
 function entities2(self, ...components){
   return _.chain(components,
     _.map(function(type){
-      return _.chain(self, _.getIn(_, ["components", type]), _.keys);
+      return _.keys(self.components[type]);
     }, _),
     _.spread(function(set, ...sets){
       return _.reduce(_.intersection, set, sets);
@@ -137,6 +170,6 @@ function changed1(self){
 
 export const changed = _.overload(null, changed1, changed2);
 
-function change(world, id, component){
-  return tm.hist(_.getIn(world, ["components", component]), id);
+function change(self, id, component){
+  return tm.hist(self.components[component], id);
 }
