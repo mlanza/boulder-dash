@@ -40,8 +40,7 @@ function touched2(self, key){
   const c = _.contains(self.curr, key),
         p = _.contains(self.prior, key),
         h = hist(self);
-  const touch = c && !p ? "added" : p && !c ? "removed" : _.eq(...h) ? null : "updated";
-  return [key, touch, ...h];
+  return c && !p ? "added" : p && !c ? "removed" : _.eq(...h) ? null : "updated";
 }
 
 const touched = _.overload(null, touched1, touched2);
