@@ -2,13 +2,14 @@ import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
 import {ITouchable} from "./itouchable.js";
 
-export function TouchMap(curr, prior = curr){
+export function TouchMap(seen, curr, prior = curr){
+  this.seen = seen;
   this.curr = curr;
   this.prior = prior;
 }
 
 export function touchMap(entries = []){
-  return new TouchMap(_.map(entries), _.map([]));
+  return new TouchMap(_.set([]), _.map(entries), _.map([]));
 }
 
 function contains(self, key){
@@ -16,11 +17,11 @@ function contains(self, key){
 }
 
 function assoc(self, key, value){
-  return new TouchMap(_.assoc(self.curr, key, value), self.prior);
+  return new TouchMap(_.conj(self.seen, key), _.assoc(self.curr, key, value), self.prior);
 }
 
 function dissoc(self, key){
-  return new TouchMap(_.dissoc(self.curr, key), self.prior);
+  return new TouchMap(self.seen, _.dissoc(self.curr, key), self.prior);
 }
 
 function lookup(self, key){
@@ -43,7 +44,7 @@ function touched2(self, key){
 const touched = _.overload(null, touched1, touched2);
 
 function wipe(self){
-  return new TouchMap(self.curr);
+  return new TouchMap(self.seen, self.curr);
 }
 
 function count(self){
@@ -61,3 +62,23 @@ $.doto(TouchMap,
   _.implement(_.ILookup, {lookup}),
   _.implement(_.IAssociative, {assoc, contains}),
   _.implement(_.IMap, {dissoc}));
+
+export function was(self, key){
+  return _.get(self.prior, key);
+}
+
+export function exists(self, key){
+  return _.contains(self.curr, key);
+}
+
+export function existed(self, key){
+  return _.contains(self.prior, key);
+}
+
+export function ever(self, key){
+  return _.contains(self.seen, key);
+}
+
+export function ephemeral(self, key){
+  return ever(self, key) && !existed(self, key) && !exists(self, key);
+}

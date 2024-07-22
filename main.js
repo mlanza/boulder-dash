@@ -135,10 +135,11 @@ const load = _.pipe(
   }, blank, _));
 
 const $state = $.atom(_.chain(board, load));
+const $changed = $.map(_.pipe(w.changed, _.toArray), $state);
 const $keys = $.atom(["ArrowUp", "ShiftKey"]); //dom.depressed(document.body);
 const $positioned = $.atom(_.map([]));
 
-reg({$state, $keys, $positioned});
+reg({$state, $changed, $positioned, $keys});
 
 const vertical = _.get({"ArrowUp": -1, "ArrowDown": 1}, _, 0);
 const horizontal = _.get({"ArrowLeft": -1, "ArrowRight": 1}, _, 0);
@@ -192,68 +193,35 @@ function push(id, key){
   };
 }
 
-function removeEntities(world, ids){
-  const effects = _.mapa(effect("unrender"), w.getEntities(world, ids, ["positioned"]));
-  return _.chain(world,
-    w.removeEntities(_, ids),
-    w.addEffects(_, effects)); //TODO I don't like this here
-}
-
 function dig(id){
   return function(world){
-    return removeEntities(world, [id]);
+    return w.removeEntities(world, [id]);
   }
 }
 
-function render(world){ //system
-  return _.chain(world,
-    p.touched,
-    _.filter(_.comp(w.added, _.second), _),
-    _.map(_.first, _),
-    w.getEntities(world, _, ["positioned", "noun"]),
-    _.sort(_.asc(_.getIn(_, ["touched", "positioned"])), _.asc(_.getIn(_, ["components", "positioned", 1])), _.asc(_.getIn(_, ["components", "positioned", 0])), _),
-    _.mapa(effect("render"), _),
-    w.addEffects(world, _));
-}
-
-function reconcile({type, details}){
-  $.log("reconciling", type, details);
-
-  switch(type){
-    case "unrender": {
-      const {id, positioned} = details;
-      $.swap($positioned, _.dissoc(_, positioned));
-      _.maybe(document.getElementById(id), dom.omit(el, _));
-      break;
+$.sub($changed, _.filter(_.seq), function(changed){
+  $.each(function({id, components, diff}){
+    const {positioned} = components;
+    switch(positioned){
+      case "added": {
+        const noun = _.chain(diff(id, "noun"), _.first);
+        const [x, y] = _.chain(diff(id, "positioned"), _.first);
+        $.swap($positioned, _.assoc(_, [x ,y], id));
+        dom.append(el,
+          $.doto(div({"data-noun": noun, id}),
+            dom.attr(_, "data-x", x),
+            dom.attr(_, "data-y", y)));
+        break;
+      }
+      case "removed": {
+        const coords = _.chain(diff(id, "positioned"), _.first);
+        $.swap($positioned, _.dissoc(_, coords));
+        _.maybe(document.getElementById(id), dom.omit(el, _));
+        break;
+      }
     }
+  }, changed);
+  $.swap($state, p.wipe);
+});
 
-    case "render": {
-      const {id, positioned, noun} = details;
-      const [x, y] = positioned;
-      $.swap($positioned, _.assoc(_, positioned, id));
-      dom.append(el,
-        $.doto(div({"data-noun": noun, id}),
-          dom.attr(_, "data-x", x),
-          dom.attr(_, "data-y", y)));
-      break;
-    }
-  }
-}
-
-$.sub($state, _.map(w.effects), $.each(reconcile, _));
-
-function events(state){
-  const touched = _.chain(state, p.touched, _.toArray);
-  debugger;
-  //TODO
-}
-
-$.swap($state, render);
-_.chain($state, _.deref, events);
-$.swap($state, p.wipe);
 $.swap($state, control);
-_.chain($state, _.deref, events);
-$.swap($state, p.wipe);
-$.swap($state, render);
-$.swap($state, p.wipe);
-

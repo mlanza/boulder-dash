@@ -5,11 +5,10 @@ import * as p from "./itouchable.js";
 import {ITouchable} from "./itouchable.js";
 export {wipe, touched} from "./itouchable.js";
 
-function World(lastid, entities, components, effects){
-  this.lastid = lastid;
+function World(lastId, entities, components){
+  this.lastId = lastId;
   this.entities = entities;
   this.components = components;
-  this.effects = effects; //used to direct the stage, to tell the ui how to reconcile the world model
 }
 
 function wipe(self){
@@ -18,8 +17,7 @@ function wipe(self){
     p.wipe(self.entities),
     _.reducekv(function(memo, key, map){
       return _.assoc(memo, key, p.wipe(map));
-    }, {}, self.components),
-    []);
+    }, {}, self.components));
 }
 
 function touched1(self){
@@ -39,7 +37,7 @@ $.doto(World,
 export const any = _.constantly(true);
 
 export function world(){
-  return new World(null, touchMap(), {}, []);
+  return new World(null, touchMap(), {});
 }
 
 export function defComponent(type){
@@ -53,7 +51,7 @@ export function addEntity(identifier = uids, value = null){
   return function(self){
     const uid = identifier(value);
     return _.chain(self,
-      _.assoc(_, "lastid", uid),
+      _.assoc(_, "lastId", uid),
       _.assocIn(_, ["entities", uid], value));
   }
 }
@@ -62,7 +60,7 @@ export const addComponent = _.curry(function(type, value, self){
   if (!_.getIn(self, ["components", type])) {
     throw new Error(`There are no ${type} components.`);
   }
-  return _.assocIn(self, ["components", type, _.get(self, "lastid")], value == null ? true : value);
+  return _.assocIn(self, ["components", type, _.get(self, "lastId")], value == null ? true : value);
 });
 
 export function queryEntities(self, crit){
@@ -82,12 +80,11 @@ export function queryEntities(self, crit){
 }
 
 export function removeEntities(self, ids){
-  return new World(self.lastid,
+  return new World(self.lastId,
     _.reduce(_.dissoc, self.entities, ids),
     _.reducekv(function(memo, key, map){
      return _.assoc(memo, key, _.reduce(_.dissoc, map, ids));
-    }, {}, self.components),
-    self.effects);
+    }, {}, self.components));
 }
 
 export function getEntity(self, id, which = _.keys(_.get(self, "components"))){
@@ -121,3 +118,32 @@ export const updated = _.eq(_, "updated");
 export function effects(self){
   return self.effects;
 }
+
+function changed2(self, id){
+  const [v, touched] = p.touched(self, id);
+  const components = _.reducekv(function(memo, key, map){
+    const [v, touched] = p.touched(map, id);
+    return _.assoc(memo, key, touched);
+   }, {}, self.components);
+  return {id, touched, components, diff: _.partial(change, self)};
+}
+
+function changed1(self){
+  return _.filter(function({touched, components}){
+    return touched || _.notEq({}, components);
+  }, _.map(_.partial(changed2, self), _.union(_.set(_.keys(self.entities.curr)), _.set(_.keys(self.entities.prior)))));
+}
+
+export const changed = _.overload(null, changed1, changed2);
+
+function change2(world, id){
+  const map = _.get(world, "entities");
+  return _.mapa(_.get(_, id), [map.curr, map.prior]);
+}
+
+function change3(world, id, component){
+  const map = _.getIn(world, ["components", component]);
+  return _.mapa(_.get(_, id), [map?.curr, map?.prior]);
+}
+
+const change = _.overload(null, null, change2, change3);
