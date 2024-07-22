@@ -174,13 +174,6 @@ function control(world){
   }
 }
 
-function effect(type){ //basic effect (can be further enriched)
-  return function({id, components, touched}){
-    const details = _.merge({id, touched}, components);
-    return {type, details};
-  }
-}
-
 function move(id, key){
   return function(world){
     return world; //TODO

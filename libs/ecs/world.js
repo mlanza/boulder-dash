@@ -107,17 +107,9 @@ export function getEntities(self, ids, which = _.keys(_.get(self, "components"))
   }, ids);
 }
 
-export function addEffects(self, effects){
-  return _.update(self, "effects", _.conj(_, ...effects));
-}
-
 export const added = _.eq(_, "added");
 export const removed = _.eq(_, "removed");
 export const updated = _.eq(_, "updated");
-
-export function effects(self){
-  return self.effects;
-}
 
 function changed2(self, id){
   const [v, touched] = p.touched(self, id);
