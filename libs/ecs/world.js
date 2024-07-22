@@ -56,6 +56,14 @@ export function addEntity(identifier = uids, value = null){
   }
 }
 
+export function removeEntities(self, ids){
+  return new World(self.lastId,
+    _.reduce(_.dissoc, self.entities, ids),
+    _.reducekv(function(memo, key, map){
+     return _.assoc(memo, key, _.reduce(_.dissoc, map, ids));
+    }, {}, self.components));
+}
+
 export const addComponent = _.curry(function(type, value, self){
   if (!_.getIn(self, ["components", type])) {
     throw new Error(`There are no ${type} components.`);
@@ -79,23 +87,14 @@ function entities2(self, ...components){
 
 export const entities = _.overload(null, entities1, entities2);
 
-export function removeEntities(self, ids){
-  return new World(self.lastId,
-    _.reduce(_.dissoc, self.entities, ids),
-    _.reducekv(function(memo, key, map){
-     return _.assoc(memo, key, _.reduce(_.dissoc, map, ids));
-    }, {}, self.components));
-}
-
 export function entity2(self, id){
   return entity3(self, id, _.keys(_.get(self, "components")));
 }
 
 export function entity3(self, id, components){
-  const value = _.getIn(self, ["entities", id]); //TODO make noniterable prop
   return _.reduce(function(memo, component){
     return _.assoc(memo, component, _.getIn(self, ["components", component, id]));
-  }, {id, value}, components);
+  }, _.assoc({id}, "value", _.getIn(self, ["entities", id])), components);
 }
 
 export const entity = _.overload(null, null, entity2, entity3);
