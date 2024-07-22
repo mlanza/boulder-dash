@@ -1,6 +1,6 @@
 import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
-import {touchMap, hist} from "./touch-map.js";
+import * as tm from "./touch-map.js";
 import * as p from "./itouchable.js";
 import {ITouchable} from "./itouchable.js";
 export {wipe, touched} from "./itouchable.js";
@@ -30,6 +30,32 @@ function touched2(self, id){
 
 const touched = _.overload(null, touched1, touched2);
 
+function selects(manner){
+  function entity2(self, id){
+    return entity4(self, id, _.keys(_.get(self, "components")));
+  }
+
+  function entity4(self, id, components){
+    return _.reduce(function(memo, component){
+      return _.chain(self,
+        _.getIn(_, ["components", component]),
+        manner,
+        _.get(_, id),
+        _.assoc(memo, component, _));
+    }, {id}, components);
+  }
+
+  return _.overload(null, null, entity2, entity4);
+}
+
+export const current = selects(tm.current);
+export const prior = selects(tm.prior);
+export const entity = current;
+
+export function known(self){
+  return _.union(_.set(_.keys(self.entities.curr)), _.set(_.keys(self.entities.prior)));
+}
+
 $.doto(World,
   _.record,
   _.implement(ITouchable, {touched, wipe}));
@@ -37,27 +63,35 @@ $.doto(World,
 export const any = _.constantly(true);
 
 export function world(){
-  return new World(null, touchMap(), {});
+  return new World(null, tm.touchMap(), {});
 }
 
 export function defComponent(type){
-  return _.assocIn(_, ["components", type], touchMap([]));
+  return _.assocIn(_, ["components", type], tm.touchMap([]));
 }
 
 const alt = _.chance(8675309);
 export const uids = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 
-export function addEntity(identifier = uids, value = null){
+export function addEntity(uid = uids()){
   return function(self){
-    const uid = identifier(value);
     return _.chain(self,
       _.assoc(_, "lastId", uid),
-      _.assocIn(_, ["entities", uid], value));
+      _.assocIn(_, ["entities", uid], null));
   }
 }
 
-export function removeEntities(self, ids){
-  return new World(self.lastId,
+export function updateEntity(uid){
+  return function(self){
+    if (!_.contains(_.get(self, "entities"), uid)) {
+      throw new Error(`Cannot update unknown entity ${uid}`);
+    }
+    return _.assoc(self, "lastId", uid);
+  }
+}
+
+export function removeEntity(self, ...ids){
+  return new World(null,
     _.reduce(_.dissoc, self.entities, ids),
     _.reducekv(function(memo, key, map){
      return _.assoc(memo, key, _.reduce(_.dissoc, map, ids));
@@ -87,18 +121,6 @@ function entities2(self, ...components){
 
 export const entities = _.overload(null, entities1, entities2);
 
-export function entity2(self, id){
-  return entity3(self, id, _.keys(_.get(self, "components")));
-}
-
-export function entity3(self, id, components){
-  return _.reduce(function(memo, component){
-    return _.assoc(memo, component, _.getIn(self, ["components", component, id]));
-  }, _.assoc({id}, "value", _.getIn(self, ["entities", id])), components);
-}
-
-export const entity = _.overload(null, null, entity2, entity3);
-
 function changed2(self, id){
   const touched = p.touched(self, id);
   const components = _.reducekv(function(memo, key, map){
@@ -110,17 +132,11 @@ function changed2(self, id){
 function changed1(self){
   return _.filter(function({touched, components}){
     return touched || _.notEq({}, components);
-  }, _.map(_.partial(changed2, self), _.union(_.set(_.keys(self.entities.curr)), _.set(_.keys(self.entities.prior)))));
+  }, _.map(_.partial(changed2, self), known(self)));
 }
 
 export const changed = _.overload(null, changed1, changed2);
 
-function change2(world, id){
-  return hist(_.get(world, "entities"), id);
+function change(world, id, component){
+  return tm.hist(_.getIn(world, ["components", component]), id);
 }
-
-function change3(world, id, component){
-  return hist(_.getIn(world, ["components", component]), id);
-}
-
-const change = _.overload(null, null, change2, change3);

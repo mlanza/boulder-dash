@@ -33,7 +33,9 @@ function lookup(self, key){
 }
 
 function touched1(self){
-  return _.map(_.partial(touched2, self), _.merge(_.set(_.keys(self.curr)), _.set(_.keys(self.prior))));
+  return _.map(function(key){
+    return [key, touched2(self, key)];
+  }, _.merge(_.set(_.keys(self.curr)), _.set(_.keys(self.prior))));
 }
 
 function touched2(self, key){
@@ -64,6 +66,14 @@ $.doto(TouchMap,
   _.implement(_.ILookup, {lookup}),
   _.implement(_.IAssociative, {assoc, contains}),
   _.implement(_.IMap, {dissoc, keys}));
+
+export function prior(self){
+  return self.prior;
+}
+
+export function current(self){
+  return self.curr;
+}
 
 export function was(self, key){
   return _.get(self.prior, key);

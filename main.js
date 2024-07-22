@@ -185,7 +185,7 @@ function push(id, key){
 
 function dig(id){
   return function(world){
-    return w.removeEntities(world, [id]);
+    return w.removeEntity(world, id);
   }
 }
 
