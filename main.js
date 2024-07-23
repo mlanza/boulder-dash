@@ -158,27 +158,25 @@ function control(entities, world){
     const beyondId = at(beyond);
     const {diggable, pushable} = w.entity(world, beyondId, ["diggable", "pushable", "positioned", "noun"]);
     return _.chain(memo,
-      diggable ? dig(beyondId) : pushable ? push(beyondId, direction) : _.identity,
-      stationary ? _.identity : move(id, direction));
+      diggable ? dig(beyondId) : pushable ? push(beyondId, beyond) : _.identity,
+      stationary ? _.identity : move(id, beyond));
   }, world, entities) : world;
 }
 
-function move(id, direction){
+function move(id, coords){
   return function(world){
     return world; //TODO
   };
 }
 
-function push(id, direction){
+function push(id, coords){
   return function(world){
     return world; //TODO
   };
 }
 
 function dig(id){
-  return function(world){
-    return w.removeEntity(world, id);
-  }
+  return _.dissoc(_, id);
 }
 
 $.sub($changed, _.filter(_.seq), function(changed){
