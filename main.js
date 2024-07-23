@@ -105,7 +105,21 @@ wr...... w
 wwwwwwwwww
 `;
 
-const blank = w.world(["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "controlled"]);
+function positioning(model, id, curr, prior){
+  if (curr.positioned && !prior.positioned) { //added
+    return _.assoc(model, curr.positioned, id);
+  } else if (prior.positioned && !curr.positioned) { //removed
+    return _.dissoc(model, prior.positioned);
+  } else {
+    return _.chain(model,
+      _.dissoc(_, prior.positioned),
+      _.assoc(_, curr.positioned, id));
+  }
+}
+
+const blank = _.chain(
+  w.world(["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "controlled"]),
+  w.views(_, "positioning", _.map([]), positioning, ["positioned"]));
 
 const load = _.pipe(
   _.split(_, "\n"),
@@ -126,16 +140,11 @@ const load = _.pipe(
 const $state = $.atom(_.chain(board, load));
 const $changed = $.map(_.pipe(w.changed, _.toArray), $state);
 const $keys = $.atom(["ArrowUp", "ShiftKey"]); //dom.depressed(document.body);
-const $positioned = $.atom(_.map([]));
 
-reg({$state, $changed, $positioned, $keys});
+reg({$state, $changed, $keys});
 
 const vertical = _.get({"up": -1, "down": 1}, _, 0);
 const horizontal = _.get({"left": -1, "right": 1}, _, 0);
-
-function at(coords){
-  return _.get(_.deref($positioned), coords);
-}
 
 function nearby([x, y], key, offset = 1){
   return [x + horizontal(key) * offset, y + vertical(key) * offset];
@@ -155,7 +164,8 @@ function control(entities, world){
   return keys ? _.reduce(function(memo, [id, {positioned, controlled}]){
     const direction = _.some(_.get(controlled, _), keys);
     const beyond = nearby(positioned, direction);
-    const beyondId = at(beyond);
+    const positioning = w.views(world, "positioning");
+    const beyondId = _.get(positioning, beyond);
     const {diggable, pushable} = w.entity(world, beyondId, ["diggable", "pushable", "positioned", "noun"]);
     return _.chain(memo,
       diggable ? dig(beyondId) : pushable ? push(beyondId, beyond) : _.identity,
@@ -186,7 +196,6 @@ $.sub($changed, _.filter(_.seq), function(changed){
       case "added": {
         const noun = _.chain(hist(id, "noun"), _.first);
         const [x, y] = _.chain(hist(id, "positioned"), _.first);
-        $.swap($positioned, _.assoc(_, [x ,y], id));
         dom.append(el,
           $.doto(div({"data-noun": noun, id}),
             dom.attr(_, "data-x", x),
@@ -195,7 +204,6 @@ $.sub($changed, _.filter(_.seq), function(changed){
       }
       case "removed": {
         const coords = _.chain(hist(id, "positioned"), _.first);
-        $.swap($positioned, _.dissoc(_, coords));
         _.maybe(document.getElementById(id), dom.omit(el, _));
         break;
       }
