@@ -151,7 +151,7 @@ function system(components, f){
 
 function control(entities, world){
   const keys = _.chain($keys, _.deref, _.omit(_, "ShiftKey"), _.omit(_, "CtrlKey"), _.seq);
-  const shift = _.chain($keys, _.deref, _.includes(_, "ShiftKey"));
+  const stationary = _.chain($keys, _.deref, _.includes(_, "ShiftKey"));
   return keys ? _.reduce(function(memo, [id, {positioned, controlled}]){
     const direction = _.some(_.get(controlled, _), keys);
     const beyond = nearby(positioned, direction);
@@ -159,7 +159,7 @@ function control(entities, world){
     const {diggable, pushable} = w.entity(world, beyondId, ["diggable", "pushable", "positioned", "noun"]);
     return _.chain(memo,
       diggable ? dig(beyondId) : pushable ? push(beyondId, direction) : _.identity,
-      shift ? _.identity : move(id, direction));
+      stationary ? _.identity : move(id, direction));
   }, world, entities) : world;
 }
 
