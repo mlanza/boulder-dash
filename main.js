@@ -22,20 +22,6 @@ const addNoun = w.addComponent("noun"),
       addPositioned = w.addComponent("positioned"),
       addControlled = w.addComponent("controlled");
 
-const blank = _.chain(
-  w.world(),
-  w.defComponent("noun"),
-  w.defComponent("pushable"),
-  w.defComponent("diggable"),
-  w.defComponent("rounded"),
-  w.defComponent("lethal"),
-  w.defComponent("seeking"),
-  w.defComponent("collected"),
-  w.defComponent("explosive"),
-  w.defComponent("gravity"),
-  w.defComponent("positioned"),
-  w.defComponent("controlled"));
-
 function steelWall(coords){
   return _.pipe(
     w.addEntity(),
@@ -118,6 +104,8 @@ w..oooo. w
 wr...... w
 wwwwwwwwww
 `;
+
+const blank = w.world(["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "controlled"]);
 
 const load = _.pipe(
   _.split(_, "\n"),
