@@ -145,7 +145,7 @@ function entities1(self){
 function entities2(self, components){
   return _.chain(components,
     _.mapa(function(type){
-      return _.keys(self.components[type]);
+      return _.set(_.keys(self.components[type]));
     }, _),
     _.spread(function(set, ...sets){
       return _.reduce(_.intersection, set, sets);
