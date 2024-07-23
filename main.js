@@ -166,7 +166,7 @@ function control(world){
       return _.chain(memo,
         adjacent.diggable ? dig(beyondId) : adjacent.pushable ? push(beyondId, key) : _.identity,
         move(id, key));
-    }, world, w.entities(world, ["controlled"]));
+    }, world, w.entities(world, ["positioned", "controlled"]));
   } else {
     return world;
   }
