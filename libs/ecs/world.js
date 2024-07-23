@@ -5,10 +5,11 @@ import * as p from "./itouchable.js";
 import {ITouchable} from "./itouchable.js";
 export {wipe, touched} from "./itouchable.js";
 
-function World(lastId, entities, components){
+function World(lastId, entities, components, views){
   this.lastId = lastId;
   this.entities = entities;
   this.components = components;
+  this.views = views;
 }
 
 function wipe(self){
@@ -17,7 +18,8 @@ function wipe(self){
     p.wipe(self.entities),
     _.reducekv(function(memo, key, map){
       return _.assoc(memo, key, p.wipe(map));
-    }, {}, self.components));
+    }, {}, self.components),
+    self.views);
 }
 
 function touched1(self){
@@ -53,15 +55,26 @@ export const prior = selects(tm.prior);
 export const entity = current;
 const lookup = _.binary(entity);
 
+function project(id, components, prior, self){
+  return new World(self.lastId,
+    self.entities,
+    self.components,
+    _.reducekv(function(views, named, {triggers, facts, update, model}){
+      const triggered = _.seq(_.intersection(triggers, components));
+      return triggered ? _.assocIn(views, [named, "model"], update(model, id, entity(self, id, facts), entity(prior, id, facts))) : views;
+    }, self.views, self.views));
+}
+
 function assoc(self, id, components) {
-  return new World(null,
+  return project(id, components, self, new World(null,
     _.assoc(self.entities, id, null),
     _.reducekv(function(memo, type, value){
       if (!self.components[type]) {
         throw new Error(`There are no ${type} components.`);
       }
       return _.assocIn(memo, [type, id], value);
-    }, self.components, components));
+    }, self.components, components),
+    self.views));
 }
 
 function contains(self, id){
@@ -96,17 +109,46 @@ $.doto(World,
 export const any = _.constantly(true);
 
 export function world(components){
-  return new World(null, tm.touchMap(), _.reduce(function(memo, key){
-    return _.assoc(memo, key, tm.touchMap([]));
-  }, {}, components));
+  return new World(null,
+    tm.touchMap(),
+    _.reduce(function(memo, key){
+      return _.assoc(memo, key, tm.touchMap([]));
+    }, {}, components),
+    {});
 }
+
+function views1(self){
+  return _.keys(self.views);
+}
+
+function views2(self, key){
+  return _.getIn(self.views, [key, "model"]);
+}
+
+//must define views in advance of adding components
+function views6(self, key, model, update, triggers, facts = triggers){
+  return new World(self.lastId,
+    self.entities,
+    self.components,
+    _.assoc(self.views, key, {
+      model,
+      update,
+      triggers,
+      facts
+    }));
+}
+
+export const views = _.overload(null, views1, views2, views6);
 
 const alt = _.chance(8675309);
 export const uids = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 
 export function addEntity(uid = uids()){
   return function(self){
-    return new World(uid, _.assoc(self.entities, uid, null), self.components);
+    return new World(uid,
+      _.assoc(self.entities, uid, null),
+      self.components,
+      self.views);
   }
 }
 
@@ -115,23 +157,27 @@ export function updateEntity(uid){
     if (!_.contains(self.entities, uid)) {
       throw new Error(`Cannot update unknown entity ${uid}`);
     }
-    return new World(uid, self.entities, self.components);
+    return new World(uid, self.entities, self.components, self.views);
   }
 }
 
-export function removeEntity(self, ...ids){
-  return new World(null,
-    _.reduce(_.dissoc, self.entities, ids),
+export function removeEntity(self, id){
+  return project(id, _.keys(self.components), self, new World(null,
+    _.dissoc(self.entities, id),
     _.reducekv(function(memo, key, map){
-     return _.assoc(memo, key, _.reduce(_.dissoc, map, ids));
-    }, {}, self.components));
+      return _.assoc(memo, key, _.dissoc(map, id));
+    }, {}, self.components),
+    self.views));
 }
 
 export const addComponent = _.curry(function(type, value, self){
   if (!self.components[type]) {
     throw new Error(`There are no ${type} components.`);
   }
-  return new World(self.lastId, self.entities, _.assocIn(self.components,[type, self.lastId], value == null ? true : value));
+  return project(self.lastId, [type], self, new World(self.lastId,
+    self.entities,
+    _.assocIn(self.components, [type, self.lastId], value == null ? true : value),
+    self.views));
 });
 
 function entities1(self){
