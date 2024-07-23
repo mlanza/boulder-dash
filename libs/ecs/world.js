@@ -95,14 +95,10 @@ $.doto(World,
 
 export const any = _.constantly(true);
 
-export function world(){
-  return new World(null, tm.touchMap(), {});
-}
-
-export function defComponent(type){
-  return function(self){
-    return new World(self.lastId, self.entities, _.assoc(self.components, type, tm.touchMap([])));
-  }
+export function world(components){
+  return new World(null, tm.touchMap(), _.reduce(function(memo, key){
+    return _.assoc(memo, key, tm.touchMap([]));
+  }, {}, components));
 }
 
 const alt = _.chance(8675309);
