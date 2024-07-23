@@ -41,12 +41,12 @@ function rockford(coords){
   return _.pipe(
     w.addEntity(R),
     addNoun("Rockford"),
-    addControlled({
-      up: ["ArrowUp"],
-      down: ["ArrowDown"],
-      left: ["ArrowLeft"],
-      right: ["ArrowRight"]
-    }),
+    addControlled(_.map([
+      ["ArrowUp", "up"],
+      ["ArrowDown", "down"],
+      ["ArrowLeft", "left"],
+      ["ArrowRight", "right"]
+    ])),
     addExplosive(),
     addPositioned(coords));
 }
@@ -130,8 +130,8 @@ const $positioned = $.atom(_.map([]));
 
 reg({$state, $changed, $positioned, $keys});
 
-const vertical = _.get({"ArrowUp": -1, "ArrowDown": 1}, _, 0);
-const horizontal = _.get({"ArrowLeft": -1, "ArrowRight": 1}, _, 0);
+const vertical = _.get({"up": -1, "down": 1}, _, 0);
+const horizontal = _.get({"left": -1, "right": 1}, _, 0);
 
 function at(coords){
   return _.get(_.deref($positioned), coords);
@@ -141,32 +141,34 @@ function nearby([x, y], key, offset = 1){
   return [x + horizontal(key) * offset, y + vertical(key) * offset];
 }
 
-function control(world){
-  const keys = _.seq(_.deref($keys));
-  if (keys){
-    const shift = _.includes(keys, "ShiftKey");
-    const key = _.first(_.omit(keys, "ShiftKey"));
-    return _.reduce(function(memo, id){
-      const {positioned} = w.entity(world, id, ["positioned", "controlled"]);
-      const beyond = nearby(positioned, key);
-      const beyondId = at(beyond);
-      const adjacent = w.entity(world, beyondId, ["diggable", "pushable", "positioned", "noun"]);
-      return _.chain(memo,
-        adjacent.diggable ? dig(beyondId) : adjacent.pushable ? push(beyondId, key) : _.identity,
-        move(id, key));
-    }, world, w.entities(world, ["positioned", "controlled"]));
-  } else {
-    return world;
+function system(components, f){
+  return function(world){
+    return f(_.map(function(id){
+      return [id, w.entity(world, id, components)];
+    }, w.entities(world, components)), world);
   }
 }
 
-function move(id, key){
+function control(entities, world){
+  const key = _.chain($keys, _.deref, _.omit(_, "ShiftKey"), _.omit(_, "CtrlKey"), _.first);
+  return key ? _.reduce(function(memo, [id, {positioned, controlled}]){
+    const direction = _.get(controlled, key);
+    const beyond = nearby(positioned, direction);
+    const beyondId = at(beyond);
+    const adjacent = w.entity(world, beyondId, ["diggable", "pushable", "positioned", "noun"]);
+    return _.chain(memo,
+      adjacent.diggable ? dig(beyondId) : adjacent.pushable ? push(beyondId, direction) : _.identity,
+      move(id, direction));
+  }, world, entities) : world;
+}
+
+function move(id, direction){
   return function(world){
     return world; //TODO
   };
 }
 
-function push(id, key){
+function push(id, direction){
   return function(world){
     return world; //TODO
   };
@@ -203,4 +205,4 @@ $.sub($changed, _.filter(_.seq), function(changed){
   $.swap($state, p.wipe);
 });
 
-$.swap($state, control);
+$.swap($state, system(["positioned", "controlled"], control));
