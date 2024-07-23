@@ -156,9 +156,9 @@ function control(entities, world){
     const direction = _.get(controlled, key);
     const beyond = nearby(positioned, direction);
     const beyondId = at(beyond);
-    const adjacent = w.entity(world, beyondId, ["diggable", "pushable", "positioned", "noun"]);
+    const {diggable, pushable} = w.entity(world, beyondId, ["diggable", "pushable", "positioned", "noun"]);
     return _.chain(memo,
-      adjacent.diggable ? dig(beyondId) : adjacent.pushable ? push(beyondId, direction) : _.identity,
+      diggable ? dig(beyondId) : pushable ? push(beyondId, direction) : _.identity,
       shift ? _.identity : move(id, direction));
   }, world, entities) : world;
 }
