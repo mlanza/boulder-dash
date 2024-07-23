@@ -55,13 +55,13 @@ export const prior = selects(tm.prior);
 export const entity = current;
 const lookup = _.binary(entity);
 
-function project(id, components, prior, self){
+function project(id, components, prior, self){ //project to views
   return new World(self.lastId,
     self.entities,
     self.components,
     _.reducekv(function(views, named, {triggers, facts, update, model}){
       const triggered = _.seq(_.intersection(triggers, components));
-      return triggered ? _.assocIn(views, [named, "model"], update(model, id, entity(self, id, facts), entity(prior, id, facts))) : views;
+      return triggered ? _.assocIn(views, [named, "model"], update(model, id, entity(self, id, facts), entity(prior, id, facts), prior)) : views;
     }, self.views, self.views));
 }
 
@@ -72,7 +72,7 @@ function assoc(self, id, components) {
       if (!self.components[type]) {
         throw new Error(`There are no ${type} components.`);
       }
-      return _.assocIn(memo, [type, id], value);
+      return _.update(memo, type, value == null ? _.dissoc(_, id) : _.assoc(_, id, value));
     }, self.components, components),
     self.views));
 }
