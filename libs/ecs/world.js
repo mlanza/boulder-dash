@@ -142,9 +142,9 @@ function entities1(self){
   return _.keys(self.entities);
 }
 
-function entities2(self, ...components){
+function entities2(self, components){
   return _.chain(components,
-    _.map(function(type){
+    _.mapa(function(type){
       return _.keys(self.components[type]);
     }, _),
     _.spread(function(set, ...sets){
