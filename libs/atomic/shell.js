@@ -195,6 +195,10 @@ const handle$6 = _.overload(null, null, handle2, IMiddleware.handle);
 
 const {addMiddleware: addMiddleware$1, addHandler: addHandler$1} = IMiddleware;
 
+const IMap = _.protocol({
+  dissoc: null
+});
+
 const IAssociative = _.protocol({
   assoc: null
 });
@@ -261,12 +265,23 @@ function assocIn(self, keys, value) {
 
    default:
     assoc$4(self, key, assocIn(_.get(self, key), _.toArray(_.rest(keys)), value));
+    break;
   }
 }
 
-const IMap = _.protocol({
-  dissoc: null
-});
+function dissocIn(self, keys) {
+  let key = keys[0];
+  switch (keys.length) {
+   case 1:
+    IMap.dissoc(self, key);
+    break;
+
+   default:
+    const ks = _.slice(keys), k = ks.pop();
+    IMap.dissoc(_.getIn(self, ks), k);
+    break;
+  }
+}
 
 const dissoc$4 = IMap.dissoc;
 
@@ -425,6 +440,7 @@ var p = Object.freeze({
   disj: disj$2,
   dispatch: dispatch$1,
   dissoc: dissoc$4,
+  dissocIn: dissocIn,
   empty: empty$5,
   err: err$3,
   error: error,
@@ -1885,4 +1901,4 @@ _.addMethod(_.coerce, [ _.PersistentSet, Array ], (set => into([], set)));
 
 _.addMethod(_.coerce, [ Array, _.PersistentSet ], (arr => into(_.set([]), arr)));
 
-export { Atom, Bus, Command, Cursor, DrainEventsMiddleware, Event, EventMiddleware, HandlerMiddleware, IAppendable, IAssociative, ICollection, IDispatch, IEmptyableCollection, IEventProvider, IEvented, IInsertable, ILogger, IMap, IMiddleware, IOmissible, IPrependable, IPublish, IQueryable, IResettable, IReversible, ISend, ISet, ISubscribe, ISwappable, LockingMiddleware, Observable, Observer, Subject, TeeMiddleware, addHandler$1 as addHandler, addMiddleware$1 as addMiddleware, after$1 as after, alter, append$1 as append, assoc$4 as assoc, assocIn, atom, before$1 as before, behave, behaviors, bus, called, atom as cell, chan, closed$3 as closed, collect, command, complete$3 as complete, computed, config, conj$4 as conj, connect, constructs, cursor, defs, disj$2 as disj, dispatch$1 as dispatch, dispatchable, dissoc$4 as dissoc, doall, doing, dorun, doseq, dotimes, drainEventsMiddleware, each, eachIndexed, eachkv, eachvk, effect, empty$5 as empty, emptySet, err$3 as err, error, event, eventMiddleware, fixed, fromEvent, fromPromise, handle$6 as handle, handlerMiddleware, hist, interact, into, isMap, isWeakMap, isWeakSet, latest, lockingMiddleware, log, logging, map, nativeMap, observable, observer, omit$1 as omit, on, once, peek, pipe, prepend$1 as prepend, pub$3 as pub, query, raise, release, reset$1 as reset, resettable, reverse$1 as reverse, see, seed, send, set, share, shared, sharing, splay, sub$4 as sub, subject, swap$2 as swap, tee, teeMiddleware, then, tick, toObservable, toggles, trigger, unconj$1 as unconj, update, updateIn, warn, weakMap, weakSet, when };
+export { Atom, Bus, Command, Cursor, DrainEventsMiddleware, Event, EventMiddleware, HandlerMiddleware, IAppendable, IAssociative, ICollection, IDispatch, IEmptyableCollection, IEventProvider, IEvented, IInsertable, ILogger, IMap, IMiddleware, IOmissible, IPrependable, IPublish, IQueryable, IResettable, IReversible, ISend, ISet, ISubscribe, ISwappable, LockingMiddleware, Observable, Observer, Subject, TeeMiddleware, addHandler$1 as addHandler, addMiddleware$1 as addMiddleware, after$1 as after, alter, append$1 as append, assoc$4 as assoc, assocIn, atom, before$1 as before, behave, behaviors, bus, called, atom as cell, chan, closed$3 as closed, collect, command, complete$3 as complete, computed, config, conj$4 as conj, connect, constructs, cursor, defs, disj$2 as disj, dispatch$1 as dispatch, dispatchable, dissoc$4 as dissoc, dissocIn, doall, doing, dorun, doseq, dotimes, drainEventsMiddleware, each, eachIndexed, eachkv, eachvk, effect, empty$5 as empty, emptySet, err$3 as err, error, event, eventMiddleware, fixed, fromEvent, fromPromise, handle$6 as handle, handlerMiddleware, hist, interact, into, isMap, isWeakMap, isWeakSet, latest, lockingMiddleware, log, logging, map, nativeMap, observable, observer, omit$1 as omit, on, once, peek, pipe, prepend$1 as prepend, pub$3 as pub, query, raise, release, reset$1 as reset, resettable, reverse$1 as reverse, see, seed, send, set, share, shared, sharing, splay, sub$4 as sub, subject, swap$2 as swap, tee, teeMiddleware, then, tick, toObservable, toggles, trigger, unconj$1 as unconj, update, updateIn, warn, weakMap, weakSet, when };
