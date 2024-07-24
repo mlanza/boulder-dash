@@ -195,6 +195,12 @@ const $state = $.atom(blank);
 const $changed = $.map(_.pipe(w.changed, _.toArray), $state);
 const $keys = dom.depressed(document.body);
 
+$.on(document, "keydown", function(e){
+  if (_.includes(["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft"], e.key)) {
+    e.preventDefault(); //to prevent moving the page around
+  }
+});
+
 reg({$state, $changed, $keys, w, p});
 
 $.sub($changed, _.filter(_.seq), function(changed){
