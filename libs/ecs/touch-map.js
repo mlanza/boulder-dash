@@ -39,16 +39,14 @@ function touched1(self){
 }
 
 function touched2(self, key){
-  const c = _.contains(self.curr, key),
-        p = _.contains(self.prior, key),
-        h = hist(self);
-  return c && !p ? "added" : p && !c ? "removed" : _.eq(...h) ? null : "updated";
+  const [curr, prior] = hist(self, key);
+  return curr != null && prior == null ? "added" : prior != null && curr == null ? "removed" : _.eq(curr, prior) ? null : "updated";
 }
 
 const touched = _.overload(null, touched1, touched2);
 
 function wipe(self){
-  return new TouchMap(self.seen, self.curr);
+  return self.curr === self.prior ? self : new TouchMap(self.seen, self.curr);
 }
 
 function count(self){
@@ -80,11 +78,11 @@ export function was(self, key){
 }
 
 export function exists(self, key){
-  return _.contains(self.curr, key);
+  return _.get(self.curr, key) != null;
 }
 
 export function existed(self, key){
-  return _.contains(self.prior, key);
+  return _.get(self.prior, key) != null;
 }
 
 export function ever(self, key){
