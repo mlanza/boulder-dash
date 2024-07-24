@@ -117,31 +117,24 @@ function positioning(model, id, curr, prior){
   }
 }
 
-const blank = _.chain(
-  w.world(["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "controlled"]),
-  w.views(_, "positioning", _.map([]), positioning, ["positioned"]));
-
-const load = _.pipe(
-  _.split(_, "\n"),
-  _.map(_.trim, _),
-  _.filter(_.seq, _),
-  _.mapIndexed(function(row, chars){
-    return _.mapIndexed(function(col, char){
-      const coords = [col, row],
-            piece = spawn(char);
-      return {coords, piece};
-    }, _.seq(chars));
-  }, _),
-  _.spread(_.concat),
-  _.reduce(function(memo, {coords, piece}){
+function load(board){
+  $.log("load")
+  const parts = _.chain(board,
+    _.split(_, "\n"),
+    _.map(_.trim, _),
+    _.filter(_.seq, _),
+    _.mapIndexed(function(row, chars){
+      return _.mapIndexed(function(col, char){
+        const coords = [col, row],
+              piece = spawn(char);
+        return {coords, piece};
+      }, _.seq(chars));
+    }, _),
+    _.spread(_.concat));
+  return _.reduce(function(memo, {coords, piece}){
     return _.chain(memo, piece(coords));
-  }, blank, _));
-
-const $state = $.atom(_.chain(board, load));
-const $changed = $.map(_.pipe(w.changed, _.toArray), $state);
-const $keys = $.atom(["ArrowUp", "ShiftKey"]); //dom.depressed(document.body);
-
-reg({$state, $changed, $keys});
+  }, _, parts);
+}
 
 const vertical = _.get({"up": -1, "down": 1}, _, 0);
 const horizontal = _.get({"left": -1, "right": 1}, _, 0);
@@ -173,15 +166,20 @@ function control(entities, world){
   }, world, entities) : world;
 }
 
-function move(id, coords){
+function move(id, positioned){
   return function(world){
-    return world; //TODO
+    const positioning = w.views(world, "positioning");
+    const there = _.get(positioning, positioned);
+    const collision = !!there; //TODO handle collision
+    return collision ? world : _.assoc(world, id, {positioned});
   };
 }
 
-function push(id, coords){
+function push(id, positioned){
   return function(world){
-    return world; //TODO
+    const positioning = w.views(world, "positioning");
+    const occupied = _.get(positioning, positioned);
+    return occupied ? world : _.assoc(world, id, {positioned});
   };
 }
 
@@ -189,27 +187,51 @@ function dig(id){
   return _.dissoc(_, id);
 }
 
+const blank = _.chain(
+  w.world(["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "controlled"]),
+  w.views(_, "positioning", _.map([]), positioning, ["positioned"]));
+
+const $state = $.atom(blank);
+const $changed = $.map(_.pipe(w.changed, _.toArray), $state);
+const $keys = dom.depressed(document.body);
+
+reg({$state, $changed, $keys, w, p});
+
 $.sub($changed, _.filter(_.seq), function(changed){
-  $.each(function({id, components, hist}){
+  $.each(function({id, components, curr, prior}){
     const {positioned} = components;
     switch(positioned){
       case "added": {
-        const noun = _.chain(hist(id, "noun"), _.first);
-        const [x, y] = _.chain(hist(id, "positioned"), _.first);
+        const [x, y] = curr.positioned;
         dom.append(el,
-          $.doto(div({"data-noun": noun, id}),
+          $.doto(div({"data-noun": curr.noun, id}),
             dom.attr(_, "data-x", x),
             dom.attr(_, "data-y", y)));
         break;
       }
+
       case "removed": {
-        const coords = _.chain(hist(id, "positioned"), _.first);
         _.maybe(document.getElementById(id), dom.omit(el, _));
+        break;
+      }
+
+      case "updated": {
+        const [x, y] = curr.positioned;
+        $.doto(document.getElementById(id),
+          dom.attr(_, "data-x", x),
+          dom.attr(_, "data-y", y));
         break;
       }
     }
   }, changed);
-  $.swap($state, p.wipe);
 });
 
-$.swap($state, system(["positioned", "controlled"], control));
+$.swap($state, p.wipe);
+
+$.swap($state, load(board));
+$.swap($state, p.wipe);
+
+setInterval(function(){
+  $.swap($state, system(["positioned", "controlled"], control));
+  $.swap($state, p.wipe);
+}, 100);

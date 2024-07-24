@@ -13,13 +13,12 @@ function World(lastId, entities, components, views){
 }
 
 function wipe(self){
-  return new World(
-    null,
-    p.wipe(self.entities),
-    _.reducekv(function(memo, key, map){
-      return _.assoc(memo, key, p.wipe(map));
-    }, {}, self.components),
-    self.views);
+  const entities = p.wipe(self.entities);
+  const components = _.reducekv(function(memo, key, map){
+    const replaced = p.wipe(map);
+    return map === replaced ? memo : _.assoc(memo, key, replaced);
+  }, self.components, self.components);
+  return null === self.lastId && components === self.components && entities === self.entities ? self : new World(null, entities, components, self.views);
 }
 
 function touched1(self){
@@ -66,7 +65,7 @@ function project(id, components, prior, self){ //project to views
 }
 
 function assoc(self, id, components) {
-  return project(id, components, self, new World(null,
+  return project(id, _.keys(components), self, new World(null,
     _.assoc(self.entities, id, null),
     _.reducekv(function(memo, type, value){
       if (!self.components[type]) {
@@ -197,11 +196,10 @@ function entities2(self, components){
 export const entities = _.overload(null, entities1, entities2);
 
 function changed2(self, id){
-  const touched = p.touched(self, id);
   const components = _.reducekv(function(memo, key, map){
     return _.assoc(memo, key, p.touched(map, id));
    }, {}, self.components);
-  return {id, touched, components, hist: _.partial(change, self)};
+  return {id, components, curr: current(self, id), prior: prior(self, id)};
 }
 
 function changed1(self){
