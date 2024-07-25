@@ -158,7 +158,7 @@ const $keys = dom.depressed(document.body);
 reg({$state, $keys, $changed, w, p});
 
 $.sub($changed, _.filter(_.seq), function(changed){
-  $.each(function({id, components, compared}){
+  $.each(function([id, {components, compared}]){
     const [curr, prior] = compared;
     const {positioned} = components;
     switch(positioned){
@@ -199,11 +199,3 @@ $.swap($state, load(board));
 setInterval(function(){
   $.swap($state, system(["positioned", "controlled"], control));
 }, 100);
-
-//TODO
-function also(f, xs){
-  return _.map(function(x){
-    const result = f(x);
-    return [x, result];
-  }, xs);
-}

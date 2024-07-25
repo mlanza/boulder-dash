@@ -146,17 +146,21 @@ function changed2(self, id){
     return _.assoc(memo, key, p.touched(self, id, key));
    }, {}, self.tags);
   const compared = p.compared(self, id);
-  return {id, touched, components, compared};
+  return {touched, components, compared};
 }
 
 function changed1(self){
   return _.chain(self.entities,
     p.touched,
-    _.mapa(_.partial(changed2, self), _));
+    also(_.partial(changed2, self)));
 }
 
 export const changed = _.overload(null, changed1, changed2);
 
 export function patch(patch){
   return _.pipe(_.merge(_, patch), _.compact, _.blot);
+}
+
+export function also(...fs){
+  return _.mapa(_.juxt(_.identity, ...fs), _);
 }
