@@ -9,90 +9,49 @@ const div = dom.tag("div");
 const el = dom.sel1("#stage");
 const R = w.uids();
 
-const addNoun = w.addComponent("noun"),
-      addDescribed = w.addComponent("described"),
-      addPushable = w.addComponent("pushable"),
-      addDiggable = w.addComponent("diggable"),
-      addGravity = w.addComponent("gravity"),
-      addLethal = w.addComponent("lethal"),
-      addRounded = w.addComponent("rounded"),
-      addSeeking = w.addComponent("seeking"),
-      addCollected = w.addComponent("collected"),
-      addExplosive = w.addComponent("explosive"),
-      addPositioned = w.addComponent("positioned"),
-      addControlled = w.addComponent("controlled");
+const explosive = true,
+      collected = true,
+      diggable = true,
+      rounded = true,
+      pushable = true;
 
-function steelWall(coords){
-  return _.pipe(
-    w.addEntity(),
-    addNoun("steel-wall"),
-    addPositioned(coords));
+function steelWall(positioned){
+  return _.assoc(_, w.uids(), {noun: "steel-wall", positioned});
 }
 
-function wall(coords){
-  return _.pipe(
-    w.addEntity(),
-    addNoun("wall"),
-    addExplosive(),
-    addPositioned(coords));
+function wall(positioned){
+  return _.assoc(_, w.uids(), {noun: "wall", explosive, positioned});
 }
 
-function rockford(coords){
-  return _.pipe(
-    w.addEntity(R),
-    addNoun("Rockford"),
-    addControlled(_.map([
-      ["ArrowUp", "up"],
-      ["ArrowDown", "down"],
-      ["ArrowLeft", "left"],
-      ["ArrowRight", "right"]
-    ])),
-    addExplosive(),
-    addPositioned(coords));
+function rockford(positioned){
+  const controlled = _.map([
+    ["ArrowUp", "up"],
+    ["ArrowDown", "down"],
+    ["ArrowLeft", "left"],
+    ["ArrowRight", "right"]
+  ]);
+  return _.assoc(_, R, {noun: "Rockford", controlled, explosive, positioned});
 }
 
-function diamond(coords){
-  return _.pipe(
-    w.addEntity(),
-    addNoun("diamond"),
-    addCollected(),
-    addExplosive(),
-    addRounded(),
-    addPositioned(coords));
+function diamond(positioned){
+  return _.assoc(_, w.uids(), {noun: "diamond", collected, explosive, rounded, positioned});
 }
 
-function dirt(coords){
-  return _.pipe(
-    w.addEntity(),
-    addNoun("dirt"),
-    addDiggable(),
-    addExplosive(),
-    addPositioned(coords));
+function dirt(positioned){
+  return _.assoc(_, w.uids(), {noun: "dirt", diggable, explosive, positioned});
 }
 
-function enemy(noun, direction){
-  return function(coords){
-    return _.pipe(
-      w.addEntity(),
-      addNoun(noun),
-      addSeeking(direction),
-      addExplosive(),
-      addPositioned(coords));
+function enemy(noun, seeking){
+  return function(positioned){
+    return _.assoc(_, w.uids(), {noun, seeking, explosive, positioned});
   }
 }
 
 const firefly = enemy("firefly", "clockwise");
 const butterfly = enemy("butterfly", "counterclockwise");
 
-function boulder(coords){
-  return _.pipe(
-    w.addEntity(),
-    addNoun("boulder"),
-    addPushable(),
-    addExplosive(),
-    addRounded(),
-    addGravity(1),
-    addPositioned(coords));
+function boulder(positioned){
+  return _.assoc(_, w.uids(), {noun: "boulder", pushable, explosive, rounded, gravity: 1, positioned});
 }
 
 const spawn = _.get({".": dirt, "r": rockford, "o": boulder, "w": wall, "s": steelWall, "d": diamond}, _, _.constantly(_.identity));
@@ -146,8 +105,8 @@ function nearby([x, y], key, offset = 1){
 function system(components, f){
   return function(world){
     return f(_.map(function(id){
-      return [id, w.entity(world, id, components)];
-    }, w.entities(world, components)), world);
+      return [id, _.get(world, id)];
+    }, w.tagged(components, world)), world);
   }
 }
 
@@ -159,7 +118,7 @@ function control(entities, world){
     const beyond = nearby(positioned, direction);
     const positioning = w.views(world, "positioning");
     const beyondId = _.get(positioning, beyond);
-    const {diggable, pushable} = w.entity(world, beyondId, ["diggable", "pushable", "positioned", "noun"]);
+    const {diggable, pushable} = _.get(world, beyondId) || {};
     return _.chain(memo,
       diggable ? dig(beyondId) : pushable ? push(beyondId, beyond) : _.identity,
       stationary ? _.identity : move(id, beyond));
@@ -170,8 +129,9 @@ function move(id, positioned){
   return function(world){
     const positioning = w.views(world, "positioning");
     const there = _.get(positioning, positioned);
+    const entity = _.merge(_.get(world, id), {positioned});
     const collision = !!there; //TODO handle collision
-    return collision ? world : _.assoc(world, id, {positioned});
+    return collision ? world : _.assoc(world, id, entity); //TODO patch
   };
 }
 
@@ -179,12 +139,21 @@ function push(id, positioned){
   return function(world){
     const positioning = w.views(world, "positioning");
     const occupied = _.get(positioning, positioned);
-    return occupied ? world : _.assoc(world, id, {positioned});
+    const entity = _.merge(_.get(world, id), {positioned});
+    return occupied ? world : _.assoc(world, id, entity);
   };
 }
 
 function dig(id){
-  return _.dissoc(_, id);
+  return function(world){
+    return _.dissoc(world, id);
+  }
+}
+
+function changed(world){
+  return _.chain(world, w.known, _.mapa(function(id){
+    return w.changed(world, id);
+  }, _));
 }
 
 const blank = _.chain(
@@ -192,19 +161,14 @@ const blank = _.chain(
   w.views(_, "positioning", _.map([]), positioning, ["positioned"]));
 
 const $state = $.atom(blank);
-const $changed = $.map(_.pipe(w.changed, _.toArray), $state);
+const $changed = $.map(changed, $state);
 const $keys = dom.depressed(document.body);
 
-$.on(document, "keydown", function(e){
-  if (_.includes(["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft"], e.key)) {
-    e.preventDefault(); //to prevent moving the page around
-  }
-});
-
-reg({$state, $changed, $keys, w, p});
+reg({$state, $keys, $changed, w, p});
 
 $.sub($changed, _.filter(_.seq), function(changed){
-  $.each(function({id, components, curr, prior}){
+  $.each(function({id, components, compared}){
+    const [curr, prior] = compared;
     const {positioned} = components;
     switch(positioned){
       case "added": {
@@ -230,14 +194,27 @@ $.sub($changed, _.filter(_.seq), function(changed){
       }
     }
   }, changed);
+  $.swap($state, p.wipe);
 });
 
-$.swap($state, p.wipe);
+$.on(document, "keydown", function(e){
+  if (_.includes(["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft"], e.key)) {
+    e.preventDefault(); //to prevent moving the page around
+  }
+});
 
 $.swap($state, load(board));
-$.swap($state, p.wipe);
 
 setInterval(function(){
   $.swap($state, system(["positioned", "controlled"], control));
   $.swap($state, p.wipe);
 }, 100);
+
+//TODO
+function also(f, xs){
+  return _.map(function(x){
+    const result = f(x);
+    return [x, result];
+  }, xs);
+}
+

@@ -1,27 +1,34 @@
 import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
 import {ITouchable} from "./itouchable.js";
+import * as t from "./itouchable.js";
 
-export function TouchMap(seen, curr, prior = curr){
-  this.seen = seen;
+export function TouchMap(touched, curr, prior = curr){
+  this.touched = touched;
   this.curr = curr;
   this.prior = prior;
 }
 
-export function touchMap(entries = []){
-  return new TouchMap(_.set([]), _.map(entries), _.map([]));
+function touchMap1(entries){
+  return new TouchMap(_.set([]), entries, _.empty(entries));
 }
+
+function touchMap0(){
+  return touchMap1(_.map([]));
+}
+
+export const touchMap = _.overload(touchMap0, touchMap1);
 
 function contains(self, key){
   return _.contains(self.curr, key);
 }
 
 function assoc(self, key, value){
-  return new TouchMap(_.conj(self.seen, key), _.assoc(self.curr, key, value), self.prior);
+  return new TouchMap(_.conj(self.touched, key), _.assoc(self.curr, key, value), self.prior);
 }
 
 function dissoc(self, key){
-  return new TouchMap(self.seen, _.dissoc(self.curr, key), self.prior);
+  return new TouchMap(_.conj(self.touched, key), _.dissoc(self.curr, key), self.prior);
 }
 
 function keys(self){
@@ -32,21 +39,9 @@ function lookup(self, key){
   return _.get(self.curr, key);
 }
 
-function touched1(self){
-  return _.map(function(key){
-    return [key, touched2(self, key)];
-  }, _.merge(_.set(_.keys(self.curr)), _.set(_.keys(self.prior))));
-}
-
-function touched2(self, key){
-  const [curr, prior] = hist(self, key);
-  return curr != null && prior == null ? "added" : prior != null && curr == null ? "removed" : _.eq(curr, prior) ? null : "updated";
-}
-
-const touched = _.overload(null, touched1, touched2);
-
 function wipe(self){
-  return self.curr === self.prior ? self : new TouchMap(self.seen, self.curr);
+  const curr = t.current(self), prior = t.prior(self);
+  return _.isIdentical(curr, prior) ? self : new TouchMap(_.empty(self.touched), curr);
 }
 
 function count(self){
@@ -54,53 +49,44 @@ function count(self){
 }
 
 function seq(self){
-  return _.seq(touched1(self));
+  return _.seq(self.curr);
 }
 
+function prior(self){
+  return self.prior;
+}
+
+function current(self){
+  return self.curr;
+}
+
+function reducekvWith(seq){ //TODO replace
+  return function reducekv(xs, f, init){
+    let memo = init,
+        ys = seq(xs);
+    while (ys && !_.isReduced(memo)){
+      memo = f(memo, ..._.first(ys));
+      ys = _.next(ys);
+    }
+    return _.unreduced(memo);
+  }
+}
+
+const reducekv = reducekvWith(seq);
+
 $.doto(TouchMap,
-  _.implement(ITouchable, {touched, wipe}),
+  _.implement(ITouchable, {current, prior, wipe}),
+  _.implement(_.IKVReducible, {reducekv}),
   _.implement(_.ICounted, {count}),
   _.implement(_.ISeqable, {seq}),
   _.implement(_.ILookup, {lookup}),
   _.implement(_.IAssociative, {assoc, contains}),
   _.implement(_.IMap, {dissoc, keys}));
 
-export function prior(self){
-  return self.prior;
-}
-
-export function current(self){
-  return self.curr;
-}
-
-export function was(self, key){
-  return _.get(self.prior, key);
-}
-
-export function exists(self, key){
-  return _.get(self.curr, key) != null;
-}
-
-export function existed(self, key){
-  return _.get(self.prior, key) != null;
-}
-
-export function ever(self, key){
-  return _.contains(self.seen, key);
+export function hist(self, key){ //TODO eliminate
+  return _.mapa(_.get(_, key), t.compared(self));
 }
 
 export function ephemeral(self, key){
-  return ever(self, key) && !existed(self, key) && !exists(self, key);
-}
-
-export function removed(self){
-  return _.difference(_.set(_.keys(self.prior)), _.set(_.keys(self.curr)));
-}
-
-export function added(self){
-  return _.difference(_.set(_.keys(self.curr)), _.set(_.keys(self.prior)));
-}
-
-export function hist(self, key){
-  return _.mapa(_.get(_, key), [self.curr, self.prior]);
+  return _.contains(self.touched, key) && !t.existed(self, key) && !t.exists(self, key);
 }
