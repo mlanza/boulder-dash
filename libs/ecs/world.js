@@ -59,12 +59,14 @@ function project(id, comps, prior){ //project to views
 
 function tag(id, prior){
   return function(self){
+    //TODO review
     const ccc = _.get(p.current(self), id) || {},
           ppp = _.get(p.current(prior), id) || {};
     const keys = _.union(_.set(_.keys(ccc)), _.set(_.keys(ppp)));
     return new World(
         self.entities,
     _.reduce(function(memo, key){
+      //TODO review, used touched?
       const cc = _.get(ccc, key),
             pp = _.get(ppp, key);
       const touched = cc != null && pp == null ? "added" : pp != null && cc == null ? "removed" : _.eq(cc, pp) ? null : "updated";
@@ -151,4 +153,8 @@ export function changed(self, id){
 
 export function known(self){
   return _.union(_.set(_.keys(p.current(self.entities))), _.set(_.keys(p.prior(self.entities))));
+}
+
+export function patch(patch){
+  return _.pipe(_.merge(_, patch), _.compact);
 }
