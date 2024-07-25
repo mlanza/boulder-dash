@@ -14,11 +14,11 @@ function World(entities, tags, views){
   this.views = views;
 }
 
-export function world(components){
+export function world(tags){
   return new World(tm.touchMap(),
     _.reduce(function(memo, key){
       return _.assoc(memo, key, _.set([]));
-    }, tm.touchMap({}), components),
+    }, tm.touchMap({}), tags),
     tm.touchMap());
 }
 
@@ -88,7 +88,7 @@ function lookup(self, id){
 }
 
 function assoc(self, id, entity){
-  return _.chain(new World(_.assoc(self.entities, id, entity), self.tags, self.views),
+  return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.tags, self.views),
     tag(id, self),
     project(id, _.keys(self.tags), entity));
 }
@@ -142,7 +142,7 @@ export function tagged(tags, self){
     }));
 }
 
-export function changed(self, id){
+function changed2(self, id){
   const touched = p.touched(self, id);
   const components = _.reducekv(function(memo, key, map){
     return _.assoc(memo, key, p.touched(self, id, key));
@@ -151,10 +151,14 @@ export function changed(self, id){
   return {id, touched, components, compared};
 }
 
-export function known(self){
-  return _.union(_.set(_.keys(p.current(self.entities))), _.set(_.keys(p.prior(self.entities))));
+function changed1(self){
+  return _.chain(self.entities, p.known, _.mapa(function(id){
+    return changed2(self, id);
+  }, _));
 }
 
+export const changed = _.overload(null, changed1, changed2);
+
 export function patch(patch){
-  return _.pipe(_.merge(_, patch), _.compact);
+  return _.pipe(_.merge(_, patch), _.compact, _.blot);
 }

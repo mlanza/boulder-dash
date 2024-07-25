@@ -144,15 +144,7 @@ function push(id, positioned){
 }
 
 function dig(id){
-  return function(world){
-    return _.dissoc(world, id);
-  }
-}
-
-function changed(world){
-  return _.chain(world, w.known, _.mapa(function(id){
-    return w.changed(world, id);
-  }, _));
+  return _.dissoc(_, id);
 }
 
 const blank = _.chain(
@@ -160,7 +152,7 @@ const blank = _.chain(
   w.views(_, "positioning", _.map([]), positioning, ["positioned"]));
 
 const $state = $.atom(blank);
-const $changed = $.map(changed, $state);
+const $changed = $.map(w.changed, $state);
 const $keys = dom.depressed(document.body);
 
 reg({$state, $keys, $changed, w, p});
@@ -206,7 +198,6 @@ $.swap($state, load(board));
 
 setInterval(function(){
   $.swap($state, system(["positioned", "controlled"], control));
-  $.swap($state, p.wipe);
 }, 100);
 
 //TODO
@@ -216,4 +207,3 @@ function also(f, xs){
     return [x, result];
   }, xs);
 }
-

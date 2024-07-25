@@ -51,3 +51,6 @@ export function added(self){
   return _.difference(_.set(_.keys(current(self))), _.set(_.keys(prior(self))));
 }
 
+export function known(self){
+  return _.union(_.set(_.keys(current(self))), _.set(_.keys(prior(self))));
+}
