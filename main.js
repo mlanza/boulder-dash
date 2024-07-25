@@ -125,13 +125,13 @@ function control(entities, world){
   }, world, entities) : world;
 }
 
+
 function move(id, positioned){
   return function(world){
     const positioning = w.views(world, "positioning");
     const there = _.get(positioning, positioned);
-    const entity = _.merge(_.get(world, id), {positioned});
     const collision = !!there; //TODO handle collision
-    return collision ? world : _.assoc(world, id, entity); //TODO patch
+    return collision ? world : _.update(world, id, w.patch({positioned}));
   };
 }
 
@@ -139,8 +139,7 @@ function push(id, positioned){
   return function(world){
     const positioning = w.views(world, "positioning");
     const occupied = _.get(positioning, positioned);
-    const entity = _.merge(_.get(world, id), {positioned});
-    return occupied ? world : _.assoc(world, id, entity);
+    return occupied ? world : _.update(world, id, w.patch({positioned}));
   };
 }
 
