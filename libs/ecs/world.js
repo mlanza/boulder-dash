@@ -2,7 +2,7 @@ import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
 import * as tm from "./touch-map.js";
 import * as p from "./itouchable.js";
-import {ITouchable, touched} from "./itouchable.js";
+import {ITouchable} from "./itouchable.js";
 export {touched, wipe} from "./itouchable.js";
 
 const alt = _.chance(8675309);
@@ -52,34 +52,29 @@ function project(id, comps, prior){ //project to views
       self.tags,
       _.reducekv(function(views, named, {triggers, update, model}){
         const triggered = _.seq(_.intersection(triggers, components));
-        return triggered ? _.assocIn(views, [named, "model"], update(model, id, _.get(p.current(self), id, {}), _.get(p.prior(self), id, {}), prior)) : views;
+        return triggered ? _.assocIn(views, [named, "model"], update(model, id, _.get(p.current(self), id, {}), _.get(p.prior(self), id, {}), p.current(self), p.prior(self))) : views;
       }, self.views, self.views));
   }
 }
 
 function tag(id, prior){
   return function(self){
-    //TODO review
-    const ccc = _.get(p.current(self), id) || {},
-          ppp = _.get(p.current(prior), id) || {};
-    const keys = _.union(_.set(_.keys(ccc)), _.set(_.keys(ppp)));
+    const [ccc, ppp] = p.compared(self, id);
+    const keys = _.union(_.set(_.keys(ccc) || []), _.set(_.keys(ppp) || []));
     return new World(
-        self.entities,
-    _.reduce(function(memo, key){
-      //TODO review, used touched?
-      const cc = _.get(ccc, key),
-            pp = _.get(ppp, key);
-      const touched = cc != null && pp == null ? "added" : pp != null && cc == null ? "removed" : _.eq(cc, pp) ? null : "updated";
-      switch(touched){
-        case "added":
-          return _.update(memo, key, _.conj(_, id));
-        case "removed":
-          return _.update(memo, key, _.disj(_, id));
-        default:
-          return memo;
-      }
-    }, self.tags, keys),
-    self.views);
+      self.entities,
+      _.reduce(function(memo, key){
+        const touched = p.touch(_.get(ccc, key), _.get(ppp, key));
+        switch(touched){
+          case "added":
+            return _.update(memo, key, _.conj(_, id));
+          case "removed":
+            return _.update(memo, key, _.disj(_, id));
+          default:
+            return memo;
+        }
+      }, self.tags, keys),
+      self.views);
   }
 }
 
@@ -101,6 +96,10 @@ function dissoc(self, id){
 
 function contains(self, id){
   return _.contains(self.entities, id);
+}
+
+function touched(self){
+  return p.touched(self.entities);
 }
 
 function current(self){
@@ -131,8 +130,7 @@ $.doto(World,
   _.implement(_.ILookup, {lookup}),
   _.implement(_.IAssociative, {assoc, contains}),
   _.implement(_.ISeqable, {seq}),
-  _.implement(ITouchable, {current, prior, wipe})
-  );
+  _.implement(ITouchable, {touched, current, prior, wipe}));
 
 export function tagged(tags, self){
   return _.chain(tags,
@@ -152,9 +150,9 @@ function changed2(self, id){
 }
 
 function changed1(self){
-  return _.chain(self.entities, p.known, _.mapa(function(id){
-    return changed2(self, id);
-  }, _));
+  return _.chain(self.entities,
+    p.touched,
+    _.mapa(_.partial(changed2, self), _));
 }
 
 export const changed = _.overload(null, changed1, changed2);

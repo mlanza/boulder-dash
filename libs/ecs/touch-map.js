@@ -52,6 +52,10 @@ function seq(self){
   return _.seq(self.curr);
 }
 
+function touched(self){
+  return self.touched;
+}
+
 function prior(self){
   return self.prior;
 }
@@ -75,7 +79,7 @@ function reducekvWith(seq){ //TODO replace
 const reducekv = reducekvWith(seq);
 
 $.doto(TouchMap,
-  _.implement(ITouchable, {current, prior, wipe}),
+  _.implement(ITouchable, {touched, current, prior, wipe}),
   _.implement(_.IKVReducible, {reducekv}),
   _.implement(_.ICounted, {count}),
   _.implement(_.ISeqable, {seq}),
