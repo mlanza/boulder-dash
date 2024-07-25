@@ -16,9 +16,7 @@ function World(entities, tags, views){
 
 export function world(tags){
   return new World(tm.touchMap(),
-    _.reduce(function(memo, key){
-      return _.assoc(memo, key, _.set([]));
-    }, tm.touchMap({}), tags),
+    _.reduce(_.assoc(_, _, _.set([])), tm.touchMap({}), tags),
     tm.touchMap());
 }
 
@@ -162,5 +160,5 @@ export function patch(patch){
 }
 
 export function also(...fs){
-  return _.mapa(_.juxt(_.identity, ...fs), _);
+  return _.map(_.juxt(_.identity, ...fs), _);
 }
