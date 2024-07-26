@@ -104,15 +104,16 @@ function nearby([x, y], key, offset = 1){
 
 function system(components, f){
   return function(world){
-    return f(_.map(function(id){
+    const inputs = world.inputs();
+    return f(inputs, _.map(function(id){
       return [id, _.get(world, id)];
     }, w.tagged(components, world)), world);
   }
 }
 
-function control(entities, world){
-  const keys = _.chain($keys, _.deref, _.omit(_, "ShiftKey"), _.omit(_, "CtrlKey"), _.seq);
-  const stationary = _.chain($keys, _.deref, _.includes(_, "ShiftKey"));
+function control(inputs, entities, world){
+  const keys = _.chain(inputs.keys, _.omit(_, "ShiftKey"), _.omit(_, "CtrlKey"), _.seq);
+  const stationary = _.chain(inputs.keys, _.includes(_, "ShiftKey"));
   return keys ? _.reduce(function(memo, [id, {positioned, controlled}]){
     const direction = _.some(_.get(controlled, _), keys);
     const beyond = nearby(positioned, direction);
@@ -166,15 +167,20 @@ function changed1(reel){
 
 export const changed = _.overload(null, changed1, changed2);
 
+const $keys = dom.depressed(document.body);
+const $inputs = $.map(function(keys){
+  return {keys};
+}, $keys);
+const inputs = _.partial(_.deref, $inputs);
+
 const blank = _.chain(
-  w.world(["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "controlled"]),
+  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "controlled"]),
   w.views(_, "positioning", _.map([]), positioning, ["positioned"]));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(changed, $state);
-const $keys = dom.depressed(document.body);
 
-reg({$state, $changed, $keys, r, w});
+reg({$state, $changed, $inputs, r, w});
 
 $.swap($state, _.fmap(_, load(board)));
 
