@@ -218,4 +218,3 @@ $.on(document, "keydown", function(e){
 setInterval(function(){
   $.swap($state, _.fmap(_, system(["positioned", "controlled"], control)));
 }, 100);
-

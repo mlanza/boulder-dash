@@ -1,10 +1,8 @@
 import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
-import * as p from "./itouchable.js";
 export {captured} from "./icaptured.js";
 import * as c from "./icaptured.js";
 import * as r from "./reel.js";
-
 
 const alt = _.chance(8675309);
 export const uids = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
