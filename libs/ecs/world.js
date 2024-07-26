@@ -7,16 +7,18 @@ export {capture, frame} from "./icapture.js";
 const alt = _.chance(8675309);
 export const uids = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 
-function World(entities, tags, views){
+function World(entities, tags, views, inputs){
   this.entities = entities;
   this.tags = tags;
   this.views = views;
+  this.inputs = inputs;
 }
 
-export function world(tags){
+export function world(inputs, tags){
   return new World(_.map([]),
     _.reduce(_.assoc(_, _, _.set([])), {}, tags),
-    {});
+    {},
+    inputs);
 }
 
 function views1(self){
@@ -36,7 +38,8 @@ function views6(self, key, model, update, triggers){
       model,
       update,
       triggers
-    }));
+    }),
+    self.inputs);
 }
 
 export const views = _.overload(null, views1, views2, views6);
@@ -51,7 +54,8 @@ function project(id, comps, prior){ //project to views
       _.reducekv(function(views, named, {triggers, update, model}){
         const triggered = _.seq(_.intersection(triggers, components));
         return triggered ? _.assocIn(views, [named, "model"], update(model, id, _.get(curr, id, {}), _.get(prior, id, {}))) : views;
-      }, self.views, self.views));
+      }, self.views, self.views),
+      self.inputs);
   }
 }
 
@@ -73,7 +77,8 @@ function tag(id, prior){
             return memo;
         }
       }, self.tags, keys),
-      self.views);
+      self.views,
+      self.inputs);
   }
 }
 
@@ -82,13 +87,13 @@ function lookup(self, id){
 }
 
 function assoc(self, id, entity){
-  return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.tags, self.views),
+  return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.tags, self.views, self.inputs),
     tag(id, self),
     project(id, _.keys(self.tags), self));
 }
 
 function dissoc(self, id){
-  return _.chain(new World(_.dissoc(self.entities, id), self.tags, self.views),
+  return _.chain(new World(_.dissoc(self.entities, id), self.tags, self.views, self.inputs),
     tag(id, self),
     project(id, _.keys(self.tags), self));
 }
