@@ -60,7 +60,8 @@ const board = `
 wwwwwwwwww
 w...oo.. w
 w..oooo. w
-wr...... w
+w....... w
+wro      w
 wwwwwwwwww
 `;
 function positioning(model, id, curr, prior){
@@ -115,7 +116,7 @@ function control(inputs, entities, world){
     const beyondId = _.get(positioning, beyond);
     const {diggable, pushable} = _.get(world, beyondId) || {};
     return _.chain(memo,
-      diggable ? dig(beyondId) : pushable ? push(beyondId, beyond) : _.identity,
+      diggable ? dig(beyondId) : pushable ? push(beyondId, direction, beyond, nearby(beyond, direction)) : _.identity,
       stationary ? _.identity : move(id, positioned, beyond));
   }, world, entities) : world;
 }
@@ -129,12 +130,12 @@ function move(id, from, to){
   };
 }
 
-function push(id, positioned){
-  return function(world){
+function push(id, direction, from, to){
+  return _.includes(["left", "right"], direction) ? function(world){
     const positioning = w.views(world, "positioning");
-    const occupied = _.get(positioning, positioned);
-    return occupied ? world : _.update(world, id, w.patch({positioned}));
-  };
+    const occupied = _.get(positioning, to);
+    return occupied ? world : _.update(world, id, w.patch({positioned: to}));
+  } : _.identity;
 }
 
 function dig(id){
@@ -166,6 +167,7 @@ const $inputs = $.map(function(keys){
   return {keys};
 }, $keys);
 const inputs = _.partial(_.deref, $inputs);
+$.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
   w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "controlled"]),
@@ -175,7 +177,6 @@ const $state = $.atom(r.reel(blank));
 const $changed = $.map(changed, $state);
 
 reg({$state, $changed, $inputs, r, w});
-
 $.swap($state, _.fmap(_, load(board)));
 
 $.sub($changed, _.filter(_.seq), function(changed){
