@@ -1,6 +1,6 @@
 import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
-import * as c from "./icaptured.js";
+import * as c from "./icapture.js";
 
 export function Reel(max, frames){
   this.max = max;
@@ -11,12 +11,12 @@ export function reel(state, max = 2){
   return new Reel(max, [state]);
 }
 
-export function frame(self, age = 0){
-  return _.get(self.frames, age, null);
+export function frame(self, offset = 0){
+  return _.get(self.frames, offset * -1, null);
 }
 
-function snap(self){
-  const captured = _.chain(self, frame, c.captured);
+function capture(self){
+  const captured = _.chain(self, frame, c.capture);
   const frames = _.clone(self.frames);
   frames.unshift(captured); //keep the current frame up front
   if (frames.length > self.max) {
@@ -26,7 +26,7 @@ function snap(self){
 }
 
 function fmap(self, f){
-  const p = snap(self);
+  const p = capture(self);
   const c = new Reel(p.max, _.update(p.frames, 0, f));
   return current(p) === current(c) ? self : new Reel(p.max, _.update(p.frames, 0, f));
 }
@@ -34,9 +34,9 @@ function fmap(self, f){
 const deref = _.unary(frame);
 
 export const current = deref;
-export const prior = _.plug(frame, _, 1);
+export const prior = _.plug(frame, _, -1);
 
-export function correlate(self, select = _.identity, compare = _.array, first = 0, second = first + 1){
+export function correlate(self, select = _.identity, compare = _.array, first = 0, second = first - 1){
   const curr = select(frame(self, first)),
         prior = select(frame(self, second));
   return compare(curr, prior);
@@ -47,5 +47,6 @@ export function touched(curr, prior){
 }
 
 $.doto(Reel,
+  _.implement(c.ICapture, {capture, frame}),
   _.implement(_.IFunctor, {fmap}),
   _.implement(_.IDeref, {deref}));

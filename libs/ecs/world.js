@@ -1,8 +1,8 @@
 import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
-export {captured} from "./icaptured.js";
-import * as c from "./icaptured.js";
+import * as c from "./icapture.js";
 import * as r from "./reel.js";
+export {capture, frame} from "./icapture.js";
 
 const alt = _.chance(8675309);
 export const uids = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
@@ -97,8 +97,8 @@ function contains(self, id){
   return _.contains(self.entities, id);
 }
 
-//TODO save last-touched
-function captured(self){
+//TODO capture what got touched
+function capture(self){
   return self;
 }
 
@@ -115,7 +115,7 @@ $.doto(World,
   _.implement(_.ILookup, {lookup}),
   _.implement(_.IAssociative, {assoc, contains}),
   _.implement(_.ISeqable, {seq}),
-  _.implement(c.ICaptured, {captured})); //TODO remove wipe
+  _.implement(c.ICapture, {capture})); //TODO implement frame
 
 export function tagged(tags, self){
   return _.chain(tags,
@@ -129,6 +129,7 @@ export function patch(patch){
   return _.pipe(_.merge(_, patch), _.compact, _.blot);
 }
 
-export function also(...fs){
-  return _.map(_.juxt(_.identity, ...fs), _);
+export function bestow(...args){
+  const fs = _.initial(args), xs = _.last(args);
+  return _.map(_.juxt(_.identity, ...fs), xs);
 }
