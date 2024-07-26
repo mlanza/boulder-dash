@@ -1,9 +1,10 @@
 import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
-import * as tm from "./touch-map.js";
 import * as p from "./itouchable.js";
-import {ITouchable} from "./itouchable.js";
-export {touched, wipe} from "./itouchable.js";
+export {captured} from "./icaptured.js";
+import * as c from "./icaptured.js";
+import * as r from "./reel.js";
+
 
 const alt = _.chance(8675309);
 export const uids = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
@@ -15,9 +16,9 @@ function World(entities, tags, views){
 }
 
 export function world(tags){
-  return new World(tm.touchMap(),
-    _.reduce(_.assoc(_, _, _.set([])), tm.touchMap({}), tags),
-    tm.touchMap());
+  return new World(_.map([]),
+    _.reduce(_.assoc(_, _, _.set([])), {}, tags),
+    {});
 }
 
 function views1(self){
@@ -45,24 +46,26 @@ export const views = _.overload(null, views1, views2, views6);
 function project(id, comps, prior){ //project to views
   const components = _.toArray(comps);
   return function(self){
+    const curr = self;
     return new World(
       self.entities,
       self.tags,
       _.reducekv(function(views, named, {triggers, update, model}){
         const triggered = _.seq(_.intersection(triggers, components));
-        return triggered ? _.assocIn(views, [named, "model"], update(model, id, _.get(p.current(self), id, {}), _.get(p.prior(self), id, {}), p.current(self), p.prior(self))) : views;
+        return triggered ? _.assocIn(views, [named, "model"], update(model, id, _.get(curr, id, {}), _.get(prior, id, {}))) : views;
       }, self.views, self.views));
   }
 }
 
 function tag(id, prior){
   return function(self){
-    const [ccc, ppp] = p.compared(self, id);
+    const curr = self;
+    const [ccc, ppp] = [_.get(curr, id, {}), _.get(prior, id, {})];
     const keys = _.union(_.set(_.keys(ccc) || []), _.set(_.keys(ppp) || []));
     return new World(
       self.entities,
       _.reduce(function(memo, key){
-        const touched = p.touch(_.get(ccc, key), _.get(ppp, key));
+        const touched = r.touched(_.get(ccc, key), _.get(ppp, key));
         switch(touched){
           case "added":
             return _.update(memo, key, _.conj(_, id));
@@ -83,7 +86,7 @@ function lookup(self, id){
 function assoc(self, id, entity){
   return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.tags, self.views),
     tag(id, self),
-    project(id, _.keys(self.tags), entity));
+    project(id, _.keys(self.tags), self));
 }
 
 function dissoc(self, id){
@@ -96,23 +99,9 @@ function contains(self, id){
   return _.contains(self.entities, id);
 }
 
-function touched(self){
-  return p.touched(self.entities);
-}
-
-function current(self){
-  return p.current(self.entities);
-}
-
-function prior(self){
-  return p.prior(self.entities);
-}
-
-function wipe(self){
-  const entities = p.wipe(self.entities),
-        tags = p.wipe(self.tags),
-        views = p.wipe(self.views);
-  return tags === self.tags && entities === self.entities && views === self.views ? self : new World(entities, tags, views);
+//TODO save last-touched
+function captured(self){
+  return self;
 }
 
 function keys(self){
@@ -128,7 +117,7 @@ $.doto(World,
   _.implement(_.ILookup, {lookup}),
   _.implement(_.IAssociative, {assoc, contains}),
   _.implement(_.ISeqable, {seq}),
-  _.implement(ITouchable, {touched, current, prior, wipe}));
+  _.implement(c.ICaptured, {captured})); //TODO remove wipe
 
 export function tagged(tags, self){
   return _.chain(tags,
@@ -137,23 +126,6 @@ export function tagged(tags, self){
       return _.reduce(_.intersection, set, sets);
     }));
 }
-
-function changed2(self, id){
-  const touched = p.touched(self, id);
-  const components = _.reducekv(function(memo, key, map){
-    return _.assoc(memo, key, p.touched(self, id, key));
-   }, {}, self.tags);
-  const compared = p.compared(self, id);
-  return {touched, components, compared};
-}
-
-function changed1(self){
-  return _.chain(self.entities,
-    p.touched,
-    also(_.partial(changed2, self)));
-}
-
-export const changed = _.overload(null, changed1, changed2);
 
 export function patch(patch){
   return _.pipe(_.merge(_, patch), _.compact, _.blot);

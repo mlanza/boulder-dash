@@ -2,6 +2,7 @@ import _ from "./libs/atomic_/core.js";
 import $ from "./libs/atomic_/shell.js";
 import dom from "./libs/atomic_/dom.js";
 import {reg} from "./libs/cmd.js";
+import r from "./libs/ecs_/reel.js";
 import w from "./libs/ecs_/world.js";
 import p from "./libs/ecs_/itouchable.js";
 
@@ -125,7 +126,6 @@ function control(entities, world){
   }, world, entities) : world;
 }
 
-
 function move(id, positioned){
   return function(world){
     const positioning = w.views(world, "positioning");
@@ -147,18 +147,41 @@ function dig(id){
   return _.dissoc(_, id);
 }
 
+function changed2(reel, ...path){
+  const id = _.first(path);
+  const compared = r.correlate(reel, _.getIn(_, path));
+  const [curr, prior] = compared;
+  const touched = r.correlate(reel, _.getIn(_, path), r.touched);
+  const keys = path.length === 1 ? _.union(_.keys(curr), _.keys(prior)) : null;
+  const components = _.reduce(function(memo, key){
+    return _.assoc(memo, key, r.correlate(reel, _.getIn(_, [id, key]), r.touched));
+   }, null, keys);
+  return {id, touched, components, compared};
+}
+
+function changed1(reel){
+  const curr = r.current(reel),
+        prior = r.prior(reel);
+  const keys = _.union(_.set(_.keys(curr) || []), _.set(_.keys(prior) || [])); //TODO just touched?
+  return _.mapa(_.partial(changed2, reel), keys);
+}
+
+export const changed = _.overload(null, changed1, changed2);
+
 const blank = _.chain(
   w.world(["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "controlled"]),
   w.views(_, "positioning", _.map([]), positioning, ["positioned"]));
 
-const $state = $.atom(blank);
-const $changed = $.map(w.changed, $state);
+const $state = $.atom(r.reel(blank));
+const $changed = $.map(changed, $state);
 const $keys = dom.depressed(document.body);
 
-reg({$state, $keys, $changed, w, p});
+reg({$state, $changed, $keys, w, p});
+
+$.swap($state, _.fmap(_, load(board)));
 
 $.sub($changed, _.filter(_.seq), function(changed){
-  $.each(function([id, {components, compared}]){
+  $.each(function({id, components, compared}){
     const [curr, prior] = compared;
     const {positioned} = components;
     switch(positioned){
@@ -185,7 +208,7 @@ $.sub($changed, _.filter(_.seq), function(changed){
       }
     }
   }, changed);
-  $.swap($state, p.wipe);
+  //$.swap($state, p.wipe);
 });
 
 $.on(document, "keydown", function(e){
@@ -194,8 +217,7 @@ $.on(document, "keydown", function(e){
   }
 });
 
-$.swap($state, load(board));
-
 setInterval(function(){
-  $.swap($state, system(["positioned", "controlled"], control));
+  $.swap($state, _.fmap(_, system(["positioned", "controlled"], control)));
 }, 100);
+
