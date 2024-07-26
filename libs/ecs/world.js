@@ -89,7 +89,7 @@ function lookup(self, id){
 function assoc(self, id, entity){
   return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.tags, self.views, self.inputs),
     tag(id, self),
-    project(id, _.keys(self.tags), self));
+    project(id, _.keys(entity), self));
 }
 
 function dissoc(self, id){
