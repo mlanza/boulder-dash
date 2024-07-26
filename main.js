@@ -160,10 +160,9 @@ function changed2(reel, ...path){
 }
 
 function changed1(reel){
-  const curr = r.current(reel),
-        prior = r.prior(reel);
-  const keys = _.union(_.set(_.keys(curr) || []), _.set(_.keys(prior) || [])); //TODO just touched?
-  return _.mapa(_.partial(changed2, reel), keys);
+  return _.chain(reel, r.correlate(_, function(world){
+    return _.set(_.keys(world) || []); //TODO just touched?
+  }, _.union), _.mapa(_.partial(changed2, reel), _));
 }
 
 export const changed = _.overload(null, changed1, changed2);
@@ -208,7 +207,6 @@ $.sub($changed, _.filter(_.seq), function(changed){
       }
     }
   }, changed);
-  //$.swap($state, p.wipe);
 });
 
 $.on(document, "keydown", function(e){
