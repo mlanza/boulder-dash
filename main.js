@@ -63,17 +63,11 @@ w..oooo. w
 wr...... w
 wwwwwwwwww
 `;
-
 function positioning(model, id, curr, prior){
-  if (curr.positioned && !prior.positioned) { //added
-    return _.assoc(model, curr.positioned, id);
-  } else if (prior.positioned && !curr.positioned) { //removed
-    return _.dissoc(model, prior.positioned);
-  } else {
-    return _.chain(model,
-      _.dissoc(_, prior.positioned),
-      _.assoc(_, curr.positioned, id));
-  }
+  const touched = r.touched(curr, prior);
+  return _.chain(model,
+    _.includes(["removed", "updated"], touched) ? _.dissoc(_, prior.positioned) : _.identity,
+    _.includes(["added", "updated"], touched) ? _.assoc(_, curr.positioned, id) : _.identity);
 }
 
 function load(board){
@@ -122,16 +116,16 @@ function control(inputs, entities, world){
     const {diggable, pushable} = _.get(world, beyondId) || {};
     return _.chain(memo,
       diggable ? dig(beyondId) : pushable ? push(beyondId, beyond) : _.identity,
-      stationary ? _.identity : move(id, beyond));
+      stationary ? _.identity : move(id, positioned, beyond));
   }, world, entities) : world;
 }
 
-function move(id, positioned){
+function move(id, from, to){
   return function(world){
     const positioning = w.views(world, "positioning");
-    const there = _.get(positioning, positioned);
+    const there = _.get(positioning, to);
     const collision = !!there; //TODO handle collision
-    return collision ? world : _.update(world, id, w.patch({positioned}));
+    return collision ? world : _.update(world, id, w.patch({positioned: to}));
   };
 }
 
