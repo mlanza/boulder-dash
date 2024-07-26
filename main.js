@@ -4,7 +4,6 @@ import dom from "./libs/atomic_/dom.js";
 import {reg} from "./libs/cmd.js";
 import r from "./libs/ecs_/reel.js";
 import w from "./libs/ecs_/world.js";
-import p from "./libs/ecs_/itouchable.js";
 
 const div = dom.tag("div");
 const el = dom.sel1("#stage");
@@ -175,7 +174,7 @@ const $state = $.atom(r.reel(blank));
 const $changed = $.map(changed, $state);
 const $keys = dom.depressed(document.body);
 
-reg({$state, $changed, $keys, w, p});
+reg({$state, $changed, $keys, r, w});
 
 $.swap($state, _.fmap(_, load(board)));
 
