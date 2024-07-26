@@ -9,6 +9,7 @@ body {
   margin: 1em;
   width: 1280px;
   height: 704px;
+  scale: .8;
 }
 [data-noun] {
   position: absolute;
@@ -25,8 +26,14 @@ body {
 [data-noun='wall'] {
   background-position: -96px -192px;
 }
+[data-noun='steel-wall'] {
+  background-position: -32px -192px;
+}
 [data-noun='boulder'] {
   background-position: 0 -224px;
+}
+[data-noun='diamond'] {
+  background-position: 0 -322px;
 }
 [data-noun='dirt'] {
   background-position: -32px -224px;
