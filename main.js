@@ -54,16 +54,33 @@ function boulder(positioned){
   return _.assoc(_, w.uids(), {noun: "boulder", pushable, explosive, rounded, gravity: 1, positioned});
 }
 
-const spawn = _.get({".": dirt, "r": rockford, "o": boulder, "w": wall, "s": steelWall, "d": diamond}, _, _.constantly(_.identity));
+const spawn = _.get({".": dirt, "X": rockford, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
 
 const board = `
-wwwwwwwwww
-w...oo.. w
-w..oooo. w
-w....... w
-wro      w
-wwwwwwwwww
-`;
+WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+W...... ..d.r .....r.r....... ....r....W
+W.rXr...... .........rd..r.... ..... ..W
+W.......... ..r.....r.r..r........r....W
+Wr.rr.........r......r..r....r...r.....W
+Wr. r......... r..r........r......r.rr.W
+W... ..r........r.....r. r........r.rr.W
+Wwwwwwwwwwwwwwwwwwwwwwwwwwwwwww...r..r.W
+W. ...r..d. ..r.r..........d.rd...... .W
+W..d.....r..... ........rr r..r....r...W
+W...r..r.r..............r .r..r........W
+W.r.....r........rrr.......r.. .d....r.W
+W.d.. ..r. .....r.rd..d....r...r..d.  .W
+W. r..............r r..r........d.....rW
+W........wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwW
+W r.........r...d....r.....r...r.......W
+W r......... r..r........r......r.rr..PW
+W. ..r........r.....r.  ....d...r.rr...W
+W. ..r........r.....r.  ....d...r.rr...W
+W....rd..r........r......r.rd......r...W
+W... ..r. ..r.rr.........r.rd...... ..rW
+W.d.... ..... ......... .r..r....r...r.W
+WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW`;
+
 function positioning(model, id, curr, prior){
   const touched = r.touched(curr, prior);
   return _.chain(model,
@@ -72,7 +89,7 @@ function positioning(model, id, curr, prior){
 }
 
 function load(board){
-  $.log("load")
+  $.log("load");
   const parts = _.chain(board,
     _.split(_, "\n"),
     _.map(_.trim, _),
@@ -215,6 +232,11 @@ $.on(document, "keydown", function(e){
   }
 });
 
-setInterval(function(){
+let i = 0;
+const iv = setInterval(function(){
+  i++;
   $.swap($state, _.fmap(_, system(["positioned", "controlled"], control)));
-}, 100);
+  if (i > 10) {
+    clearInterval(iv);
+  }
+}, 300);
