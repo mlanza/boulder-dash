@@ -235,11 +235,28 @@ $.on(document, "keydown", function(e){
   }
 });
 
-let i = 0;
-const iv = setInterval(function(){
-  i++;
-  $.swap($state, _.fmap(_, system(["positioned", "controlled"], control)));
-  if (i > 100) {
-    clearInterval(iv);
+function setRafInterval(callback, throttle) {
+  let lastTime = 0;
+  let rafId;
+
+  function tick(time) {
+    if (!lastTime) {
+      lastTime = time;
+    }
+    if (time - lastTime >= throttle) {
+      callback(time);
+      lastTime = time;
+    }
+    rafId = requestAnimationFrame(tick);
   }
-}, 300);
+
+  rafId = requestAnimationFrame(tick);
+
+  return function clearRafInterval() {
+    cancelAnimationFrame(rafId);
+  };
+}
+
+setRafInterval(function(time){
+  $.swap($state, _.fmap(_, system(["positioned", "controlled"], control)));
+}, 100);
