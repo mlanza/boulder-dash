@@ -3,8 +3,8 @@ import $ from "./libs/atomic_/shell.js";
 import dom from "./libs/atomic_/dom.js";
 import imm from "./libs/atomic_/immutables.js";
 import {reg} from "./libs/cmd.js";
-import p from "./libs/ecs_/pile.js";
-import s from "./libs/ecs_/stash.js";
+import p from "./libs/ecs_/serial-set.js";
+import s from "./libs/ecs_/serial-map.js";
 import r from "./libs/ecs_/reel.js";
 import w from "./libs/ecs_/world.js";
 
