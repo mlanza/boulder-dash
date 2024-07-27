@@ -3,6 +3,8 @@ import $ from "../atomic_/shell.js";
 import imm from "../atomic_/immutables.js";
 import * as c from "./icapture.js";
 import * as r from "./reel.js";
+import * as s from "./stash.js";
+import * as p from "./pile.js";
 export {capture, frame} from "./icapture.js";
 
 const alt = _.chance(8675309);
@@ -16,8 +18,8 @@ function World(entities, tags, views, inputs){
 }
 
 export function world(inputs, tags){
-  return new World(imm.map(),
-    _.reduce(_.assoc(_, _, imm.set()), {}, tags),
+  return new World({},
+    _.reduce(_.assoc(_, _, p.set([], _.identity, _.identity)), {}, tags),
     {},
     inputs);
 }
@@ -64,7 +66,7 @@ function tag(id, prior){
   return function(self){
     const curr = self;
     const [ccc, ppp] = [_.get(curr, id, {}), _.get(prior, id, {})];
-    const keys = _.union(imm.set(_.keys(ccc) || []), imm.set(_.keys(ppp) || []));
+    const keys = _.union(p.set(_.keys(ccc) || [], _.identity, _.identity), p.set(_.keys(ppp) || [], _.idenity, _.identity));
     return new World(
       self.entities,
       _.reduce(function(memo, key){

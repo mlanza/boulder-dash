@@ -3,6 +3,8 @@ import $ from "./libs/atomic_/shell.js";
 import dom from "./libs/atomic_/dom.js";
 import imm from "./libs/atomic_/immutables.js";
 import {reg} from "./libs/cmd.js";
+import p from "./libs/ecs_/pile.js";
+import s from "./libs/ecs_/stash.js";
 import r from "./libs/ecs_/reel.js";
 import w from "./libs/ecs_/world.js";
 
@@ -174,7 +176,7 @@ function changed2(reel, ...path){
 
 function changed1(reel){
   return _.chain(reel, r.correlate(_, function(world){
-    return imm.set(_.keys(world) || []); //TODO just touched?
+    return p.set(_.keys(world) || [], _.identity, _.identity); //TODO just touched?
   }, _.union), _.mapa(_.partial(changed2, reel), _));
 }
 
@@ -189,7 +191,7 @@ $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
   w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "controlled"]),
-  w.views(_, "positioning", imm.map(), positioning, ["positioned"]));
+  w.views(_, "positioning", s.map(), positioning, ["positioned"]));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(changed, $state);
