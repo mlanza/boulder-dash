@@ -1,5 +1,6 @@
 import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
+import imm from "../atomic_/immutables.js";
 import * as c from "./icapture.js";
 import * as r from "./reel.js";
 export {capture, frame} from "./icapture.js";
@@ -15,8 +16,8 @@ function World(entities, tags, views, inputs){
 }
 
 export function world(inputs, tags){
-  return new World(_.map([]),
-    _.reduce(_.assoc(_, _, _.set([])), {}, tags),
+  return new World(imm.map(),
+    _.reduce(_.assoc(_, _, imm.set()), {}, tags),
     {},
     inputs);
 }
@@ -63,7 +64,7 @@ function tag(id, prior){
   return function(self){
     const curr = self;
     const [ccc, ppp] = [_.get(curr, id, {}), _.get(prior, id, {})];
-    const keys = _.union(_.set(_.keys(ccc) || []), _.set(_.keys(ppp) || []));
+    const keys = _.union(imm.set(_.keys(ccc) || []), imm.set(_.keys(ppp) || []));
     return new World(
       self.entities,
       _.reduce(function(memo, key){
