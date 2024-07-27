@@ -3,8 +3,9 @@ import $ from "../atomic_/shell.js";
 import imm from "../atomic_/immutables.js";
 import * as c from "./icapture.js";
 import * as r from "./reel.js";
-import * as s from "./stash.js";
-import * as p from "./pile.js";
+import * as s from "./serial-map.js";
+import * as p from "./serial-set.js";
+import * as pm from "./part-map.js";
 export {capture, frame} from "./icapture.js";
 
 const alt = _.chance(8675309);
@@ -18,7 +19,7 @@ function World(entities, tags, views, inputs){
 }
 
 export function world(inputs, tags){
-  return new World({},
+  return new World(pm.map([]),
     _.reduce(_.assoc(_, _, p.set([], _.identity, _.identity)), {}, tags),
     {},
     inputs);

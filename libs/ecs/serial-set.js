@@ -1,18 +1,17 @@
 import _ from "../atomic_/core.js";
-import $ from "../atomic_/shell.js";
 
-export function Pile(coll, serialize, deserialize){
+export function SerialSet(coll, serialize, deserialize){
   this.serialize = serialize;
   this.deserialize = deserialize;
   this.coll = coll;
 }
 
-export function pile(entries = [], serialize = JSON.stringify, deserialize = JSON.parse){
+export function serialSet(entries = [], serialize = JSON.stringify, deserialize = JSON.parse){
   const items = _.toArray(entries);
-  return _.conj(new Pile({}, serialize, deserialize), ...items);
+  return _.conj(new SerialSet({}, serialize, deserialize), ...items);
 }
 
-export const set = pile;
+export const set = serialSet;
 
 function first(self){
   return _.maybe(self, _.seq, _.first);
@@ -23,11 +22,11 @@ function rest(self){
 }
 
 function conj(self, value){
-  return new Pile(_.assoc(self.coll, self.serialize(value), value), self.serialize, self.deserialize);
+  return new SerialSet(_.assoc(self.coll, self.serialize(value), value), self.serialize, self.deserialize);
 }
 
 function disj(self, value){
-  return new Pile(_.dissoc(self.coll, self.serialize(value)), self.serialize, self.deserialize);
+  return new SerialSet(_.dissoc(self.coll, self.serialize(value)), self.serialize, self.deserialize);
 }
 
 function includes(self, value){
@@ -39,7 +38,7 @@ function seq(self){
 }
 
 function empty(self){
-  return pile([], self.serialize, self.deserialize);
+  return serialSet([], self.serialize, self.deserialize);
 }
 
 function reduceWith(seq) {
@@ -55,7 +54,7 @@ function reduceWith(seq) {
 
 const reduce = reduceWith(seq);
 
-$.doto(Pile,
+_.doto(SerialSet,
   _.implement(_.IReducible, {reduce}),
   _.implement(_.ISeq, {first, rest}),
   _.implement(_.IEmptyableCollection, {empty}),
