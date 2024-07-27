@@ -888,7 +888,7 @@ const IFunctor = protocol({
 
 function flatMap$3(self, f) {
   var _f, _IFunctor$fmap, _IFunctor;
-  return chain(self, IFlatMappable.flat, (_IFunctor = IFunctor, _IFunctor$fmap = _IFunctor.fmap, 
+  return chain(self, IFlatMappable.flat, (_IFunctor = IFunctor, _IFunctor$fmap = _IFunctor.fmap,
   _f = f, function fmap(_argPlaceholder) {
     return _IFunctor$fmap.call(_IFunctor, _argPlaceholder, _f);
   }));
@@ -1000,7 +1000,7 @@ function _IsValueObject(maybeValue) {
 }
 
 function isValueObject(self) {
-  return satisfies(IHashable, self) && satisfies(IEquiv, self) || _IsValueObject(self);
+  return true; //satisfies(IHashable, self) && satisfies(IEquiv, self) || _IsValueObject(self);
 }
 
 const key$3 = IMapEntry.key;
@@ -1557,12 +1557,12 @@ const subtract = overload(constantly(0), identity, subtract2, reducing(subtract2
 
 const add$3 = overload(constantly(0), identity, IAddable.add, reducing(IAddable.add));
 
-const inc = overload(constantly(+1), (_IAddable = IAddable, _IAddable$add = _IAddable.add, 
+const inc = overload(constantly(+1), (_IAddable = IAddable, _IAddable$add = _IAddable.add,
 _ = +1, function add(_argPlaceholder) {
   return _IAddable$add.call(_IAddable, _argPlaceholder, _);
 }));
 
-const dec = overload(constantly(-1), (_IAddable2 = IAddable, _IAddable$add2 = _IAddable2.add, 
+const dec = overload(constantly(-1), (_IAddable2 = IAddable, _IAddable$add2 = _IAddable2.add,
 _2 = -1, function add(_argPlaceholder2) {
   return _IAddable$add2.call(_IAddable2, _argPlaceholder2, _2);
 }));
@@ -2011,7 +2011,7 @@ const lowerCase = unbind(String.prototype.toLowerCase);
 
 const upperCase = unbind(String.prototype.toUpperCase);
 
-const titleCase = (_replace = replace, _param$1 = /(^|\s|\.)(\S|\.)/g, _upperCase = upperCase, 
+const titleCase = (_replace = replace, _param$1 = /(^|\s|\.)(\S|\.)/g, _upperCase = upperCase,
 function replace(_argPlaceholder) {
   return _replace(_argPlaceholder, _param$1, _upperCase);
 });
@@ -4512,7 +4512,7 @@ const find$1 = IFind.find;
 
 var _noop, _IForkable$fork, _IForkable;
 
-const fork$2 = overload(null, null, (_IForkable = IForkable, _IForkable$fork = _IForkable.fork, 
+const fork$2 = overload(null, null, (_IForkable = IForkable, _IForkable$fork = _IForkable.fork,
 _noop = noop$1, function fork(_argPlaceholder, _argPlaceholder2) {
   return _IForkable$fork.call(_IForkable, _argPlaceholder, _noop, _argPlaceholder2);
 }), IForkable.fork);
@@ -5107,7 +5107,7 @@ const vals$2 = Object.values;
 function fill$1(self, params) {
   return reducekv$7((function(memo, key, value) {
     var _params, _p$fill, _p, _params2, _fill;
-    return assoc$7(memo, key, chain(value, branch(isString, (_p = p$2, _p$fill = _p.fill, 
+    return assoc$7(memo, key, chain(value, branch(isString, (_p = p$2, _p$fill = _p.fill,
     _params = params, function fill(_argPlaceholder) {
       return _p$fill.call(_p, _argPlaceholder, _params);
     }), isObject, (_fill = fill$1, _params2 = params, function fill(_argPlaceholder2) {
@@ -5513,7 +5513,7 @@ const split$1 = overload(null, null, split2, split3$1);
 
 function add(self, dur) {
   var _dur, _p$add, _p;
-  return end$1(self) ? new self.constructor(start$1(self), chain(self, end$1, (_p = p$1, 
+  return end$1(self) ? new self.constructor(start$1(self), chain(self, end$1, (_p = p$1,
   _p$add = _p.add, _dur = dur, function add(_argPlaceholder2) {
     return _p$add.call(_p, _argPlaceholder2, _dur);
   }))) : self;
@@ -6093,7 +6093,7 @@ function conj$2(self, [key, value]) {
 function assoc(self, key, value) {
   var _param, _p$conj, _p;
   const {h: h, idx: idx, candidates: candidates} = getHashIndex(self, key);
-  const mapped = !candidates ? assoc$7(self.mapped, h, [ [ key, value ] ]) : idx == null ? update(self.mapped, h, (_p = p, 
+  const mapped = !candidates ? assoc$7(self.mapped, h, [ [ key, value ] ]) : idx == null ? update(self.mapped, h, (_p = p,
   _p$conj = _p.conj, _param = [ key, value ], function conj(_argPlaceholder) {
     return _p$conj.call(_p, _argPlaceholder, _param);
   })) : assocIn(self.mapped, [ h, idx ], [ key, value ]);
