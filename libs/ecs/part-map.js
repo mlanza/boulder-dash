@@ -19,10 +19,12 @@ function hashClamp(n) {
   }
 }
 
-export const map = _.plug(partMap,
-  _,
-  _.pipe(_.str, _.hash, hashClamp(50)),
-  _.constantly({}));
+export const map = _.plug(partMap, _,
+  _.pipe(_.hash, hashClamp(10)),
+  _.constantly(
+    partMap([],
+      _.pipe(_.rest, _.hash, hashClamp(10)),
+      _.constantly({})));
 
 function lookup(self, key){
   const part = self.partition(key);
@@ -66,6 +68,3 @@ _.doto(PartMap,
   _.implement(_.IAssociative, {assoc, contains}),
   _.implement(_.ISeqable, {seq}),
   _.implement(_.IMap, {keys, dissoc}));
-
-
-
