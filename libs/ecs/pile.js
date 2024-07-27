@@ -15,11 +15,11 @@ export function pile(entries = [], serialize = JSON.stringify, deserialize = JSO
 export const set = pile;
 
 function first(self){
-  return _.maybe(self, _.seq, _.first, self.serialize);
+  return _.maybe(self, _.seq, _.first);
 }
 
 function rest(self){
-  return _.chain(self, _.seq, _.rest, _.map(self.deserialize, _));
+  return _.maybe(self, _.seq, _.rest);
 }
 
 function conj(self, value){
