@@ -107,24 +107,30 @@ function system(components, f){
 function control(inputs, entities, world){
   const keys = _.chain(inputs.keys, _.omit(_, "ShiftKey"), _.omit(_, "CtrlKey"), _.seq);
   const stationary = _.chain(inputs.keys, _.includes(_, "ShiftKey"));
-  return keys ? _.reduce(function(memo, [id, {positioned, controlled}]){
+  return _.reduce(function(memo, [id, {positioned, controlled}]){
     const direction = _.some(_.get(controlled, _), keys);
-    const beyond = nearby(positioned, direction);
-    const positioning = w.views(world, "positioning");
-    const beyondId = _.get(positioning, beyond);
-    const {diggable, pushable} = _.get(world, beyondId) || {};
-    return _.chain(memo,
-      diggable ? dig(beyondId) : pushable ? push(beyondId, direction, beyond, nearby(beyond, direction)) : _.identity,
-      stationary ? _.identity : move(id, positioned, beyond));
-  }, world, entities) : world;
+    if (direction){
+      const beyond = nearby(positioned, direction);
+      const positioning = w.views(world, "positioning");
+      const beyondId = _.get(positioning, beyond);
+      const {diggable, pushable} = _.get(world, beyondId) || {};
+      return _.chain(memo,
+        diggable ? dig(beyondId) : pushable ? push(beyondId, direction, beyond, nearby(beyond, direction)) : _.identity,
+        stationary ? _.identity : move(id, direction, positioned, beyond));
+    } else {
+      return _.chain(memo, _.getIn(_, [id, "facing"])) ? _.chain(memo, _.update(_, id, w.patch({facing: null}))) : memo;
+    }
+  }, world, entities);
 }
 
-function move(id, from, to){
+function move(id, direction, from, to){
   return function(world){
     const positioning = w.views(world, "positioning");
     const there = _.get(positioning, to);
     const collision = !!there; //TODO handle collision
-    return collision ? world : _.update(world, id, w.patch({positioned: to}));
+    return _.chain(world,
+      _.update(_, id, w.patch({facing: !collision ? direction : null})),
+      collision ? _.identity : _.update(_, id, w.patch({positioned: to})));
   };
 }
 
@@ -168,19 +174,28 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "controlled"]),
+  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "facing", "controlled"]),
   w.views(_, "positioning", s.map(), positioning, ["positioned"]));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(changed, $state);
 
-reg({$state, $changed, $inputs, r, w, pm});
+reg({$state, $changed, $inputs, R, r, w, pm});
 $.swap($state, _.fmap(_, load(board)));
 
 $.sub($changed, _.filter(_.seq), function(changed){
   $.each(function({id, components, compared}){
     const [curr, prior] = compared;
-    const {positioned} = components;
+    const {positioned, facing} = components;
+
+    if (facing) {
+      if (_.includes(["added", "updated"], facing)) {
+        _.maybe(document.getElementById(id), dom.attr(_, "data-facing", curr.facing));
+      } else {
+        _.maybe(document.getElementById(id), dom.removeAttr(_, "data-facing"));
+      }
+    }
+
     switch(positioned){
       case "added": {
         const [x, y] = curr.positioned;

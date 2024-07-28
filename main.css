@@ -20,6 +20,12 @@ body {
 [data-noun='Rockford'] {
   background-position: 0 0;
 }
+[data-noun='Rockford'][data-facing='right'] {
+  background-position: 0 -160px;
+}
+[data-noun='Rockford'][data-facing='left'] {
+  background-position: 0 -128px;
+}
 [data-noun='explosion'] {
   background-position: -64px 0;
 }

@@ -135,7 +135,10 @@ export function tagged(tags, self){
 }
 
 export function patch(patch){
-  return _.pipe(_.merge(_, patch), _.compact, _.blot);
+  return function(entity){
+    const revised = _.chain(entity, _.merge(_, patch), _.compact, _.blot);
+    return _.eq(entity, revised) ? entity : revised;
+  }
 }
 
 export function bestow(...args){
