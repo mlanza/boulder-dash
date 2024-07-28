@@ -12,6 +12,7 @@ body {
   scale: .8;
 }
 [data-noun] {
+  transition: top, left;
   position: absolute;
   height: 32px;
   width: 32px;
@@ -20,11 +21,23 @@ body {
 [data-noun='Rockford'] {
   background-position: 0 0;
 }
+@keyframes run-right {
+  100%   {
+    background-position: -224px -160px;
+  }
+}
+@keyframes run-left {
+  100% {
+    background-position: -224px -128px;
+  }
+}
 [data-noun='Rockford'][data-facing='right'] {
   background-position: 0 -160px;
+  animation: run-right .5s steps(7) infinite;
 }
 [data-noun='Rockford'][data-facing='left'] {
   background-position: 0 -128px;
+  animation: run-left .5s steps(7) infinite;
 }
 [data-noun='explosion'] {
   background-position: -64px 0;
