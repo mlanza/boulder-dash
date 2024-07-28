@@ -22,9 +22,9 @@ function hashClamp(n) {
 export const map = _.plug(partMap, _,
   _.pipe(_.hash, hashClamp(7)),
   _.constantly(partMap([],
-    _.pipe(_.str("A", _), _.hash, hashClamp(7)),
+    _.pipe(_.rest, _.hash, hashClamp(7)),
     _.constantly(partMap([],
-      _.pipe(_.str("B", _), _.hash, hashClamp(7)),
+      _.pipe(_.rest, _.rest, _.hash, hashClamp(7)),
       _.constantly({}))))));
 
 function lookup(self, key){
@@ -56,12 +56,11 @@ function keys(self){
 }
 
 function seq(self){
-  const ks = keys(self);
-  return _.seq(ks) ? _.map(function(key){
+  return _.seq(_.map(function(key){
     const part = self.partition(key);
     const value = _.getIn(self.parts, [part, key]);
     return [key, value];
-  }, ks) : null;
+  }, keys(self.parts)));
 }
 
 _.doto(PartMap,
