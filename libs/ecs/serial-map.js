@@ -1,29 +1,28 @@
 import _ from "../atomic_/core.js";
 
-export function SerialMap(index, serialize, deserialize){
+export function SerialMap(index, serialize){
   this.serialize = serialize;
-  this.deserialize = deserialize;
   this.index = index;
 }
 
-export function serialMap(entries, index = {}, serialize = JSON.stringify, deserialize = JSON.parse){
+export function serialMap(entries, index = {}, serialize = JSON.stringify){
   return _.reduce(function(memo, [key, value]){
     return assoc(memo, key, value);
-  }, new SerialMap(index, serialize, deserialize), entries);
+  }, new SerialMap(index, serialize), entries);
 }
 
 export const map = serialMap;
 
 function lookup(self, key){
-  return _.get(self.index, self.serialize(key));
+  return _.getIn(self.index, [self.serialize(key), 1]);
 }
 
 function assoc(self, key, value){
-  return new SerialMap(_.assoc(self.index, self.serialize(key), value), self.serialize, self.deserialize);
+  return new SerialMap(_.assoc(self.index, self.serialize(key), [key, value]), self.serialize);
 }
 
 function dissoc(self, key){
-  return new SerialMap(_.dissoc(self.index, self.serialize(key)), self.serialize, self.deserialize);
+  return new SerialMap(_.dissoc(self.index, self.serialize(key)), self.serialize);
 }
 
 function contains(self, key){
@@ -31,13 +30,11 @@ function contains(self, key){
 }
 
 function keys(self){
-  return _.map(self.deserialize, _.keys(self.index));
+  return _.map(_.first, _.seq(self.index));
 }
 
 function seq(self){
-  return _.seq(keys(self)) ? _.map(function(key, value){
-    return [self.deserialize(key), value];
-  }, _.seq(self.index)) : null;
+  return _.seq(self.index) ? _.map(_.second, _.seq(self.index)) : null;
 }
 
 _.doto(SerialMap,

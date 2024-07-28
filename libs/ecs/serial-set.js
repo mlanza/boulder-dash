@@ -1,14 +1,12 @@
 import _ from "../atomic_/core.js";
 
-export function SerialSet(coll, serialize, deserialize){
+export function SerialSet(coll, serialize){
   this.serialize = serialize;
-  this.deserialize = deserialize;
   this.coll = coll;
 }
 
-export function serialSet(entries = [], serialize = JSON.stringify, deserialize = JSON.parse){
-  const items = _.toArray(entries);
-  return _.conj(new SerialSet({}, serialize, deserialize), ...items);
+export function serialSet(entries = [], serialize = JSON.stringify){
+  return _.conj(new SerialSet({}, serialize), ..._.toArray(entries));
 }
 
 export const set = serialSet;
@@ -22,11 +20,11 @@ function rest(self){
 }
 
 function conj(self, value){
-  return new SerialSet(_.assoc(self.coll, self.serialize(value), value), self.serialize, self.deserialize);
+  return new SerialSet(_.assoc(self.coll, self.serialize(value), value), self.serialize);
 }
 
 function disj(self, value){
-  return new SerialSet(_.dissoc(self.coll, self.serialize(value)), self.serialize, self.deserialize);
+  return new SerialSet(_.dissoc(self.coll, self.serialize(value)), self.serialize);
 }
 
 function includes(self, value){
@@ -38,7 +36,7 @@ function seq(self){
 }
 
 function empty(self){
-  return serialSet([], self.serialize, self.deserialize);
+  return serialSet([], self.serialize);
 }
 
 function reduceWith(seq) {
