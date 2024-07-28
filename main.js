@@ -7,6 +7,7 @@ import p from "./libs/ecs_/serial-set.js";
 import s from "./libs/ecs_/serial-map.js";
 import r from "./libs/ecs_/reel.js";
 import w from "./libs/ecs_/world.js";
+import pm from "./libs/ecs_/part-map.js";
 
 const div = dom.tag("div");
 const el = dom.sel1("#stage");
@@ -196,7 +197,7 @@ const blank = _.chain(
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(changed, $state);
 
-reg({$state, $changed, $inputs, r, w});
+reg({$state, $changed, $inputs, r, w, pm});
 $.swap($state, _.fmap(_, load(board)));
 
 $.sub($changed, _.filter(_.seq), function(changed){
