@@ -57,7 +57,7 @@ function project(id, comps, prior){ //project to views
       self.tags,
       _.reducekv(function(views, named, {triggers, update, model}){
         const triggered = _.seq(_.intersection(triggers, components));
-        return triggered ? _.assocIn(views, [named, "model"], update(model, id, _.get(curr, id, {}), _.get(prior, id, {}))) : views;
+        return triggered ? _.assocIn(views, [named, "model"], update(model, id, _.get(curr, id), _.get(prior, id))) : views;
       }, self.views, self.views),
       self.inputs);
   }
@@ -97,9 +97,10 @@ function assoc(self, id, entity){
 }
 
 function dissoc(self, id){
+  const entity = _.get(self, id);
   return _.chain(new World(_.dissoc(self.entities, id), self.tags, self.views, self.inputs),
     tag(id, self),
-    project(id, _.keys(self.tags), self));
+    project(id, _.keys(entity), self));
 }
 
 function contains(self, id){

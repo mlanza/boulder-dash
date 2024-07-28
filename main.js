@@ -14,7 +14,7 @@ const el = dom.sel1("#stage");
 const R = w.uids();
 
 const explosive = true,
-      collected = true,
+      collectible = true,
       diggable = true,
       rounded = true,
       pushable = true;
@@ -38,7 +38,7 @@ function rockford(positioned){
 }
 
 function diamond(positioned){
-  return _.assoc(_, w.uids(), {noun: "diamond", collected, explosive, rounded, positioned});
+  return _.assoc(_, w.uids(), {noun: "diamond", collectible, explosive, rounded, positioned});
 }
 
 function dirt(positioned){
@@ -67,6 +67,13 @@ function positioning(model, id, curr, prior){
   return _.chain(model,
     _.includes(["removed", "updated"], touched) ? _.dissoc(_, prior.positioned) : _.identity,
     _.includes(["added", "updated"], touched) ? _.assoc(_, curr.positioned, id) : _.identity);
+}
+
+function collecting(model, id, curr, prior){
+  const touched = r.touched(curr, prior);
+  return _.chain(model,
+    _.includes(["removed"], touched) ? _.pipe(_.update(_, "collected", _.inc), _.update(_, "remaining", _.dec)) : _.identity,
+    _.includes(["added"], touched) ? _.update(_, "remaining", _.inc) : _.identity);
 }
 
 function load(board){
@@ -113,14 +120,19 @@ function control(inputs, entities, world){
       const beyond = nearby(positioned, direction);
       const positioning = w.views(world, "positioning");
       const beyondId = _.get(positioning, beyond);
-      const {diggable, pushable} = _.get(world, beyondId) || {};
+      const {diggable, pushable, collectible} = _.get(world, beyondId) || {};
       return _.chain(memo,
+        collectible ? collect(beyondId) : _.identity,
         diggable ? dig(beyondId) : pushable ? push(beyondId, direction, beyond, nearby(beyond, direction)) : _.identity,
         stationary ? _.identity : move(id, direction, positioned, beyond));
     } else {
       return _.chain(memo, _.getIn(_, [id, "facing"])) ? _.chain(memo, _.update(_, id, w.patch({facing: null}))) : memo;
     }
   }, world, entities);
+}
+
+function collect(id){
+  return _.dissoc(_, id);
 }
 
 function move(id, direction, from, to){
@@ -176,8 +188,9 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collected", "explosive", "gravity", "positioned", "facing", "controlled"]),
-  w.views(_, "positioning", s.map(), positioning, ["positioned"]));
+  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "gravity", "positioned", "facing", "controlled"]),
+  w.views(_, "positioning", s.map(), positioning, ["positioned"]),
+  w.views(_, "collecting", {collected: 0, goal: 10, remaining: 0}, collecting, ["collectible"]));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(changed, $state);
