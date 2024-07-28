@@ -153,8 +153,10 @@ function changed2(reel, ...path){
   const touched = r.correlate(reel, _.getIn(_, path), r.touched);
   const keys = path.length === 1 ? _.union(_.keys(curr), _.keys(prior)) : null;
   const components = _.reduce(function(memo, key){
-    return _.assoc(memo, key, r.correlate(reel, _.getIn(_, [id, key]), r.touched));
-   }, null, keys);
+    const touched = r.correlate(reel, _.getIn(_, [id, key]), r.touched);
+    touched && $.assoc(memo, key, touched);
+    return memo;
+   }, {}, keys);
   return {id, touched, components, compared};
 }
 
