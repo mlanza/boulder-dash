@@ -12,11 +12,11 @@ export function partSet(items = [], partition, store, parts = {}){
 }
 
 export const set = _.plug(partSet, _,
-  _.pipe(_.hash, hashClamp(7)),
+  _.pipe(_.hash, hashClamp(22)),
   _.constantly(partSet([],
-    _.pipe(_.array(1, _), _.hash, hashClamp(7)),
+    _.pipe(_.str("1", _), _.hash, hashClamp(22)),
     _.constantly(partSet([],
-      _.pipe(_.array(2, _), _.hash, hashClamp(7)),
+      _.pipe(_.str("2", _), _.hash, hashClamp(22)),
       _.constantly(_.set([])))))));
 
 function conj(self, value){

@@ -20,11 +20,11 @@ export function hashClamp(n) {
 }
 
 export const map = _.plug(partMap, _,
-  _.pipe(_.hash, hashClamp(7)),
+  _.pipe(_.hash, hashClamp(11)),
   _.constantly(partMap([],
-    _.pipe(_.array(1, _), _.hash, hashClamp(7)),
+    _.pipe(_.str("a", _), _.hash, hashClamp(11)),
     _.constantly(partMap([],
-      _.pipe(_.array(2, _), _.hash, hashClamp(7)),
+      _.pipe(_.str("b", _), _.hash, hashClamp(11)),
       _.constantly({}))))));
 
 function lookup(self, key){
