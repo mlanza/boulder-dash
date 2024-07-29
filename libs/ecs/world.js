@@ -3,11 +3,13 @@ import $ from "../atomic_/shell.js";
 import imm from "../atomic_/immutables.js";
 import * as c from "./icapture.js";
 import * as r from "./reel.js";
-import * as s from "./serial-map.js";
-import * as p from "./serial-set.js";
+import * as sm from "./serial-map.js";
+import * as ss from "./serial-set.js";
 import * as pm from "./part-map.js";
+import * as ps from "./part-set.js";
 export {capture, frame} from "./icapture.js";
 
+const s = ss;
 const alt = _.chance(8675309);
 export const uids = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 
@@ -20,7 +22,7 @@ function World(entities, tags, views, inputs){
 
 export function world(inputs, tags){
   return new World(pm.map([]),
-    _.reduce(_.assoc(_, _, p.set([], _.identity, _.identity)), {}, tags),
+    _.reduce(_.assoc(_, _, s.set([])), {}, tags),
     {},
     inputs);
 }
@@ -67,7 +69,7 @@ function tag(id, prior){
   return function(self){
     const curr = self;
     const [ccc, ppp] = [_.get(curr, id, {}), _.get(prior, id, {})];
-    const keys = _.union(p.set(_.keys(ccc) || [], _.identity, _.identity), p.set(_.keys(ppp) || [], _.idenity, _.identity));
+    const keys = _.union(s.set(_.keys(ccc) || []), s.set(_.keys(ppp) || []));
     return new World(
       self.entities,
       _.reduce(function(memo, key){

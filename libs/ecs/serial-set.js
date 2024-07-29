@@ -9,7 +9,7 @@ export function serialSet(entries = [], serialize = JSON.stringify){
   return _.conj(new SerialSet({}, serialize), ..._.toArray(entries));
 }
 
-export const set = serialSet;
+export const set = _.plug(serialSet, _, _.str);
 
 function first(self){
   return _.maybe(self, _.seq, _.first);

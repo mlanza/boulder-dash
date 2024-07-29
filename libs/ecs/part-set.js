@@ -1,4 +1,5 @@
 import _ from "../atomic_/core.js";
+import {hashClamp} from "./part-map.js";
 
 export function PartSet(partition, store, parts){
   this.partition = partition;
@@ -9,6 +10,14 @@ export function PartSet(partition, store, parts){
 export function partSet(items = [], partition, store, parts = {}){
   return _.reduce(conj, new PartSet(partition, store, parts), items);
 }
+
+export const set = _.plug(partSet, _,
+  _.pipe(_.hash, hashClamp(7)),
+  _.constantly(partSet([],
+    _.pipe(_.array(1, _), _.hash, hashClamp(7)),
+    _.constantly(partSet([],
+      _.pipe(_.array(2, _), _.hash, hashClamp(7)),
+      _.constantly(_.set([])))))));
 
 function conj(self, value){
   const part = self.partition(value);
@@ -29,14 +38,43 @@ function includes(self, value){
 }
 
 function seq(self){
-  return _.seq(_.concatenated(function(key){
-    const part = self.partition(key);
-    return _.seq(_.get(self.parts, part));
-  }, keys(self.parts)));
+  return _.seq(_.concatenated(_.map(function(parts){
+    return _.seq(parts);
+  }, _.vals(self.parts))));
 }
 
+function first(self){
+  const xs = seq(self);
+  return _.first(xs);
+}
+
+function rest(self){
+  const xs = seq(self);
+  return _.rest(xs);
+}
+
+function empty(self){
+  return new PartSet(self.partition, self.store, _.empty(self.parts));
+}
+
+function reduceWith(seq) {
+  return function reduce(xs, f, init) {
+    let memo = init, ys = _.seq(xs);
+    while (ys && !_.isReduced(memo)) {
+      memo = f(memo, _.first(ys));
+      ys = _.next(ys);
+    }
+    return _.unreduced(memo);
+  };
+}
+
+const reduce = reduceWith(seq);
+
 _.doto(PartSet,
+  _.implement(_.ISeq, {first, rest}),
+  _.implement(_.IReducible, {reduce}),
   _.implement(_.ICollection, {conj}),
+  _.implement(_.IEmptyableCollection, {empty}),
   _.implement(_.ISet, {disj}),
   _.implement(_.IInclusive, {includes}),
   _.implement(_.ISeqable, {seq}));
