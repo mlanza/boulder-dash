@@ -12,7 +12,7 @@ export function partMap(entries = [], partition, store, parts = {}){
   }, new PartMap(partition, store, parts), entries);
 }
 
-function hashClamp(n) {
+export function hashClamp(n) {
   return function(hash){
     const m = parseInt(hash.toString().replace(".", ""));
     return ((m % n) + n) % n;
@@ -22,9 +22,9 @@ function hashClamp(n) {
 export const map = _.plug(partMap, _,
   _.pipe(_.hash, hashClamp(7)),
   _.constantly(partMap([],
-    _.pipe(_.rest, _.hash, hashClamp(7)),
+    _.pipe(_.array(1, _), _.hash, hashClamp(7)),
     _.constantly(partMap([],
-      _.pipe(_.rest, _.rest, _.hash, hashClamp(7)),
+      _.pipe(_.array(2, _), _.hash, hashClamp(7)),
       _.constantly({}))))));
 
 function lookup(self, key){

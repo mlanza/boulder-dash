@@ -3,12 +3,14 @@ import $ from "./libs/atomic_/shell.js";
 import dom from "./libs/atomic_/dom.js";
 import imm from "./libs/atomic_/immutables.js";
 import {reg} from "./libs/cmd.js";
-import p from "./libs/ecs_/serial-set.js";
-import s from "./libs/ecs_/serial-map.js";
+import ss from "./libs/ecs_/serial-set.js";
+import sm from "./libs/ecs_/serial-map.js";
 import r from "./libs/ecs_/reel.js";
 import w from "./libs/ecs_/world.js";
 import pm from "./libs/ecs_/part-map.js";
+import ps from "./libs/ecs_/part-set.js";
 
+const s = ss;
 const div = dom.tag("div");
 const el = dom.sel1("#stage");
 const R = w.uids();
@@ -174,7 +176,7 @@ function changed2(reel, ...path){
 
 function changed1(reel){
   return _.chain(reel, r.correlate(_, function(world){
-    return p.set(_.keys(world) || [], _.identity, _.identity); //TODO just touched?
+    return s.set(_.toArray(_.keys(world)) || []); //TODO just touched?
   }, _.union), _.mapa(_.partial(changed2, reel), _));
 }
 
@@ -189,7 +191,7 @@ $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
   w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "gravity", "positioned", "facing", "controlled"]),
-  w.views(_, "positioning", s.map(), positioning, ["positioned"]),
+  w.views(_, "positioning", sm.map(), positioning, ["positioned"]),
   w.views(_, "collecting", {collected: 0, goal: 10, remaining: 0}, collecting, ["collectible"]));
 
 const $state = $.atom(r.reel(blank));
