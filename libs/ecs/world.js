@@ -36,7 +36,7 @@ function views2(self, key){
 }
 
 //must define views in advance of adding components
-function views6(self, key, model, update, triggers){
+function views6(self, key, model, update, triggers = null){
   return new World(
     self.entities,
     self.tags,
@@ -58,7 +58,7 @@ function project(id, comps, prior){ //project to views
       self.entities,
       self.tags,
       _.reducekv(function(views, named, {triggers, update, model}){
-        const triggered = _.seq(_.intersection(triggers, components));
+        const triggered = triggers ? _.seq(_.intersection(triggers, components)) : true;
         return triggered ? _.assocIn(views, [named, "model"], update(model, id, _.get(curr, id), _.get(prior, id))) : views;
       }, self.views, self.views),
       self.inputs);
@@ -109,9 +109,11 @@ function contains(self, id){
   return _.contains(self.entities, id);
 }
 
-//TODO capture what got touched
 function capture(self){
-  return self;
+  return new World(self.entities,
+    self.tags,
+    _.updateIn(self.views, ["touched", "model"], _.empty),
+    self.inputs);
 }
 
 function keys(self){
