@@ -15,6 +15,8 @@ const div = dom.tag("div");
 const el = dom.sel1("#stage");
 const R = w.uids();
 
+el.focus();
+
 const explosive = true,
       collectible = true,
       diggable = true,
