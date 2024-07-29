@@ -78,6 +78,8 @@ function collecting(model, id, curr, prior){
     _.includes(["added"], touched) ? _.update(_, "remaining", _.inc) : _.identity);
 }
 
+const touching = _.binary(_.conj);
+
 function load(board){
   $.log("load");
   const parts = _.chain(board,
@@ -166,18 +168,18 @@ function changed2(reel, ...path){
   const [curr, prior] = compared;
   const touched = r.correlate(reel, _.getIn(_, path), r.touched);
   const keys = path.length === 1 ? _.union(_.keys(curr), _.keys(prior)) : null;
-  const components = _.reduce(function(memo, key){
+  const components = touched ? _.reduce(function(memo, key){
     const touched = r.correlate(reel, _.getIn(_, [id, key]), r.touched);
     touched && $.assoc(memo, key, touched);
     return memo;
-   }, {}, keys);
+   }, {}, keys) : {};
   return {id, touched, components, compared};
 }
 
 function changed1(reel){
-  return _.chain(reel, r.correlate(_, function(world){
-    return s.set(_.toArray(_.keys(world)) || []); //TODO just touched?
-  }, _.union), _.mapa(_.partial(changed2, reel), _));
+  return _.chain(reel, r.frame, function(world){
+    return world.views?.touched?.model
+  }, _.mapa(_.partial(changed2, reel), _));
 }
 
 export const changed = _.overload(null, changed1, changed2);
@@ -191,6 +193,7 @@ $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
   w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "gravity", "positioned", "facing", "controlled"]),
+  w.views(_, "touched", s.set([]), touching),
   w.views(_, "positioning", sm.map(), positioning, ["positioned"]),
   w.views(_, "collecting", {collected: 0, goal: 10, remaining: 0}, collecting, ["collectible"]));
 
