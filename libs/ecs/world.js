@@ -21,11 +21,35 @@ function World(entities, tags, views, inputs){
 }
 
 export function world(inputs, tags){
-  return new World(pm.map([]),
+  const touching = _.binary(_.conj);
+  return _.chain(new World(pm.map([]),
     _.reduce(_.assoc(_, _, s.set([])), {}, tags),
     {},
-    inputs);
+    inputs),
+    _.plug(views, _, "touched", s.set([]), touching));
 }
+
+function changed2(reel, ...path){
+  const id = _.first(path);
+  const compared = r.correlate(reel, _.getIn(_, path));
+  const [curr, prior] = compared;
+  const touched = r.correlate(reel, _.getIn(_, path), r.touched);
+  const keys = path.length === 1 ? _.union(_.keys(curr), _.keys(prior)) : null;
+  const components = touched ? _.reduce(function(memo, key){
+    const touched = r.correlate(reel, _.getIn(_, [id, key]), r.touched);
+    touched && $.assoc(memo, key, touched);
+    return memo;
+   }, {}, keys) : {};
+  return {id, touched, components, compared};
+}
+
+function changed1(reel){
+  return _.chain(reel, r.frame, function(world){
+    return world.views?.touched?.model
+  }, _.mapa(_.partial(changed2, reel), _));
+}
+
+export const changed = _.overload(null, changed1, changed2);
 
 function views1(self){
   return _.keys(self.views);
