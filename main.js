@@ -15,6 +15,7 @@ const div = dom.tag("div");
 const el = dom.sel1("#stage");
 const R = w.uids();
 
+dom.append(dom.sel1("#collected"), div({"data-char": 2}), div({"data-char": 6}));
 el.focus();
 
 const explosive = true,
@@ -81,7 +82,6 @@ function collecting(model, id, curr, prior){
 }
 
 function load(board){
-  $.log("load");
   const parts = _.chain(board,
     _.split(_, "\n"),
     _.map(_.trim, _),
@@ -176,10 +176,25 @@ const blank = _.chain(
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(w.changed, $state);
+const $collecting = $.map(function(reel){
+  const collected = _.opt(w.views(_, "collecting"), _.get(_, "collected"));
+  const compared = r.correlate(reel, collected),
+        touched = r.correlate(reel, collected, r.touched);
+  return {collected: {touched, compared}};
+}, $state);
 
-reg({$state, $changed, $inputs, R, r, w});
+reg({$state, $changed, $collecting, $inputs, R, r, w});
 
 $.swap($state, _.fmap(_, load(board)));
+
+$.sub($collecting, function({collected}){
+  const {touched, compared} = collected;
+  switch(touched){
+    case "added":
+
+    case "udpated":
+  }
+});
 
 $.sub($changed, _.filter(_.seq), function(changed){
   $.each(function({id, components, compared}){
