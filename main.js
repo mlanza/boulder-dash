@@ -11,25 +11,27 @@ import pm from "./libs/ecs_/part-map.js";
 import ps from "./libs/ecs_/part-set.js";
 
 const s = ss;
-const div = dom.tag("div");
+const div = dom.tag("div"), span = dom.tag("span");
 const el = dom.sel1("#stage");
 const R = w.uids();
 
-dom.append(dom.sel1("#collected"), div({"data-char": 2}), div({"data-char": 6}));
 el.focus();
 
 const explosive = true,
       collectible = true,
       diggable = true,
       rounded = true,
-      pushable = true;
+      pushable = true,
+      gravity = true;
 
 function steelWall(positioned){
-  return _.assoc(_, w.uids(), {noun: "steel-wall", positioned});
+  const noun = "steel-wall";
+  return _.assoc(_, w.uids(), {noun, positioned});
 }
 
 function wall(positioned){
-  return _.assoc(_, w.uids(), {noun: "wall", explosive, positioned});
+  const noun = "wall";
+  return _.assoc(_, w.uids(), {noun, explosive, positioned});
 }
 
 function rockford(positioned){
@@ -39,15 +41,18 @@ function rockford(positioned){
     ["ArrowLeft", "left"],
     ["ArrowRight", "right"]
   ]);
-  return _.assoc(_, R, {noun: "Rockford", controlled, explosive, positioned});
+  const noun = "Rockford";
+  return _.assoc(_, R, {noun, controlled, explosive, positioned});
 }
 
 function diamond(positioned){
-  return _.assoc(_, w.uids(), {noun: "diamond", collectible, explosive, rounded, positioned});
+  const noun = "diamond";
+  return _.assoc(_, w.uids(), {noun, collectible, explosive, rounded, positioned});
 }
 
 function dirt(positioned){
-  return _.assoc(_, w.uids(), {noun: "dirt", diggable, explosive, positioned});
+  const noun = "dirt";
+  return _.assoc(_, w.uids(), {noun, diggable, explosive, positioned});
 }
 
 function enemy(noun, seeking){
@@ -60,7 +65,8 @@ const firefly = enemy("firefly", "clockwise");
 const butterfly = enemy("butterfly", "counterclockwise");
 
 function boulder(positioned){
-  return _.assoc(_, w.uids(), {noun: "boulder", pushable, explosive, rounded, gravity: 1, positioned});
+  const noun = "boulder";
+  return _.assoc(_, w.uids(), {noun, pushable, explosive, rounded, gravity, positioned});
 }
 
 const spawn = _.get({".": dirt, "X": rockford, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
@@ -171,7 +177,7 @@ $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
   w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "gravity", "positioned", "facing", "controlled"]),
-  w.views(_, "positioning", sm.map(), positioning, ["positioned"]),
+  w.views(_, "positioning", sm.map([]), positioning, ["positioned"]),
   w.views(_, "collecting", {collected: 0, goal: 10, remaining: 0}, collecting, ["collectible"]));
 
 const $state = $.atom(r.reel(blank));
@@ -185,14 +191,13 @@ const $collecting = $.map(function(reel){
 
 reg({$state, $changed, $collecting, $inputs, R, r, w});
 
-$.swap($state, _.fmap(_, load(board)));
-
 $.sub($collecting, function({collected}){
   const {touched, compared} = collected;
-  switch(touched){
-    case "added":
-
-    case "udpated":
+  if (_.includes(["added", "updated"], touched)){
+    const [curr] = compared;
+    dom.html(dom.sel1("#collected"), div(_.map(function(char){
+      return span({"data-char": char});
+    }, _.lpad(curr, 2, 0))));
   }
 });
 
@@ -234,6 +239,8 @@ $.sub($changed, _.filter(_.seq), function(changed){
     }
   }, changed);
 });
+
+$.swap($state, _.fmap(_, load(board)));
 
 $.on(document, "keydown", function(e){
   if (_.includes(["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft"], e.key)) {

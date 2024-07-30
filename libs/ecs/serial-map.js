@@ -5,7 +5,7 @@ export function SerialMap(index, serialize){
   this.index = index;
 }
 
-export function serialMap(entries, index = {}, serialize = JSON.stringify){
+export function serialMap(entries = [], index = {}, serialize = JSON.stringify){
   return _.reduce(function(memo, [key, value]){
     return assoc(memo, key, value);
   }, new SerialMap(index, serialize), entries);
