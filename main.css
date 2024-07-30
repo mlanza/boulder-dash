@@ -3,17 +3,49 @@ body {
   background-color: #242F36;
   background-color: tan;
   background-color: #626262;
-  scale: .9;
 }
 #stage {
   position: relative;
-  margin: 1em auto;
+  margin: 2em;
   width: 1280px;
   height: 736px;
-  scale: 1;
   background-color: black;
   outline: solid 1px white;
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.5);
+}
+#collected {
+  position: absolute;
+  top: 5px;
+  right: 3em;
+  width: 64px;
+  height: 16px;
+}
+[data-char] {
+  height: 16px;
+  width: 32px;
+  display: inline-block;
+  background-image: url(./images/sprites.png);
+}
+[data-char='0']{
+  background-position: -288px -256px;
+}
+[data-char='1']{
+  background-position: -288px -272px;
+}
+[data-char='2']{
+  background-position: -288px -288px;
+}
+[data-char='3']{
+  background-position: -288px -304px;
+}
+[data-char='4']{
+  background-position: -288px -320px;
+}
+[data-char='5']{
+  background-position: -288px -336px;
+}
+[data-char='6']{
+  background-position: -288px -352px;
 }
 [data-noun] {
   position: absolute;
