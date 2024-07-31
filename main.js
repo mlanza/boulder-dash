@@ -190,100 +190,59 @@ const $change = $.atom(null);
 
 reg({$state, $change, $inputs, vars, r, w});
 
-$.sub($changed, $.each($.reset($change, _), _));
-
-/*
-function latest(entId, prop){
-  return _.comp(_.filter(({id}) => id === entId), _.filter(function({components}){
-    return _.includes(["added", "updated"], _.get(components, prop));
-  }), _.map(function({compared}){
-    return _.getIn(compared, [0, prop]);
-  }));
-}
-*/
-function touch(component){
-  return _.filter(function({components}){
-    return _.contains(components, component)
-  })
+function on2(id, prop){
+  return _.filter(
+    _.and(
+      _.pipe(_.get(_, "id"), _.eq(_, id)),
+      _.getIn(_, ["components", prop])));
 }
 
-function withVal(prop, f){
-  return function({id, compared, components}){
-    const touched = _.get(components, prop);
-    f(id, touched, _.get(compared, 0), _.get(compared, 1));
-  }
+function on1(prop){
+  return _.filter(_.getIn(_, ["components", prop]));
 }
 
-function modified2(entId, prop){
-  return function({id, components, compared}){
-    const touched = _.get(components, prop);
-    return id === entId && _.includes(["added", "updated"], touched);
-  }
-}
+const on = _.overload(null, on1, on2);
 
-function modified1(prop){
-  return function({id, components, compared}){
-    return _.get(components, prop);
-  }
-}
-
-const modified = _.overload(null, modified1, modified2);
-
-function latest2(prop, callback){
-  return _.guard(modified1(prop), withVal(prop, callback));
-}
-
-function latest3(entId, prop, callback){
-  return _.guard(modified2(entId, prop), withVal(prop, callback));
-}
-
-const latest = _.overload(null, null, latest2, latest3);
-
-/*$.sub($change, latest(vars.stats, "collected"), function(collected){
+$.sub($change, on(vars.stats, "collected"), function({compared: [curr]}){
   dom.html(dom.sel1("#collected"), _.map(function(char){
     return span({"data-char": char});
-  }, _.lpad(collected, 2, 0)));
-});*/
+  }, _.lpad(curr.collected, 2, 0)));
+});
 
-$.sub($change,
-  _.does(
-    latest("facing", function(id, touched, curr){
-      if (_.includes(["added", "updated"], touched)) {
-        _.maybe(document.getElementById(id), dom.attr(_, "data-facing", curr.facing));
-      } else {
-        _.maybe(document.getElementById(id), dom.removeAttr(_, "data-facing"));
-      }
-    }),
-    latest("positioned", function(id, touched, curr){
-      switch(touched){
-        case "added": {
-          const [x, y] = curr.positioned;
-          dom.append(el,
-            $.doto(div({"data-noun": curr.noun, id}),
-              dom.attr(_, "data-x", x),
-              dom.attr(_, "data-y", y)));
-          break;
-        }
+$.sub($change, on("facing"), function({id, components: {facing}, compared: [curr]}){
+  _.maybe(document.getElementById(id),
+    _.includes(["added", "updated"], facing) ?
+      dom.attr(_, "data-facing", curr.facing) :
+      dom.removeAttr(_, "data-facing"));
+});
 
-        case "removed": {
-          _.maybe(document.getElementById(id), dom.omit(el, _));
-          break;
-        }
+$.sub($change, on("positioned"), function({id, components: {positioned}, compared: [curr]}){
+  switch(positioned){
+    case "added": {
+      const [x, y] = curr.positioned;
+      dom.append(el,
+        $.doto(div({"data-noun": curr.noun, id}),
+          dom.attr(_, "data-x", x),
+          dom.attr(_, "data-y", y)));
+      break;
+    }
 
-        case "updated": {
-          const [x, y] = curr.positioned;
-          $.doto(document.getElementById(id),
-            dom.attr(_, "data-x", x),
-            dom.attr(_, "data-y", y));
-          break;
-        }
-      }
-    }),
-    latest(vars.stats, "collected", function(id, touched, curr){
-      dom.html(dom.sel1("#collected"), _.map(function(char){
-        return span({"data-char": char});
-      }, _.lpad(curr.collected, 2, 0)));
-    })));
+    case "removed": {
+      _.maybe(document.getElementById(id), dom.omit(el, _));
+      break;
+    }
+
+    case "updated": {
+      const [x, y] = curr.positioned;
+      $.doto(document.getElementById(id),
+        dom.attr(_, "data-x", x),
+        dom.attr(_, "data-y", y));
+      break;
+    }
+  }
+});
+
+$.sub($changed, $.each($.reset($change, _), _));
 
 $.swap($state, _.fmap(_, load(board)));
 
