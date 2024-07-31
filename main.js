@@ -13,7 +13,10 @@ import ps from "./libs/ecs_/part-set.js";
 const s = ss;
 const div = dom.tag("div"), span = dom.tag("span");
 const el = dom.sel1("#stage");
-const R = w.uids();
+const vars = {
+  R: w.uids(),
+  stats: w.uids()
+}
 
 el.focus();
 
@@ -42,7 +45,7 @@ function rockford(positioned){
     ["ArrowRight", "right"]
   ]);
   const noun = "Rockford";
-  return _.assoc(_, R, {noun, controlled, explosive, positioned});
+  return _.assoc(_, vars.R, {noun, controlled, explosive, positioned});
 }
 
 function diamond(positioned){
@@ -83,8 +86,7 @@ function positioning(model, id, curr, prior){
 function collecting(model, id, curr, prior){
   const touched = r.touched(curr, prior);
   return _.chain(model,
-    _.includes(["removed"], touched) ? _.pipe(_.update(_, "collected", _.inc), _.update(_, "remaining", _.dec)) : _.identity,
-    _.includes(["added"], touched) ? _.update(_, "remaining", _.inc) : _.identity);
+    _.includes(["removed"], touched) ? _.update(_, "collected", _.inc) : _.identity);
 }
 
 function load(board){
@@ -142,7 +144,9 @@ function control(inputs, entities, world){
 }
 
 function collect(id){
-  return _.dissoc(_, id);
+  return _.pipe(
+    _.updateIn(_, [vars.stats, "collected"], _.inc),
+    _.dissoc(_, id));
 }
 
 function move(id, direction, from, to){
@@ -178,67 +182,108 @@ $.sub($inputs, _.noop); //without subscribers, won't activate
 const blank = _.chain(
   w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "gravity", "positioned", "facing", "controlled"]),
   w.views(_, "positioning", sm.map([]), positioning, ["positioned"]),
-  w.views(_, "collecting", {collected: 0, goal: 10, remaining: 0}, collecting, ["collectible"]));
+  _.assoc(_, vars.stats, {total: 0, collected: 0, needed: 10, each: 10, extra: 15}));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(w.changed, $state);
-const $collecting = $.map(function(reel){
-  const collected = _.opt(w.views(_, "collecting"), _.get(_, "collected"));
-  const compared = r.correlate(reel, collected),
-        touched = r.correlate(reel, collected, r.touched);
-  return {collected: {touched, compared}};
-}, $state);
+const $change = $.atom(null);
 
-reg({$state, $changed, $collecting, $inputs, R, r, w});
+reg({$state, $change, $inputs, vars, r, w});
 
-$.sub($collecting, function({collected}){
-  const {touched, compared} = collected;
-  if (_.includes(["added", "updated"], touched)){
-    const [curr] = compared;
-    dom.html(dom.sel1("#collected"), div(_.map(function(char){
-      return span({"data-char": char});
-    }, _.lpad(curr, 2, 0))));
+$.sub($changed, $.each($.reset($change, _), _));
+
+/*
+function latest(entId, prop){
+  return _.comp(_.filter(({id}) => id === entId), _.filter(function({components}){
+    return _.includes(["added", "updated"], _.get(components, prop));
+  }), _.map(function({compared}){
+    return _.getIn(compared, [0, prop]);
+  }));
+}
+*/
+function touch(component){
+  return _.filter(function({components}){
+    return _.contains(components, component)
+  })
+}
+
+function withVal(prop, f){
+  return function({id, compared, components}){
+    const touched = _.get(components, prop);
+    f(id, touched, _.get(compared, 0), _.get(compared, 1));
   }
-});
+}
 
-$.sub($changed, _.filter(_.seq), function(changed){
-  $.each(function({id, components, compared}){
-    const [curr, prior] = compared;
-    const {positioned, facing} = components;
+function modified2(entId, prop){
+  return function({id, components, compared}){
+    const touched = _.get(components, prop);
+    return id === entId && _.includes(["added", "updated"], touched);
+  }
+}
 
-    if (facing) {
-      if (_.includes(["added", "updated"], facing)) {
+function modified1(prop){
+  return function({id, components, compared}){
+    return _.get(components, prop);
+  }
+}
+
+const modified = _.overload(null, modified1, modified2);
+
+function latest2(prop, callback){
+  return _.guard(modified1(prop), withVal(prop, callback));
+}
+
+function latest3(entId, prop, callback){
+  return _.guard(modified2(entId, prop), withVal(prop, callback));
+}
+
+const latest = _.overload(null, null, latest2, latest3);
+
+/*$.sub($change, latest(vars.stats, "collected"), function(collected){
+  dom.html(dom.sel1("#collected"), _.map(function(char){
+    return span({"data-char": char});
+  }, _.lpad(collected, 2, 0)));
+});*/
+
+$.sub($change,
+  _.does(
+    latest("facing", function(id, touched, curr){
+      if (_.includes(["added", "updated"], touched)) {
         _.maybe(document.getElementById(id), dom.attr(_, "data-facing", curr.facing));
       } else {
         _.maybe(document.getElementById(id), dom.removeAttr(_, "data-facing"));
       }
-    }
+    }),
+    latest("positioned", function(id, touched, curr){
+      switch(touched){
+        case "added": {
+          const [x, y] = curr.positioned;
+          dom.append(el,
+            $.doto(div({"data-noun": curr.noun, id}),
+              dom.attr(_, "data-x", x),
+              dom.attr(_, "data-y", y)));
+          break;
+        }
 
-    switch(positioned){
-      case "added": {
-        const [x, y] = curr.positioned;
-        dom.append(el,
-          $.doto(div({"data-noun": curr.noun, id}),
+        case "removed": {
+          _.maybe(document.getElementById(id), dom.omit(el, _));
+          break;
+        }
+
+        case "updated": {
+          const [x, y] = curr.positioned;
+          $.doto(document.getElementById(id),
             dom.attr(_, "data-x", x),
-            dom.attr(_, "data-y", y)));
-        break;
+            dom.attr(_, "data-y", y));
+          break;
+        }
       }
-
-      case "removed": {
-        _.maybe(document.getElementById(id), dom.omit(el, _));
-        break;
-      }
-
-      case "updated": {
-        const [x, y] = curr.positioned;
-        $.doto(document.getElementById(id),
-          dom.attr(_, "data-x", x),
-          dom.attr(_, "data-y", y));
-        break;
-      }
-    }
-  }, changed);
-});
+    }),
+    latest(vars.stats, "collected", function(id, touched, curr){
+      dom.html(dom.sel1("#collected"), _.map(function(char){
+        return span({"data-char": char});
+      }, _.lpad(curr.collected, 2, 0)));
+    })));
 
 $.swap($state, _.fmap(_, load(board)));
 
