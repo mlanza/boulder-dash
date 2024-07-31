@@ -97,14 +97,18 @@ function tag(id, prior){
     return new World(
       self.entities,
       _.reduce(function(memo, key){
-        const touched = r.touched(_.get(ccc, key), _.get(ppp, key));
-        switch(touched){
-          case "added":
-            return _.update(memo, key, _.conj(_, id));
-          case "removed":
-            return _.update(memo, key, _.disj(_, id));
-          default:
-            return memo;
+        if (_.contains(self.tags, key)) { //don't track unregistered tags
+          const touched = r.touched(_.get(ccc, key), _.get(ppp, key));
+          switch(touched){
+            case "added":
+              return _.update(memo, key, _.conj(_, id));
+            case "removed":
+              return _.update(memo, key, _.disj(_, id));
+            default:
+              return memo;
+          }
+        } else {
+          return memo;
         }
       }, self.tags, keys),
       self.views,
