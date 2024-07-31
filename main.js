@@ -2,13 +2,13 @@ import _ from "./libs/atomic_/core.js";
 import $ from "./libs/atomic_/shell.js";
 import dom from "./libs/atomic_/dom.js";
 import imm from "./libs/atomic_/immutables.js";
-import {reg} from "./libs/cmd.js";
 import ss from "./libs/ecs_/serial-set.js";
 import sm from "./libs/ecs_/serial-map.js";
-import r from "./libs/ecs_/reel.js";
-import w from "./libs/ecs_/world.js";
 import pm from "./libs/ecs_/part-map.js";
 import ps from "./libs/ecs_/part-set.js";
+import r from "./libs/ecs_/reel.js";
+import w from "./libs/ecs_/world.js";
+import {reg} from "./libs/cmd.js";
 
 const s = ss;
 const div = dom.tag("div"), span = dom.tag("span");
@@ -81,12 +81,6 @@ function positioning(model, id, curr, prior){
   return _.chain(model,
     _.includes(["removed", "updated"], touched) ? _.dissoc(_, prior.positioned) : _.identity,
     _.includes(["added", "updated"], touched) ? _.assoc(_, curr.positioned, id) : _.identity);
-}
-
-function collecting(model, id, curr, prior){
-  const touched = r.touched(curr, prior);
-  return _.chain(model,
-    _.includes(["removed"], touched) ? _.update(_, "collected", _.inc) : _.identity);
 }
 
 function load(board){
