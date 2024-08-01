@@ -121,23 +121,14 @@ body {
     background-position: -224px -320px;
   }
 }
-[data-noun='Rockford'][data-facing='right'] {
+[data-noun='Rockford'][data-facing='right'].moving {
   background-position: 0 -160px;
   animation: run-right .3s steps(7) infinite;
 }
-[data-noun='Rockford'][data-facing='left'] {
+[data-noun='Rockford'][data-facing='left'].moving {
   background-position: 0 -128px;
   animation: run-left .3s steps(7) infinite;
 }
-[data-noun='Rockford'][data-facing='up'] {
-  background-position: -32px -32px;
-  animation: run-up .3s steps(1) infinite;
-}
-[data-noun='Rockford'][data-facing='down'] {
-  background-position: -96px -96px;
-  animation: run-down .3s steps(1) infinite;
-}
-
 [data-noun='explosion'] {
   background-position: -64px 0;
 }

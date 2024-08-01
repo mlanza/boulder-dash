@@ -25,7 +25,8 @@ const explosive = true,
       diggable = true,
       rounded = true,
       pushable = true,
-      gravity = true;
+      gravity = true,
+      moving = false;
 
 function steelWall(positioned){
   const noun = "steel-wall";
@@ -45,7 +46,7 @@ function rockford(positioned){
     ["ArrowRight", "right"]
   ]);
   const noun = "Rockford";
-  return _.assoc(_, vars.R, {noun, controlled, explosive, positioned});
+  return _.assoc(_, vars.R, {noun, controlled, explosive, positioned, moving});
 }
 
 function diamond(positioned){
@@ -124,7 +125,7 @@ function control(inputs, entities, world){
         diggable ? dig(beyondId) : pushable ? push(beyondId, direction, beyond, nearby(beyond, direction)) : _.identity,
         stationary ? _.identity : move(id, direction, positioned, beyond));
     } else {
-      return _.chain(memo, _.getIn(_, [id, "facing"])) ? _.chain(memo, _.update(_, id, w.patch({facing: null}))) : memo;
+      return _.update(memo, id, w.patch({moving: false}));
     }
   }, world, entities);
 }
@@ -140,7 +141,8 @@ function move(id, direction, from, to){
     const there = _.get(world.db.via.positioned, to);
     const collision = !!there; //TODO handle collision
     return _.chain(world,
-      _.update(_, id, w.patch({facing: !collision ? direction : null})),
+      _.update(_, id, w.patch({moving: !collision})),
+      _.includes(["left", "right"], direction) ? _.update(_, id, w.patch({facing: direction})) : _.identity,
       collision ? _.identity : _.update(_, id, w.patch({positioned: to})));
   };
 }
@@ -164,7 +166,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "gravity", "positioned", "facing", "controlled"]),
+  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "gravity", "positioned", "facing", "moving", "controlled"]),
   w.via("positioned"),
   _.assoc(_, vars.stats, {total: 0, collected: 0, needed: 10, each: 10, extra: 15}));
 
@@ -198,6 +200,11 @@ $.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
     _.includes(["added", "updated"], facing) ?
       dom.attr(_, "data-facing", curr.facing) :
       dom.removeAttr(_, "data-facing"));
+});
+
+$.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
+  _.maybe(document.getElementById(id),
+    dom.toggleClass(_, "moving", curr.moving));
 });
 
 $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
