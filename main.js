@@ -106,7 +106,7 @@ function system(components, f){
     const inputs = world.inputs();
     return f(inputs, _.map(function(id){
       return [id, _.get(world, id)];
-    }, w.tagged(components, world)), world);
+    }, w.having(world, components)), world);
   }
 }
 
