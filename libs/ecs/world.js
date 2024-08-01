@@ -13,11 +13,13 @@ const s = ss;
 const alt = _.chance(8675309);
 export const uids = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 
-function World(entities, tags, views, inputs){
+function World(entities, tags, views, inputs, data, hooks){
   this.entities = entities;
   this.tags = tags;
   this.views = views;
   this.inputs = inputs;
+  this.data = data;
+  this.hooks = hooks;
 }
 
 export function world(inputs, tags){
@@ -25,7 +27,9 @@ export function world(inputs, tags){
   return _.chain(new World(pm.map([]),
     _.reduce(_.assoc(_, _, s.set([])), {}, tags),
     {},
-    inputs),
+    inputs,
+    {},
+    []),
     _.plug(views, _, "touched", s.set([]), touching));
 }
 
@@ -69,7 +73,9 @@ function views6(self, key, model, update, triggers = null){
       update,
       triggers
     }),
-    self.inputs);
+    self.inputs,
+    self.data,
+    self.hooks);
 }
 
 export const views = _.overload(null, views1, views2, views6);
@@ -85,7 +91,9 @@ function project(id, comps, prior){ //project to views
         const triggered = triggers ? _.seq(_.intersection(triggers, components)) : true;
         return triggered ? _.assocIn(views, [named, "model"], update(model, id, _.get(curr, id), _.get(prior, id))) : views;
       }, self.views, self.views),
-      self.inputs);
+      self.inputs,
+      self.data,
+      self.hooks);
   }
 }
 
@@ -112,7 +120,44 @@ function tag(id, prior){
         }
       }, self.tags, keys),
       self.views,
-      self.inputs);
+      self.inputs,
+      self.data,
+      self.hooks);
+  }
+}
+
+export function tagging(tag){
+  return install(["tags", tag], s.set([]), r.modified, function(id){
+    return _.conj(_, id);
+  });
+}
+
+export function install(path, init, trigger, update){
+  return function(self){
+    return new World(
+      self.entities,
+      self.tags,
+      self.views,
+      self.inputs,
+      _.assocIn(self.data, path, init),
+      _.conj(self.hooks, {path, trigger, update}));
+  }
+}
+
+function hooks(id, prior){
+  return function(self){
+    const curr = self;
+    return new World(
+      self.entities,
+      self.tags,
+      self.views,
+      self.inputs,
+      _.reduce(function(data, {path, trigger, update}){
+        const reel = r.edit(curr, prior);
+        const triggered = trigger(id)(reel);
+        return _.updateIn(data, path, update(id, {curr, prior, triggered}));
+      }, self.data, self.hooks),
+      self.hooks);
   }
 }
 
@@ -121,14 +166,16 @@ function lookup(self, id){
 }
 
 function assoc(self, id, entity){
-  return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.tags, self.views, self.inputs),
+  return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.tags, self.views, self.inputs, self.data, self.hooks),
+    hooks(id, self),
     tag(id, self),
     project(id, _.keys(entity), self));
 }
 
 function dissoc(self, id){
   const entity = _.get(self, id);
-  return _.chain(new World(_.dissoc(self.entities, id), self.tags, self.views, self.inputs),
+  return _.chain(new World(_.dissoc(self.entities, id), self.tags, self.views, self.inputs, self.data, self.hooks),
+    hooks(id, self),
     tag(id, self),
     project(id, _.keys(entity), self));
 }
@@ -141,7 +188,9 @@ function capture(self){
   return new World(self.entities,
     self.tags,
     _.updateIn(self.views, ["touched", "model"], _.empty),
-    self.inputs);
+    self.inputs,
+    self.data,
+    self.hooks);
 }
 
 function keys(self){
