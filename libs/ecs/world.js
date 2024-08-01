@@ -30,6 +30,10 @@ export function world(inputs, tags){
     inputs,
     {},
     []),
+    touched(),
+    _.reduce(function(memo, tag){
+      return having(tag)(memo);
+    }, _, tags),
     _.plug(views, _, "touched", s.set([]), touching));
 }
 
@@ -126,32 +130,29 @@ function tag(id, prior){
   }
 }
 
-export function tagging(tag, pattern = null){
-  return install(["tags", tag], s.set([]), r.modified, function(id){
+function touched(){
+  return install(["tags", "touched"], s.set([]), r.modified, function(id){
     return _.conj(_, id);
   });
 }
 
-export function vw(tag){
+export function via(tag){
   const props = _.assoc({}, tag, _.isSome);
   const pattern = {props};
-  return install(["views", tag], sm.map([]), _.plug(r.modified, _, {props: [tag], pattern}), function(id, {reel, triggered}){
-    const {props} = triggered || {};
-    const {positioned} = props || {};
-    const touched = positioned;
+  return install(["via", tag], sm.map([]), _.plug(r.modified, _, {props: [tag], pattern}), function(id, {reel, triggered}){
+    const touched = _.getIn(triggered || {}, ["props", tag]);
     if (!touched) {
       return _.identity;
+    } else {
+      const [curr, prior] = r.correlate(reel, _.getIn(_, [id, tag]));
+      return _.pipe(
+        _.includes(["removed", "updated"], touched) ? _.dissoc(_, prior) : _.identity,
+        _.includes(["added", "updated"], touched) ? _.assoc(_, curr, id) : _.identity);
     }
-    const curr = _.get(r.current(reel), id),
-          prior = _.get(r.prior(reel), id);
-    return _.pipe(
-      _.includes(["removed", "updated"], touched) ? _.dissoc(_, prior.positioned) : _.identity,
-      _.includes(["added", "updated"], touched) ? _.assoc(_, curr.positioned, id) : _.identity);
   });
 }
 
-
-export function tagz(tag){
+function having(tag){
   const props = _.assoc({}, tag, _.includes(["added", "removed"], _));
   const pattern = {props};
   return install(["tags", tag], s.set([]), _.plug(r.modified, _, {props: [tag], pattern}), function(id, {triggered}){
@@ -162,7 +163,7 @@ export function tagz(tag){
   });
 }
 
-export function install(path, init, trigger, update){
+function install(path, init, trigger, update){
   return function(self){
     return new World(
       self.entities,
@@ -176,16 +177,15 @@ export function install(path, init, trigger, update){
 
 function hooks(id, prior){
   return function(self){
-    const curr = self;
+    const reel = r.edit(self, prior);
     return new World(
       self.entities,
       self.tags,
       self.views,
       self.inputs,
       _.reduce(function(data, {path, trigger, update}){
-        const reel = r.edit(curr, prior);
         const triggered = trigger(id)(reel);
-        return _.updateIn(data, path, update(id, {reel, triggered}));
+        return triggered ? _.updateIn(data, path, update(id, {reel, triggered})) : data;
       }, self.data, self.hooks),
       self.hooks);
   }
