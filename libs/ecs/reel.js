@@ -15,7 +15,14 @@ export function edit(curr, prior){
   return new Reel(2, [curr, prior]);
 }
 
-export function modified(id, path = [], props = null){
+function conform(pattern, obj){
+  return _.reducekv(function(memo, key, pred){
+    const value = _.get(obj, key);
+    return memo ? (_.isFunction(pred) ? pred(value) : conform(pred, value)) : _.reduced(memo);
+  }, true, pattern);
+}
+
+export function modified(id, {path = [], props = null, pattern = null} = {}){
   const fullPath = [id].concat(path);
   const inside = _.getIn(_, fullPath);
   return function(reel){
@@ -27,7 +34,12 @@ export function modified(id, path = [], props = null){
       t && $.assoc(memo, key, t);
       return memo;
      }, {}, props || _.union(_.keys(curr), _.keys(prior))) : {}, _.compact, _.blot);
-    return _touched ? {id, path, touched: _touched, props: _props, compared} : null;
+    if (_touched) {
+      const change = {id, path, touched: _touched, props: _props, compared};
+      return conform(pattern, change) ? change : null;
+    } else {
+      return null;
+    }
   }
 }
 

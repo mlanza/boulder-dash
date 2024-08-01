@@ -126,9 +126,39 @@ function tag(id, prior){
   }
 }
 
-export function tagging(tag){
+export function tagging(tag, pattern = null){
   return install(["tags", tag], s.set([]), r.modified, function(id){
     return _.conj(_, id);
+  });
+}
+
+export function vw(tag){
+  const props = _.assoc({}, tag, _.isSome);
+  const pattern = {props};
+  return install(["views", tag], sm.map([]), _.plug(r.modified, _, {props: [tag], pattern}), function(id, {reel, triggered}){
+    const {props} = triggered || {};
+    const {positioned} = props || {};
+    const touched = positioned;
+    if (!touched) {
+      return _.identity;
+    }
+    const curr = _.get(r.current(reel), id),
+          prior = _.get(r.prior(reel), id);
+    return _.pipe(
+      _.includes(["removed", "updated"], touched) ? _.dissoc(_, prior.positioned) : _.identity,
+      _.includes(["added", "updated"], touched) ? _.assoc(_, curr.positioned, id) : _.identity);
+  });
+}
+
+
+export function tagz(tag){
+  const props = _.assoc({}, tag, _.includes(["added", "removed"], _));
+  const pattern = {props};
+  return install(["tags", tag], s.set([]), _.plug(r.modified, _, {props: [tag], pattern}), function(id, {triggered}){
+    const {props} = triggered || {};
+    const touched = _.get(props, tag);
+    const f = touched === "added" ? _.conj : _.disj;
+    return f(_, id);
   });
 }
 
@@ -155,7 +185,7 @@ function hooks(id, prior){
       _.reduce(function(data, {path, trigger, update}){
         const reel = r.edit(curr, prior);
         const triggered = trigger(id)(reel);
-        return _.updateIn(data, path, update(id, {curr, prior, triggered}));
+        return _.updateIn(data, path, update(id, {reel, triggered}));
       }, self.data, self.hooks),
       self.hooks);
   }
