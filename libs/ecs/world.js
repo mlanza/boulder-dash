@@ -153,8 +153,8 @@ $.doto(World,
   _.implement(_.ISeqable, {seq}),
   _.implement(c.ICapture, {capture})); //TODO implement frame
 
-export function tagged(tags, self){
-  return _.chain(tags,
+export function having(self, components){
+  return _.chain(components,
     _.mapa(_.get(self.db.components, _), _),
     _.spread(function(set, ...sets){
       return _.reduce(_.intersection, set, sets);
