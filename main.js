@@ -76,13 +76,6 @@ const spawn = _.get({".": dirt, "X": rockford, "r": boulder, "w": wall, "W": ste
 
 const board = await _.fmap(fetch("./boards/l01.txt"),  resp =>resp.text());
 
-function positioning(model, id, curr, prior){
-  const touched = r.touched(curr, prior);
-  return _.chain(model,
-    _.includes(["removed", "updated"], touched) ? _.dissoc(_, prior.positioned) : _.identity,
-    _.includes(["added", "updated"], touched) ? _.assoc(_, curr.positioned, id) : _.identity);
-}
-
 function load(board){
   const parts = _.chain(board,
     _.split(_, "\n"),
@@ -124,8 +117,7 @@ function control(inputs, entities, world){
     const direction = _.some(_.get(controlled, _), keys);
     if (direction){
       const beyond = nearby(positioned, direction);
-      const positioning = w.views(world, "positioning");
-      const beyondId = _.get(positioning, beyond);
+      const beyondId = _.get(world.db.via.positioned, beyond);
       const {diggable, pushable, collectible} = _.get(world, beyondId) || {};
       return _.chain(memo,
         collectible ? collect(beyondId) : _.identity,
@@ -145,8 +137,7 @@ function collect(id){
 
 function move(id, direction, from, to){
   return function(world){
-    const positioning = w.views(world, "positioning");
-    const there = _.get(positioning, to);
+    const there = _.get(world.db.via.positioned, to);
     const collision = !!there; //TODO handle collision
     return _.chain(world,
       _.update(_, id, w.patch({facing: !collision ? direction : null})),
@@ -156,8 +147,7 @@ function move(id, direction, from, to){
 
 function push(id, direction, from, to){
   return _.includes(["left", "right"], direction) ? function(world){
-    const positioning = w.views(world, "positioning");
-    const occupied = _.get(positioning, to);
+    const occupied = _.get(world.db.via.positioned, to);
     return occupied ? world : _.update(world, id, w.patch({positioned: to}));
   } : _.identity;
 }
@@ -176,7 +166,6 @@ $.sub($inputs, _.noop); //without subscribers, won't activate
 const blank = _.chain(
   w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "gravity", "positioned", "facing", "controlled"]),
   w.via("positioned"),
-  w.views(_, "positioning", sm.map([]), positioning, ["positioned"]),
   _.assoc(_, vars.stats, {total: 0, collected: 0, needed: 10, each: 10, extra: 15}));
 
 const $state = $.atom(r.reel(blank));
