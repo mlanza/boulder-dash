@@ -175,9 +175,7 @@ $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
   w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "gravity", "positioned", "facing", "controlled"]),
-  w.tagging("touched"),
-  w.tagz("positioned"),
-  w.vw("positioned"),
+  w.via("positioned"),
   w.views(_, "positioning", sm.map([]), positioning, ["positioned"]),
   _.assoc(_, vars.stats, {total: 0, collected: 0, needed: 10, each: 10, extra: 15}));
 
