@@ -13,28 +13,24 @@ const s = ss;
 const alt = _.chance(8675309);
 export const uids = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 
-function World(entities, tags, views, inputs, data, hooks){
+function World(entities, inputs, db, hooks){
   this.entities = entities;
-  this.tags = tags;
-  this.views = views;
   this.inputs = inputs;
-  this.data = data;
+  this.db = db;
   this.hooks = hooks;
 }
 
 export function world(inputs, tags){
   const touching = _.binary(_.conj);
-  return _.chain(new World(pm.map([]),
-    _.reduce(_.assoc(_, _, s.set([])), {}, tags),
-    {},
+  return _.chain(new World(
+    pm.map([]),
     inputs,
     {},
     []),
     touched(),
     _.reduce(function(memo, tag){
-      return having(tag)(memo);
-    }, _, tags),
-    _.plug(views, _, "touched", s.set([]), touching));
+      return component(tag)(memo);
+    }, _, tags));
 }
 
 function changed2(reel, ...path){
@@ -53,93 +49,22 @@ function changed2(reel, ...path){
 
 function changed1(reel){
   return _.chain(reel, r.frame, function(world){
-    return world.views?.touched?.model
+    return world.db.touched;
   }, _.mapa(_.partial(changed2, reel), _));
 }
 
 export const changed = _.overload(null, changed1, changed2);
 
-function views1(self){
-  return _.keys(self.views);
-}
-
-function views2(self, key){
-  return _.getIn(self.views, [key, "model"]);
-}
-
-//must define views in advance of adding components
-function views6(self, key, model, update, triggers = null){
-  return new World(
-    self.entities,
-    self.tags,
-    _.assoc(self.views, key, {
-      model,
-      update,
-      triggers
-    }),
-    self.inputs,
-    self.data,
-    self.hooks);
-}
-
-export const views = _.overload(null, views1, views2, views6);
-
-function project(id, comps, prior){ //project to views
-  const components = _.toArray(comps);
-  return function(self){
-    const curr = self;
-    return new World(
-      self.entities,
-      self.tags,
-      _.reducekv(function(views, named, {triggers, update, model}){
-        const triggered = triggers ? _.seq(_.intersection(triggers, components)) : true;
-        return triggered ? _.assocIn(views, [named, "model"], update(model, id, _.get(curr, id), _.get(prior, id))) : views;
-      }, self.views, self.views),
-      self.inputs,
-      self.data,
-      self.hooks);
-  }
-}
-
-function tag(id, prior){
-  return function(self){
-    const curr = self;
-    const [ccc, ppp] = [_.get(curr, id, {}), _.get(prior, id, {})];
-    const keys = _.union(s.set(_.keys(ccc) || []), s.set(_.keys(ppp) || []));
-    return new World(
-      self.entities,
-      _.reduce(function(memo, key){
-        if (_.contains(self.tags, key)) { //don't track unregistered tags
-          const touched = r.touched(_.get(ccc, key), _.get(ppp, key));
-          switch(touched){
-            case "added":
-              return _.update(memo, key, _.conj(_, id));
-            case "removed":
-              return _.update(memo, key, _.disj(_, id));
-            default:
-              return memo;
-          }
-        } else {
-          return memo;
-        }
-      }, self.tags, keys),
-      self.views,
-      self.inputs,
-      self.data,
-      self.hooks);
-  }
-}
-
-function touched(){
-  return install(["tags", "touched"], s.set([]), r.modified, function(id){
+function touched(init = s.set([])){
+  return install(["touched"], init, r.modified, function(id){
     return _.conj(_, id);
   });
 }
 
-export function via(tag){
+export function via(tag, init = sm.map([])){
   const props = _.assoc({}, tag, _.isSome);
   const pattern = {props};
-  return install(["via", tag], sm.map([]), _.plug(r.modified, _, {props: [tag], pattern}), function(id, {reel, triggered}){
+  return install(["via", tag], init, _.plug(r.modified, _, {props: [tag], pattern}), function(id, {reel, triggered}){
     const touched = _.getIn(triggered || {}, ["props", tag]);
     if (!touched) {
       return _.identity;
@@ -152,10 +77,10 @@ export function via(tag){
   });
 }
 
-function having(tag){
+function component(tag, init =  s.set([])){
   const props = _.assoc({}, tag, _.includes(["added", "removed"], _));
   const pattern = {props};
-  return install(["tags", tag], s.set([]), _.plug(r.modified, _, {props: [tag], pattern}), function(id, {triggered}){
+  return install(["components", tag], init, _.plug(r.modified, _, {props: [tag], pattern}), function(id, {triggered}){
     const {props} = triggered || {};
     const touched = _.get(props, tag);
     const f = touched === "added" ? _.conj : _.disj;
@@ -167,10 +92,8 @@ function install(path, init, trigger, update){
   return function(self){
     return new World(
       self.entities,
-      self.tags,
-      self.views,
       self.inputs,
-      _.assocIn(self.data, path, init),
+      _.assocIn(self.db, path, init),
       _.conj(self.hooks, {path, trigger, update}));
   }
 }
@@ -180,13 +103,11 @@ function hooks(id, prior){
     const reel = r.edit(self, prior);
     return new World(
       self.entities,
-      self.tags,
-      self.views,
       self.inputs,
-      _.reduce(function(data, {path, trigger, update}){
+      _.reduce(function(db, {path, trigger, update}){
         const triggered = trigger(id)(reel);
-        return triggered ? _.updateIn(data, path, update(id, {reel, triggered})) : data;
-      }, self.data, self.hooks),
+        return triggered ? _.updateIn(db, path, update(id, {reel, triggered})) : db;
+      }, self.db, self.hooks),
       self.hooks);
   }
 }
@@ -196,18 +117,14 @@ function lookup(self, id){
 }
 
 function assoc(self, id, entity){
-  return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.tags, self.views, self.inputs, self.data, self.hooks),
-    hooks(id, self),
-    tag(id, self),
-    project(id, _.keys(entity), self));
+  return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.inputs, self.db, self.hooks),
+    hooks(id, self));
 }
 
 function dissoc(self, id){
   const entity = _.get(self, id);
-  return _.chain(new World(_.dissoc(self.entities, id), self.tags, self.views, self.inputs, self.data, self.hooks),
-    hooks(id, self),
-    tag(id, self),
-    project(id, _.keys(entity), self));
+  return _.chain(new World(_.dissoc(self.entities, id), self.inputs, self.db, self.hooks),
+    hooks(id, self));
 }
 
 function contains(self, id){
@@ -216,10 +133,8 @@ function contains(self, id){
 
 function capture(self){
   return new World(self.entities,
-    self.tags,
-    _.updateIn(self.views, ["touched", "model"], _.empty),
     self.inputs,
-    self.data,
+    _.update(self.db, "touched", _.empty),
     self.hooks);
 }
 
@@ -240,7 +155,7 @@ $.doto(World,
 
 export function tagged(tags, self){
   return _.chain(tags,
-    _.mapa(_.get(self.tags, _), _),
+    _.mapa(_.get(self.db.components, _), _),
     _.spread(function(set, ...sets){
       return _.reduce(_.intersection, set, sets);
     }));
