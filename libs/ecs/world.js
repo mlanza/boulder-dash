@@ -152,14 +152,12 @@ export function bestow(...args){
   return _.map(_.juxt(_.identity, ...fs), xs);
 }
 
-function changed2(reel, id, ...path){
-  return _.plug(r.modified, id, {path})(reel);
+function changed2(reel, id, options = {}){
+  return _.plug(r.modified, id, options)(reel);
 }
 
 function changed1(reel){
-  return _.chain(reel, r.frame, function(world){
-    return world.db.touched;
-  }, _.mapa(_.partial(changed2, reel), _));
+  return _.chain(reel, r.frame, world => world.db.touched, _.mapa(_.partial(changed2, reel), _));
 }
 
 export const changed = _.overload(null, changed1, changed2);
