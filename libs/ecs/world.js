@@ -152,18 +152,8 @@ export function bestow(...args){
   return _.map(_.juxt(_.identity, ...fs), xs);
 }
 
-function changed2(reel, ...path){
-  const id = _.first(path);
-  const compared = r.correlate(reel, _.getIn(_, path));
-  const [curr, prior] = compared;
-  const touched = r.correlate(reel, _.getIn(_, path), r.touched);
-  const keys = path.length === 1 ? _.union(_.keys(curr), _.keys(prior)) : null;
-  const components = touched ? _.reduce(function(memo, key){
-    const touched = r.correlate(reel, _.getIn(_, [id, key]), r.touched);
-    touched && $.assoc(memo, key, touched);
-    return memo;
-   }, {}, keys) : {};
-  return {id, touched, components, compared};
+function changed2(reel, id, ...path){
+  return _.plug(r.modified, id, {path})(reel);
 }
 
 function changed1(reel){
