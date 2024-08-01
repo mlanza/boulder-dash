@@ -178,11 +178,11 @@ function on2(id, prop){
   return _.filter(
     _.and(
       _.pipe(_.get(_, "id"), _.eq(_, id)),
-      _.getIn(_, ["components", prop])));
+      _.getIn(_, ["props", prop])));
 }
 
 function on1(prop){
-  return _.filter(_.getIn(_, ["components", prop]));
+  return _.filter(_.getIn(_, ["props", prop]));
 }
 
 const on = _.overload(null, on1, on2);
@@ -193,14 +193,14 @@ $.sub($change, on(vars.stats, "collected"), function({compared: [curr]}){
   }, _.lpad(curr.collected, 2, 0)));
 });
 
-$.sub($change, on("facing"), function({id, components: {facing}, compared: [curr]}){
+$.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
   _.maybe(document.getElementById(id),
     _.includes(["added", "updated"], facing) ?
       dom.attr(_, "data-facing", curr.facing) :
       dom.removeAttr(_, "data-facing"));
 });
 
-$.sub($change, on("positioned"), function({id, components: {positioned}, compared: [curr]}){
+$.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
   switch(positioned){
     case "added": {
       const [x, y] = curr.positioned;
