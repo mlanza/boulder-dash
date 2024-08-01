@@ -11,6 +11,26 @@ export function reel(state, max = 2){
   return new Reel(max, [state]);
 }
 
+export function edit(curr, prior){
+  return new Reel(2, [curr, prior]);
+}
+
+export function modified(id, path = [], props = null){
+  const fullPath = [id].concat(path);
+  const inside = _.getIn(_, fullPath);
+  return function(reel){
+    const compared = correlate(reel, inside);
+    const [curr, prior] = compared;
+    const _touched = correlate(reel, inside, touched);
+    const _props = _.chain(_touched ? _.reduce(function(memo, key){
+      const t = correlate(reel, _.getIn(_, fullPath.concat([key])), touched);
+      t && $.assoc(memo, key, t);
+      return memo;
+     }, {}, props || _.union(_.keys(curr), _.keys(prior))) : {}, _.compact, _.blot);
+    return _touched ? {id, path, touched: _touched, props: _props, compared} : null;
+  }
+}
+
 export function frame(self, offset = 0){
   return _.get(self.frames, offset * -1, null);
 }
