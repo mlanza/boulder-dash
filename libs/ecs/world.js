@@ -140,12 +140,17 @@ export function having(self, components){
     }));
 }
 
-export function patch(patch){
+function patch1(patch){
   return function(entity){
-    const revised = _.chain(entity, _.merge(_, patch), _.compact, _.blot);
-    return _.eq(entity, revised) ? entity : revised;
+    return _.subsumes(entity, patch) ? entity : _.chain(entity, _.merge(_, patch), _.compact, _.blot);
   }
 }
+
+function patch3(world, id, patch){
+  return _.subsumes(_.get(world, id), patch) ? world : _.update(world, id, patch1(patch));
+}
+
+export const patch = _.overload(null, patch1, null, patch3);
 
 export function bestow(...args){
   const fs = _.initial(args), xs = _.last(args);

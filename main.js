@@ -125,7 +125,7 @@ function control(inputs, entities, world){
         diggable ? dig(beyondId) : pushable ? push(beyondId, direction, beyond, nearby(beyond, direction)) : _.identity,
         stationary ? _.identity : move(id, direction, positioned, beyond));
     } else {
-      return _.update(memo, id, w.patch({moving: false}));
+      return w.patch(memo, id, {moving: false});
     }
   }, world, entities);
 }
@@ -204,7 +204,9 @@ $.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
 
 $.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
   _.maybe(document.getElementById(id),
-    dom.toggleClass(_, "moving", curr.moving));
+    $.doto(_,
+      dom.toggleClass(_, "idle", !curr.moving),
+      dom.toggleClass(_, "moving", curr.moving)));
 });
 
 $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
