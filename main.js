@@ -164,7 +164,10 @@ function gravity(inputs, entities, world){
         const below = nearby(positioned, "down");
         const belowId = _.get(world.db.via.positioned, below);
         const bottom = _.maybe(belowId, _.get(world, _));
-        return bottom || !gravitated ? world : fall(id, positioned, below)(world);
+        const halted = bottom && !bottom.falling;
+        return _.chain(world,
+          bottom || !gravitated ? _.identity : fall(id, positioned, below),
+          halted ? w.patch(_, id, {falling: null}) : _.identity);
       }, world, world.db.components.falling);
     });
 }
@@ -246,6 +249,14 @@ $.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
       dom.attr(_, "data-facing", curr.facing) :
       dom.removeAttr(_, "data-facing"));
 });
+
+$.sub($change, on("falling"), function({id, props: {falling}, compared: [curr]}){
+  _.maybe(document.getElementById(id),
+    _.includes(["added"], falling) ?
+      dom.addClass(_, "falling") :
+      dom.removeClass(_, "falling"));
+});
+
 
 $.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
   _.maybe(document.getElementById(id),
