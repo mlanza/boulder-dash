@@ -23,9 +23,10 @@ el.focus();
 const explosive = true,
       collectible = true,
       diggable = true,
+      gravitated = true,
+      falling = true,
       rounded = true,
       pushable = true,
-      gravity = true,
       moving = false;
 
 function steelWall(positioned){
@@ -51,7 +52,7 @@ function rockford(positioned){
 
 function diamond(positioned){
   const noun = "diamond";
-  return _.assoc(_, w.uids(), {noun, collectible, explosive, rounded, positioned});
+  return _.assoc(_, w.uids(), {noun, collectible, explosive, rounded, positioned, gravitated});
 }
 
 function dirt(positioned){
@@ -70,12 +71,28 @@ const butterfly = enemy("butterfly", "counterclockwise");
 
 function boulder(positioned){
   const noun = "boulder";
-  return _.assoc(_, w.uids(), {noun, pushable, explosive, rounded, gravity, positioned});
+  return _.assoc(_, w.uids(), {noun, pushable, explosive, rounded, positioned, gravitated});
 }
 
 const spawn = _.get({".": dirt, "X": rockford, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
 
 const board = await _.fmap(fetch("./boards/l01.txt"),  resp =>resp.text());
+
+const positions = _.braid(_.array, _.range(40), _.range(23));
+
+function vacancies(world){
+  const vacancies = _.reduce(function(memo, coords){
+    return _.contains(world.db.via.positioned, coords) ? memo : _.conj(memo, coords);
+  }, ss.set([]), positions);
+  return w.install(["vacated"],
+    vacancies,
+    _.plug(r.modified, _, {path: ["positioned"], pattern: {touched: _.eq(_, "updated")}}),
+    function(id, {reel, triggered}){
+      const {compared} = triggered;
+      const prior = compared[1];
+      return _.conj(_, prior);
+    })(world);
+}
 
 function load(board){
   const parts = _.chain(board,
@@ -130,6 +147,34 @@ function control(inputs, entities, world){
   }, world, entities);
 }
 
+function gravity(inputs, entities, world){
+  const vacated = _.sort(_.desc(_.get(_, 1)), world.db.vacated);
+  return _.chain(world,
+    w.clear(_, ["vacated"]),
+    _.reduce(function(world, positioned){
+      const over = nearby(positioned, "up");
+      const overId = _.get(world.db.via.positioned, over);
+      const {gravitated} = _.get(world, overId, {});
+      return gravitated ? w.patch(world, overId, {falling: true}) : world;
+    }, _, vacated),
+    function(world){
+      return _.reduce(function(world, id){
+        const top = _.get(world, id, {});
+        const {positioned, gravitated} = top;
+        const below = nearby(positioned, "down");
+        const belowId = _.get(world.db.via.positioned, below);
+        const bottom = _.maybe(belowId, _.get(world, _));
+        return bottom || !gravitated ? world : fall(id, positioned, below)(world);
+      }, world, world.db.components.falling);
+    });
+}
+
+function fall(id, from, to){
+  return function(world){
+    return w.patch(world, id, {positioned: to});
+  }
+}
+
 function collect(id){
   return _.pipe(
     _.updateIn(_, [vars.stats, "collected"], _.inc),
@@ -166,7 +211,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "gravity", "positioned", "facing", "moving", "controlled"]),
+  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "positioned", "facing", "moving", "controlled", "gravitated", "falling"]),
   w.via("positioned"),
   _.assoc(_, vars.stats, {total: 0, collected: 0, needed: 10, each: 10, extra: 15}));
 
@@ -237,7 +282,7 @@ $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [c
 
 $.sub($changed, $.each($.reset($change, _), _));
 
-$.swap($state, _.fmap(_, load(board)));
+$.swap($state, _.fmap(_, _.comp(vacancies, load(board))));
 
 $.on(document, "keydown", function(e){
   if (_.includes(["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft"], e.key)) {
@@ -268,5 +313,8 @@ function setRafInterval(callback, throttle) {
 }
 
 setRafInterval(function(time){
-  $.swap($state, _.fmap(_, system(["positioned", "controlled"], control)));
+  $.swap($state, _.fmap(_,
+    _.pipe(
+        system(["controlled"], control),
+        system(["gravitated"], gravity))));
 }, 100);

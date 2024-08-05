@@ -52,11 +52,16 @@ function contains(self, id){
   return _.contains(self.entities, id);
 }
 
-function capture(self){
-  return new World(self.entities,
+export function clear(self, path){
+  const curr = _.getIn(self.db, path);
+  return _.seq(curr) ? new World(self.entities,
     self.inputs,
-    _.update(self.db, "touched", _.empty),
-    self.hooks);
+    _.updateIn(self.db, path, _.empty),
+    self.hooks) : self;
+}
+
+function capture(self){
+  return clear(self, ["touched"]);
 }
 
 function keys(self){
@@ -75,7 +80,7 @@ $.doto(World,
   _.implement(c.ICapture, {capture})); //TODO implement frame
 
 //concrete fns
-function install(path, init, trigger, update){
+export function install(path, init, trigger, update){
   return function(self){
     return new World(
       self.entities,
