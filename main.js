@@ -115,9 +115,9 @@ function load(board){
 const vertical = _.get({"up": -1, "down": 1}, _, 0);
 const horizontal = _.get({"left": -1, "right": 1}, _, 0);
 
-function nearby([x, y], key, offset = 1){
+const nearby = _.partly(function nearby([x, y], key, offset = 1){
   return [x + horizontal(key) * offset, y + vertical(key) * offset];
-}
+});
 
 function system(components, f){
   return function(world){
@@ -147,10 +147,34 @@ function control(inputs, entities, world){
   }, world, entities);
 }
 
+function roll(positioned){
+  return function(world){
+    const id = _.get(world.db.via.positioned, positioned);
+    const ent = _.get(world, id, {});
+    const below = nearby(positioned, "down");
+    const belowId = _.get(world.db.via.positioned, below);
+    const belowEnt = _.get(world, belowId, {});
+    return ent.gravitated && belowEnt.rounded && !belowEnt.falling ? _.reduce(function(world, side){
+      const beside = nearby(positioned, side);
+      const besideId = _.get(world.db.via.positioned, beside);
+      const besideBelow = nearby(below, side);
+      const besideBelowId = _.get(world.db.via.positioned, besideBelow);
+      return besideId || besideBelowId ? world : _.reduced(w.patch(world, id, {positioned: beside, falling: true}));
+    }, world, ["left", "right"]) : world;
+  }
+}
+
 function gravity(inputs, entities, world){
   const vacated = _.sort(_.desc(_.get(_, 1)), world.db.vacated);
   return _.chain(world,
     w.clear(_, ["vacated"]),
+    _.reduce(function(world, positioned){
+      return _.chain(world,
+        roll(_.chain(positioned, nearby(_, "left"))),
+        roll(_.chain(positioned, nearby(_, "right"))),
+        roll(_.chain(positioned, nearby(_, "up"), nearby(_, "left"))),
+        roll(_.chain(positioned, nearby(_, "up"), nearby(_, "right"))));
+    }, _, vacated),
     _.reduce(function(world, positioned){
       const over = nearby(positioned, "up");
       const overId = _.get(world.db.via.positioned, over);
