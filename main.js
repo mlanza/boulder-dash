@@ -191,7 +191,7 @@ function gravity(inputs, entities, world){
         const halted = bottom && !bottom.falling;
         return _.chain(world,
           bottom || !gravitated ? _.identity : fall(id, positioned, below),
-          halted ? w.patch(_, id, {falling: null}) : _.identity);
+          halted ? _.comp(roll(positioned), w.patch(_, id, {falling: null})) : _.identity);
       }, world, world.db.components.falling);
     });
 }
@@ -221,8 +221,9 @@ function move(id, direction, from, to){
 
 function push(id, direction, from, to){
   return _.includes(["left", "right"], direction) ? function(world){
+    const {gravitated} = _.get(world, id);
     const occupied = _.get(world.db.via.positioned, to);
-    return occupied ? world : _.update(world, id, w.patch({positioned: to}));
+    return occupied ? world : _.update(world, id, w.patch(Object.assign({positioned: to}, gravitated ? {falling: true} : {})));
   } : _.identity;
 }
 
