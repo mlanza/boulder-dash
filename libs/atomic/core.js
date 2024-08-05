@@ -5044,7 +5044,7 @@ function descriptive$1(self) {
 
 function subsumes(self, other) {
   return reducekv$7((function(memo, key, value) {
-    return memo ? contains$7(self, key, value) : reduced(memo);
+    return memo ? contains$7(self, key, value) : reduced$1(memo);
   }), true, other);
 }
 
