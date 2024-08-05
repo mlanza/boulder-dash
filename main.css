@@ -14,6 +14,9 @@ body {
   width: 64px;
   height: 16px;
 }
+.falling {
+  outline: 1px solid red;
+}
 [data-char] {
   height: 16px;
   width: 32px;
