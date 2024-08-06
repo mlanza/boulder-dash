@@ -22,6 +22,7 @@ el.focus();
 
 const explosive = true,
       alive = true,
+      disappearing = 3,
       collectible = true,
       diggable = true,
       gravitated = true,
@@ -53,7 +54,7 @@ function rockford(positioned){
 
 function explosion(positioned){
   const noun = "explosion";
-  return _.assoc(_, w.uids(), {noun, positioned});
+  return _.assoc(_, w.uids(), {noun, positioned, disappearing});
 }
 
 function diamond(positioned){
@@ -92,7 +93,7 @@ function vacancies(world){
   }, ss.set([]), positions);
   return w.install(["vacated"],
     vacancies,
-    _.plug(r.modified, _, {path: ["positioned"], pattern: {touched: _.eq(_, "updated")}}),
+    _.plug(r.modified, _, {path: ["positioned"], pattern: {touched: _.includes(["updated", "removed"], _)}}),
     function(id, {reel, triggered}){
       const {compared} = triggered;
       const prior = compared[1];
@@ -184,8 +185,10 @@ function gravity(inputs, entities, world){
     _.reduce(function(world, positioned){
       const over = nearby(positioned, "up");
       const overId = _.get(world.db.via.positioned, over);
+      const id = _.get(world.db.via.positioned, positioned);
+      const {falling} = _.get(world, id, {});
       const {gravitated} = _.get(world, overId, {});
-      return gravitated ? w.patch(world, overId, {falling: true}) : world;
+      return gravitated && (!id || falling) ? w.patch(world, overId, {falling: true}) : world;
     }, _, vacated),
     function(world){
       return _.reduce(function(world, [id, entity]){
@@ -229,6 +232,12 @@ function explodes(inputs, entities, world){
   }, world, entities);
 }
 
+function disappears(inputs, entities, world){
+  return _.reduce(function(world, [id, entity]){
+    return _.dissoc(world, id);
+  }, world, entities)
+}
+
 function collect(id){
   return _.pipe(
     _.updateIn(_, [vars.stats, "collected"], _.inc),
@@ -266,7 +275,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "positioned", "facing", "moving", "controlled", "gravitated", "falling", "alive"]),
+  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "positioned", "facing", "moving", "controlled", "gravitated", "falling", "alive", "disappearing"]),
   w.via("positioned"),
   _.assoc(_, vars.stats, {total: 0, collected: 0, needed: 10, each: 10, extra: 15}));
 
@@ -382,6 +391,7 @@ function setRafInterval(callback, throttle) {
 setRafInterval(function(time){
   $.swap($state, _.fmap(_,
     _.pipe(
+      system(["disappearing"], disappears),
       system(["controlled"], control),
       system(["falling"], gravity),
       system(["alive"], explodes))));
