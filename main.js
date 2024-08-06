@@ -21,6 +21,7 @@ const vars = {
 el.focus();
 
 const explosive = true,
+      alive = true,
       collectible = true,
       diggable = true,
       gravitated = true,
@@ -47,7 +48,12 @@ function rockford(positioned){
     ["ArrowRight", "right"]
   ]);
   const noun = "Rockford";
-  return _.assoc(_, vars.R, {noun, controlled, explosive, positioned, moving});
+  return _.assoc(_, vars.R, {noun, controlled, explosive, positioned, moving, alive});
+}
+
+function explosion(positioned){
+  const noun = "explosion";
+  return _.assoc(_, w.uids(), {noun, positioned});
 }
 
 function diamond(positioned){
@@ -182,24 +188,45 @@ function gravity(inputs, entities, world){
       return gravitated ? w.patch(world, overId, {falling: true}) : world;
     }, _, vacated),
     function(world){
-      return _.reduce(function(world, id){
-        const top = _.get(world, id, {});
-        const {positioned, gravitated} = top;
-        const below = nearby(positioned, "down");
-        const belowId = _.get(world.db.via.positioned, below);
-        const bottom = _.maybe(belowId, _.get(world, _));
-        const halted = bottom && !bottom.falling;
-        return _.chain(world,
-          bottom || !gravitated ? _.identity : fall(id, positioned, below),
-          halted ? _.comp(roll(positioned), w.patch(_, id, {falling: null})) : _.identity);
-      }, world, world.db.components.falling);
+      return _.reduce(function(world, [id, entity]){
+        return fall(id)(world);
+      }, world, entities);
     });
 }
 
-function fall(id, from, to){
+function fall(id){
   return function(world){
-    return w.patch(world, id, {positioned: to});
+    const top = _.get(world, id, {});
+    const {positioned, gravitated, falling} = top;
+    const below = nearby(positioned, "down");
+    const belowId = _.get(world.db.via.positioned, below);
+    const bottom = _.maybe(belowId, _.get(world, _));
+    const halted = bottom && !bottom.falling;
+    return _.chain(world,
+      !bottom?.alive ? _.identity : w.patch(_, belowId, {alive: false}),
+      bottom || !gravitated ? _.identity : w.patch(_, id, {positioned: below}),
+      halted ? _.comp(roll(positioned), w.patch(_, id, {falling: null})) : _.identity);
   }
+}
+
+function explode(at){
+  return function(world){
+    const id = _.get(world.db.via.positioned, at);
+    const {explosive} = _.maybe(id, _.get(world, _)) || {explosive: true};
+    return _.chain(world,
+      explosive ? _.comp(_.dissoc(_, id), explosion(at)) : _.identity);
+  }
+}
+
+function explodes(inputs, entities, world){
+  return _.reduce(function(world, [id, {positioned, alive}]){
+    return alive ? world : _.chain(world,
+      _.dissoc(_, id),
+      _.reduce(function(world, relative){
+        const at = _.reduce(nearby, positioned, relative);
+        return explode(at)(world);
+      }, _, [["none"],["up"],["up","left"],["up","right"],["left"],["right"],["down"],["down","left"],["down","right"]]));
+  }, world, entities);
 }
 
 function collect(id){
@@ -239,7 +266,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "positioned", "facing", "moving", "controlled", "gravitated", "falling"]),
+  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "positioned", "facing", "moving", "controlled", "gravitated", "falling", "alive"]),
   w.via("positioned"),
   _.assoc(_, vars.stats, {total: 0, collected: 0, needed: 10, each: 10, extra: 15}));
 
@@ -261,34 +288,6 @@ function on1(prop){
 }
 
 const on = _.overload(null, on1, on2);
-
-$.sub($change, on(vars.stats, "collected"), function({compared: [curr]}){
-  dom.html(dom.sel1("#collected"), _.map(function(char){
-    return span({"data-char": char});
-  }, _.lpad(curr.collected, 2, 0)));
-});
-
-$.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
-  _.maybe(document.getElementById(id),
-    _.includes(["added", "updated"], facing) ?
-      dom.attr(_, "data-facing", curr.facing) :
-      dom.removeAttr(_, "data-facing"));
-});
-
-$.sub($change, on("falling"), function({id, props: {falling}, compared: [curr]}){
-  _.maybe(document.getElementById(id),
-    _.includes(["added"], falling) ?
-      dom.addClass(_, "falling") :
-      dom.removeClass(_, "falling"));
-});
-
-
-$.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
-  _.maybe(document.getElementById(id),
-    $.doto(_,
-      dom.toggleClass(_, "idle", !curr.moving),
-      dom.toggleClass(_, "moving", curr.moving)));
-});
 
 $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
   switch(positioned){
@@ -314,6 +313,38 @@ $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [c
       break;
     }
   }
+});
+
+$.sub($change, on("alive"), function({id, props: {alive}, compared: [curr]}){
+  _.maybe(document.getElementById(id),
+    dom.toggleClass(_, "alive", curr?.alive));
+});
+
+$.sub($change, on(vars.stats, "collected"), function({compared: [curr]}){
+  dom.html(dom.sel1("#collected"), _.map(function(char){
+    return span({"data-char": char});
+  }, _.lpad(curr.collected, 2, 0)));
+});
+
+$.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
+  _.maybe(document.getElementById(id),
+    _.includes(["added", "updated"], facing) ?
+      dom.attr(_, "data-facing", curr.facing) :
+      dom.removeAttr(_, "data-facing"));
+});
+
+$.sub($change, on("falling"), function({id, props: {falling}}){
+  _.maybe(document.getElementById(id),
+    _.includes(["added"], falling) ?
+      dom.addClass(_, "falling") :
+      dom.removeClass(_, "falling"));
+});
+
+$.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
+  _.maybe(document.getElementById(id),
+    $.doto(_,
+      dom.toggleClass(_, "idle", !curr?.moving),
+      dom.toggleClass(_, "moving", curr?.moving)));
 });
 
 $.sub($changed, $.each($.reset($change, _), _));
@@ -351,6 +382,7 @@ function setRafInterval(callback, throttle) {
 setRafInterval(function(time){
   $.swap($state, _.fmap(_,
     _.pipe(
-        system(["controlled"], control),
-        system(["gravitated"], gravity))));
+      system(["controlled"], control),
+      system(["falling"], gravity),
+      system(["alive"], explodes))));
 }, 100);

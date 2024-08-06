@@ -14,9 +14,6 @@ body {
   width: 64px;
   height: 16px;
 }
-.falling {
-  outline: 1px solid red;
-}
 [data-char] {
   height: 16px;
   width: 32px;
@@ -98,7 +95,6 @@ body {
               idle-a .5s steps(1) 7.5s 2,
               idle-b .5s steps(1) 8.5s infinite;
 }
-
 @keyframes idle-a {
   0%, 12.5% { background-position: 0 -32px; }
   12.5%, 25% { background-position: -32px -32px; }
@@ -109,7 +105,6 @@ body {
   75%, 87.5% { background-position: -192px -32px; }
   87.5%, 100% { background-position: -224px -32px; }
 }
-
 @keyframes idle-b {
   0%, 12.5% { background-position: 0 -64px; }
   12.5%, 25% { background-position: -32px -64px; }
@@ -130,7 +125,6 @@ body {
   75%, 87.5% { background-position: -192px -96px; }
   87.5%, 100% { background-position: -224px -96px; }
 }
-
 @keyframes run-right {
   100%   {
     background-position: -224px -160px;
@@ -172,7 +166,14 @@ body {
 }
 [data-noun='explosion'] {
   background-position: -64px 0;
+  animation: disappearing .3s forwards;
 }
+@keyframes disappearing {
+  0%   {opacity: 1;}
+  90%  {opacity: .1;}
+  100% {opacity: 0;}
+}
+
 [data-noun='wall'] {
   background-position: -96px -192px;
 }
