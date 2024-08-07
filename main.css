@@ -14,72 +14,6 @@ body {
   width: 64px;
   height: 16px;
 }
-[data-char] {
-  height: 16px;
-  width: 32px;
-  display: inline-block;
-  background-image: url(./images/sprites.png);
-}
-[data-char='0']{
-  background-position: -288px -256px;
-}
-.bright [data-char='0']{
-  background-position: -256px -256px;
-}
-[data-char='1']{
-  background-position: -288px -272px;
-}
-.bright [data-char='1']{
-  background-position: -256px -272px;
-}
-[data-char='2']{
-  background-position: -288px -288px;
-}
-.bright [data-char='2']{
-  background-position: -256px -288px;
-}
-[data-char='3']{
-  background-position: -288px -304px;
-}
-.bright [data-char='3']{
-  background-position: -256px -304px;
-}
-[data-char='4']{
-  background-position: -288px -320px;
-}
-.bright [data-char='4']{
-  background-position: -256px -320px;
-}
-[data-char='5']{
-  background-position: -288px -336px;
-}
-.bright [data-char='5']{
-  background-position: -256px -336px;
-}
-[data-char='6']{
-  background-position: -288px -352px;
-}
-.bright [data-char='6']{
-  background-position: -256px -352px;
-}
-[data-char='7']{
-  background-position: -288px -368px;
-}
-.bright [data-char='7']{
-  background-position: -256px -368px;
-}
-[data-char='8']{
-  background-position: -288px -384px;
-}
-.bright [data-char='8']{
-  background-position: -256px -384px;
-}
-[data-char='9']{
-  background-position: -288px -400px;
-}
-.bright [data-char='9']{
-  background-position: -256px -400px;
-}
 
 [data-noun] {
   position: absolute;
@@ -95,72 +29,6 @@ body {
               idle-a .5s steps(1) 7.5s 2,
               idle-b .5s steps(1) 8.5s infinite;
 }
-@keyframes idle-a {
-  0%, 12.5% { background-position: 0 -32px; }
-  12.5%, 25% { background-position: -32px -32px; }
-  25%, 37.5% { background-position: -64px -32px }
-  37.5%, 50% { background-position: -96px -32px; }
-  50%, 62.5% { background-position: -128px -32px; }
-  62.5%, 75% { background-position: -160px -32px; }
-  75%, 87.5% { background-position: -192px -32px; }
-  87.5%, 100% { background-position: -224px -32px; }
-}
-@keyframes idle-b {
-  0%, 12.5% { background-position: 0 -64px; }
-  12.5%, 25% { background-position: -32px -64px; }
-  25%, 37.5% { background-position: -64px -64px }
-  37.5%, 50% { background-position: -96px -64px; }
-  50%, 62.5% { background-position: -128px -64px; }
-  62.5%, 75% { background-position: -160px -64px; }
-  75%, 87.5% { background-position: -192px -64px; }
-  87.5%, 100% { background-position: -224px -64px; }
-}
-@keyframes idle-c {
-  0%, 12.5% { background-position: 0 -96px; }
-  12.5%, 25% { background-position: -32px -96px; }
-  25%, 37.5% { background-position: -64px -96px }
-  37.5%, 50% { background-position: -96px -96px; }
-  50%, 62.5% { background-position: -128px -96px; }
-  62.5%, 75% { background-position: -160px -96px; }
-  75%, 87.5% { background-position: -192px -96px; }
-  87.5%, 100% { background-position: -224px -96px; }
-}
-@keyframes radiate {
-  100% {
-    background-position: -224px -288px;
-  }
-}
-@keyframes run-right {
-  100%   {
-    background-position: -224px -160px;
-  }
-}
-@keyframes run-left {
-  100% {
-    background-position: -224px -128px;
-  }
-}
-@keyframes run-up {
-  0% {
-    background-position: -32px -96px;
-  }
-  50% {
-    transform: scaleX(-1);
-  }
-}
-@keyframes run-down {
-  0% {
-    background-position: -32px -64px;
-  }
-  50% {
-    transform: scaleX(-1);
-  }
-}
-@keyframes glimmer {
-  100% {
-    background-position: -224px -320px;
-  }
-}
 [data-noun='Rockford'][data-facing='right'].moving {
   background-position: 0 -160px;
   animation: run-right .3s steps(7) infinite;
@@ -169,20 +37,22 @@ body {
   background-position: 0 -128px;
   animation: run-left .3s steps(7) infinite;
 }
-[data-noun='explosion'] {
-  background-position: -64px 0;
-  animation: disappearing .3s forwards;
+[data-noun='diamond'] {
+  background-position: 0 -320px;
+  animation: glimmer .3s steps(7) infinite;
 }
 [data-noun='firefly'] {
   background-position: 0px -288px;
   animation: radiate .3s steps(7) infinite;
 }
-@keyframes disappearing {
-  0%   {opacity: 1;}
-  90%  {opacity: .1;}
-  100% {opacity: 0;}
+[data-noun='butterfly'] {
+  background-position: 0px -352px;
+  animation: flutter .3s steps(7) infinite;
 }
-
+[data-noun='explosion'] {
+  background-position: -64px 0;
+  animation: disappearing .3s forwards;
+}
 [data-noun='wall'] {
   background-position: -96px -192px;
 }
@@ -192,13 +62,10 @@ body {
 [data-noun='boulder'] {
   background-position: 0 -224px;
 }
-[data-noun='diamond'] {
-  background-position: 0 -320px;
-  animation: glimmer .3s steps(7) infinite;
-}
 [data-noun='dirt'] {
   background-position: -32px -224px;
 }
+
 [data-x='0'] {
   left: 0;
 }
@@ -498,4 +365,148 @@ body {
 }
 [data-y='49'] {
   top: 1568px;
+}
+
+[data-char] {
+  height: 16px;
+  width: 32px;
+  display: inline-block;
+  background-image: url(./images/sprites.png);
+}
+[data-char='0']{
+  background-position: -288px -256px;
+}
+.bright [data-char='0']{
+  background-position: -256px -256px;
+}
+[data-char='1']{
+  background-position: -288px -272px;
+}
+.bright [data-char='1']{
+  background-position: -256px -272px;
+}
+[data-char='2']{
+  background-position: -288px -288px;
+}
+.bright [data-char='2']{
+  background-position: -256px -288px;
+}
+[data-char='3']{
+  background-position: -288px -304px;
+}
+.bright [data-char='3']{
+  background-position: -256px -304px;
+}
+[data-char='4']{
+  background-position: -288px -320px;
+}
+.bright [data-char='4']{
+  background-position: -256px -320px;
+}
+[data-char='5']{
+  background-position: -288px -336px;
+}
+.bright [data-char='5']{
+  background-position: -256px -336px;
+}
+[data-char='6']{
+  background-position: -288px -352px;
+}
+.bright [data-char='6']{
+  background-position: -256px -352px;
+}
+[data-char='7']{
+  background-position: -288px -368px;
+}
+.bright [data-char='7']{
+  background-position: -256px -368px;
+}
+[data-char='8']{
+  background-position: -288px -384px;
+}
+.bright [data-char='8']{
+  background-position: -256px -384px;
+}
+[data-char='9']{
+  background-position: -288px -400px;
+}
+.bright [data-char='9']{
+  background-position: -256px -400px;
+}
+
+@keyframes idle-a {
+  0%, 12.5% { background-position: 0 -32px; }
+  12.5%, 25% { background-position: -32px -32px; }
+  25%, 37.5% { background-position: -64px -32px }
+  37.5%, 50% { background-position: -96px -32px; }
+  50%, 62.5% { background-position: -128px -32px; }
+  62.5%, 75% { background-position: -160px -32px; }
+  75%, 87.5% { background-position: -192px -32px; }
+  87.5%, 100% { background-position: -224px -32px; }
+}
+@keyframes idle-b {
+  0%, 12.5% { background-position: 0 -64px; }
+  12.5%, 25% { background-position: -32px -64px; }
+  25%, 37.5% { background-position: -64px -64px }
+  37.5%, 50% { background-position: -96px -64px; }
+  50%, 62.5% { background-position: -128px -64px; }
+  62.5%, 75% { background-position: -160px -64px; }
+  75%, 87.5% { background-position: -192px -64px; }
+  87.5%, 100% { background-position: -224px -64px; }
+}
+@keyframes idle-c {
+  0%, 12.5% { background-position: 0 -96px; }
+  12.5%, 25% { background-position: -32px -96px; }
+  25%, 37.5% { background-position: -64px -96px }
+  37.5%, 50% { background-position: -96px -96px; }
+  50%, 62.5% { background-position: -128px -96px; }
+  62.5%, 75% { background-position: -160px -96px; }
+  75%, 87.5% { background-position: -192px -96px; }
+  87.5%, 100% { background-position: -224px -96px; }
+}
+@keyframes radiate {
+  100% {
+    background-position: -224px -288px;
+  }
+}
+@keyframes flutter {
+  100% {
+    background-position: -224px -352px;
+  }
+}
+@keyframes run-right {
+  100% {
+    background-position: -224px -160px;
+  }
+}
+@keyframes run-left {
+  100% {
+    background-position: -224px -128px;
+  }
+}
+@keyframes run-up {
+  0% {
+    background-position: -32px -96px;
+  }
+  50% {
+    transform: scaleX(-1);
+  }
+}
+@keyframes run-down {
+  0% {
+    background-position: -32px -64px;
+  }
+  50% {
+    transform: scaleX(-1);
+  }
+}
+@keyframes glimmer {
+  100% {
+    background-position: -224px -320px;
+  }
+}
+@keyframes disappearing {
+  0%   {opacity: 1;}
+  90%  {opacity: .1;}
+  100% {opacity: 0;}
 }

@@ -39,7 +39,7 @@ function steelWall(positioned){
 
 function wall(positioned){
   const noun = "wall";
-  return _.assoc(_, w.uids(), {noun, explosive, positioned});
+  return _.assoc(_, w.uids(), {noun, explosive, positioned, rounded});
 }
 
 function rockford(positioned){
@@ -53,19 +53,9 @@ function rockford(positioned){
   return _.assoc(_, vars.R, {noun, controlled, explosive, positioned, moving, alive});
 }
 
-function explosion(positioned){
-  const noun = "explosion";
-  return _.assoc(_, w.uids(), {noun, positioned, disappearing});
-}
-
 function diamond(positioned){
   const noun = "diamond";
   return _.assoc(_, w.uids(), {noun, collectible, explosive, rounded, positioned, gravitated});
-}
-
-function dirt(positioned){
-  const noun = "dirt";
-  return _.assoc(_, w.uids(), {noun, diggable, explosive, positioned});
 }
 
 function enemy(noun, seeking){
@@ -77,30 +67,26 @@ function enemy(noun, seeking){
 const firefly = enemy("firefly", "clockwise");
 const butterfly = enemy("butterfly", "counterclockwise");
 
+function explosion(positioned){
+  const noun = "explosion";
+  return _.assoc(_, w.uids(), {noun, positioned, disappearing});
+}
+
+function dirt(positioned){
+  const noun = "dirt";
+  return _.assoc(_, w.uids(), {noun, diggable, explosive, positioned});
+}
+
 function boulder(positioned){
   const noun = "boulder";
   return _.assoc(_, w.uids(), {noun, pushable, explosive, rounded, positioned, gravitated});
 }
 
-const spawn = _.get({".": dirt, "X": rockford, "q": firefly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
+const spawn = _.get({".": dirt, "X": rockford, "q": firefly, "B": butterfly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
 
 const board = await _.fmap(fetch("./boards/l02.txt"),  resp =>resp.text());
 
 const positions = _.braid(_.array, _.range(40), _.range(23));
-
-function vacancies(world){
-  const vacancies = _.reduce(function(memo, coords){
-    return _.contains(world.db.via.positioned, coords) ? memo : _.conj(memo, coords);
-  }, ss.set([]), positions);
-  return w.install(["vacated"],
-    vacancies,
-    _.plug(r.modified, _, {path: ["positioned"], pattern: {touched: _.includes(["updated", "removed"], _)}}),
-    function(id, {reel, triggered}){
-      const {compared} = triggered;
-      const prior = compared[1];
-      return _.conj(_, prior);
-    })(world);
-}
 
 function load(board){
   const parts = _.chain(board,
@@ -120,12 +106,36 @@ function load(board){
   }, _, parts);
 }
 
+function vacancies(world){
+  const vacancies = _.reduce(function(memo, coords){
+    return _.contains(world.db.via.positioned, coords) ? memo : _.conj(memo, coords);
+  }, ss.set([]), positions);
+  return w.install(["vacated"],
+    vacancies,
+    _.plug(r.modified, _, {path: ["positioned"], pattern: {touched: _.includes(["updated", "removed"], _)}}),
+    function(id, {reel, triggered}){
+      const {compared} = triggered;
+      const prior = compared[1];
+      return _.conj(_, prior);
+    })(world);
+}
+
 const vertical = _.get({"up": -1, "down": 1}, _, 0);
 const horizontal = _.get({"left": -1, "right": 1}, _, 0);
 
 const nearby = _.partly(function nearby([x, y], key, offset = 1){
   return [x + horizontal(key) * offset, y + vertical(key) * offset];
 });
+
+function around(positioned, immediate = false){
+  return _.chain([["none"],["up"],["up","left"],["up","right"],["left"],["right"],["down"],["down","left"],["down","right"]],
+    _.filter(function(relative){
+      return !immediate || _.count(relative) == 1;
+    }, _),
+    _.map(function(relative){
+      return _.reduce(nearby, positioned, relative);
+    }, _));
+}
 
 function system(components, f){
   return function(world){
@@ -134,6 +144,41 @@ function system(components, f){
       return [id, _.get(world, id)];
     }, w.having(world, components)), world);
   }
+}
+
+function disappears(inputs, entities, world){
+  return _.reduce(function(world, [id, entity]){
+    return _.dissoc(world, id);
+  }, world, entities)
+}
+
+function collect(id){
+  return _.pipe(
+    _.updateIn(_, [vars.stats, "collected"], _.inc),
+    _.dissoc(_, id));
+}
+
+function move(id, direction, from, to){
+  return function(world){
+    const there = _.get(world.db.via.positioned, to);
+    const collision = !!there; //TODO handle collision
+    return _.chain(world,
+      _.update(_, id, w.patch({moving: !collision})),
+      _.includes(["left", "right"], direction) ? _.update(_, id, w.patch({facing: direction})) : _.identity,
+      collision ? _.identity : _.update(_, id, w.patch({positioned: to})));
+  };
+}
+
+function push(id, direction, from, to){
+  return _.includes(["left", "right"], direction) ? function(world){
+    const {gravitated} = _.get(world, id);
+    const occupied = _.get(world.db.via.positioned, to);
+    return occupied ? world : _.update(world, id, w.patch(Object.assign({positioned: to}, gravitated ? {falling: true} : {})));
+  } : _.identity;
+}
+
+function dig(id){
+  return _.dissoc(_, id);
 }
 
 function control(inputs, entities, world){
@@ -155,6 +200,21 @@ function control(inputs, entities, world){
   }, world, entities);
 }
 
+function fall(id){
+  return function(world){
+    const top = _.get(world, id, {});
+    const {positioned, gravitated, falling} = top;
+    const below = nearby(positioned, "down");
+    const belowId = _.get(world.db.via.positioned, below);
+    const bottom = _.maybe(belowId, _.get(world, _));
+    const halted = bottom && !bottom.falling;
+    return _.chain(world,
+      !bottom?.alive ? _.identity : w.patch(_, belowId, {alive: false}),
+      bottom || !gravitated ? _.identity : w.patch(_, id, {positioned: below}),
+      halted ? _.comp(roll(positioned), w.patch(_, id, {falling: null})) : _.identity);
+  }
+}
+
 function roll(positioned){
   return function(world){
     const id = _.get(world.db.via.positioned, positioned);
@@ -169,6 +229,15 @@ function roll(positioned){
       const besideBelowId = _.get(world.db.via.positioned, besideBelow);
       return besideId || besideBelowId ? world : _.reduced(w.patch(world, id, {positioned: beside, falling: true}));
     }, world, ["left", "right"]) : world;
+  }
+}
+
+function explode(at){
+  return function(world){
+    const id = _.get(world.db.via.positioned, at);
+    const {explosive} = _.maybe(id, _.get(world, _)) || {explosive: true};
+    return _.chain(world,
+      explosive ? _.comp(_.dissoc(_, id), explosion(at)) : _.identity);
   }
 }
 
@@ -196,40 +265,6 @@ function gravity(inputs, entities, world){
         return fall(id)(world);
       }, world, entities);
     });
-}
-
-function fall(id){
-  return function(world){
-    const top = _.get(world, id, {});
-    const {positioned, gravitated, falling} = top;
-    const below = nearby(positioned, "down");
-    const belowId = _.get(world.db.via.positioned, below);
-    const bottom = _.maybe(belowId, _.get(world, _));
-    const halted = bottom && !bottom.falling;
-    return _.chain(world,
-      !bottom?.alive ? _.identity : w.patch(_, belowId, {alive: false}),
-      bottom || !gravitated ? _.identity : w.patch(_, id, {positioned: below}),
-      halted ? _.comp(roll(positioned), w.patch(_, id, {falling: null})) : _.identity);
-  }
-}
-
-function explode(at){
-  return function(world){
-    const id = _.get(world.db.via.positioned, at);
-    const {explosive} = _.maybe(id, _.get(world, _)) || {explosive: true};
-    return _.chain(world,
-      explosive ? _.comp(_.dissoc(_, id), explosion(at)) : _.identity);
-  }
-}
-
-function around(positioned, immediate = false){
-  return _.chain([["none"],["up"],["up","left"],["up","right"],["left"],["right"],["down"],["down","left"],["down","right"]],
-    _.filter(function(relative){
-      return !immediate || _.count(relative) == 1;
-    }, _),
-    _.map(function(relative){
-      return _.reduce(nearby, positioned, relative);
-    }, _));
 }
 
 function explodes(inputs, entities, world){
@@ -292,41 +327,6 @@ function seeks(inputs, entities, world){
   return _.reduce(function(world, [id, {positioned, seeking, going}]){
     return seek(world, id, positioned, seeking, going);
   }, world, entities);
-}
-
-function disappears(inputs, entities, world){
-  return _.reduce(function(world, [id, entity]){
-    return _.dissoc(world, id);
-  }, world, entities)
-}
-
-function collect(id){
-  return _.pipe(
-    _.updateIn(_, [vars.stats, "collected"], _.inc),
-    _.dissoc(_, id));
-}
-
-function move(id, direction, from, to){
-  return function(world){
-    const there = _.get(world.db.via.positioned, to);
-    const collision = !!there; //TODO handle collision
-    return _.chain(world,
-      _.update(_, id, w.patch({moving: !collision})),
-      _.includes(["left", "right"], direction) ? _.update(_, id, w.patch({facing: direction})) : _.identity,
-      collision ? _.identity : _.update(_, id, w.patch({positioned: to})));
-  };
-}
-
-function push(id, direction, from, to){
-  return _.includes(["left", "right"], direction) ? function(world){
-    const {gravitated} = _.get(world, id);
-    const occupied = _.get(world.db.via.positioned, to);
-    return occupied ? world : _.update(world, id, w.patch(Object.assign({positioned: to}, gravitated ? {falling: true} : {})));
-  } : _.identity;
-}
-
-function dig(id){
-  return _.dissoc(_, id);
 }
 
 const $keys = dom.depressed(document.body);
