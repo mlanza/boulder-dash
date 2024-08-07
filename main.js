@@ -428,7 +428,7 @@ $.on(document, "keydown", function(e){
   }
 });
 
-function setRafInterval(callback, throttle) {
+function setRafInterval1(callback, throttle) {
   let lastTime = 0;
   let rafId;
 
@@ -450,7 +450,40 @@ function setRafInterval(callback, throttle) {
   };
 }
 
-setRafInterval(function(time){
+function setRafInterval(callback, throttle) {
+  let startTime = 0;
+  let lastTime = 0;
+  let rafId;
+  let frame = 0;
+
+  function tick(time) {
+    if (!startTime) {
+      startTime = time;
+    }
+
+    const elapsed = time - startTime;
+    const expectedFrames = Math.floor(elapsed / throttle);
+    const overdue = elapsed - (expectedFrames * throttle);
+
+    if (elapsed - lastTime >= throttle) {
+      frame = expectedFrames % Math.ceil(1000 / throttle);
+      callback({ time, overdue, frame });
+      lastTime = elapsed - (elapsed % throttle);
+    }
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  rafId = requestAnimationFrame(tick);
+
+  return function clearRafInterval() {
+    cancelAnimationFrame(rafId);
+  };
+}
+
+setRafInterval(function({time, overdue, frame}){
+  $.log(`time: ${time}, overdue: ${overdue}, frame: ${frame}`);
+
   $.swap($state, _.fmap(_,
     _.pipe(
       system(["disappearing"], disappears),
