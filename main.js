@@ -18,6 +18,11 @@ const vars = {
   stats: w.uids()
 }
 
+const params = new URLSearchParams(location.search);
+const mode = params.get('mode');
+
+dom.attr(document.body, "data-mode", mode);
+
 el.focus();
 
 const explosive = true,
@@ -384,11 +389,6 @@ $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [c
       break;
     }
   }
-});
-
-$.sub($change, on("alive"), function({id, props: {alive}, compared: [curr]}){
-  _.maybe(document.getElementById(id),
-    dom.toggleClass(_, "alive", curr?.alive));
 });
 
 $.sub($change, on(vars.stats, "collected"), function({compared: [curr]}){
