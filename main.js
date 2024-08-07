@@ -142,12 +142,12 @@ function around(positioned, immediate = false){
     }, _));
 }
 
-function system(components, f){
+function system(components, f, frame = null){
   return function(world){
     const inputs = world.inputs();
     return f(inputs, _.map(function(id){
       return [id, _.get(world, id)];
-    }, w.having(world, components)), world);
+    }, w.having(world, components)), world, frame);
   }
 }
 
@@ -308,7 +308,9 @@ function victim(world, positioned){
 function seek(world, id, positioned, seeking, going){
   const vid = victim(world, positioned);
   if (vid) {
-    return _.chain(world, w.patch(_, vid, {alive: false}));
+    return _.chain(world,
+      w.patch(_, id, {alive: false}),
+      w.patch(_, vid, {alive: false}));
   }
   const headings = orient(seeking, going);
   const alt = _.second(headings);
@@ -319,7 +321,7 @@ function seek(world, id, positioned, seeking, going){
     const destBlocked = _.get(world.db.via.positioned, dest);
     if (destBlocked) {
       const turn = _.chain(headings, _.take(3, _), _.last);
-      return _.chain(world, w.patch(_, id, {going: turn}), _.plug(seek, _, id, positioned, seeking, turn));
+      return _.chain(world, w.patch(_, id, {going: turn}));
     } else {
       return _.chain(world, move(id, going, positioned, dest));
     }
@@ -328,8 +330,8 @@ function seek(world, id, positioned, seeking, going){
   }
 }
 
-function seeks(inputs, entities, world){
-  return _.reduce(function(world, [id, {positioned, seeking, going}]){
+function seeks(inputs, entities, world, frame){
+  return _.includes([0, 3, 6], frame) ? world : _.reduce(function(world, [id, {positioned, seeking, going}]){
     return seek(world, id, positioned, seeking, going);
   }, world, entities);
 }
@@ -428,28 +430,6 @@ $.on(document, "keydown", function(e){
   }
 });
 
-function setRafInterval1(callback, throttle) {
-  let lastTime = 0;
-  let rafId;
-
-  function tick(time) {
-    if (!lastTime) {
-      lastTime = time;
-    }
-    if (time - lastTime >= throttle) {
-      callback(time);
-      lastTime = time;
-    }
-    rafId = requestAnimationFrame(tick);
-  }
-
-  rafId = requestAnimationFrame(tick);
-
-  return function clearRafInterval() {
-    cancelAnimationFrame(rafId);
-  };
-}
-
 function setRafInterval(callback, throttle) {
   let startTime = 0;
   let lastTime = 0;
@@ -463,11 +443,11 @@ function setRafInterval(callback, throttle) {
 
     const elapsed = time - startTime;
     const expectedFrames = Math.floor(elapsed / throttle);
-    const overdue = elapsed - (expectedFrames * throttle);
 
     if (elapsed - lastTime >= throttle) {
       frame = expectedFrames % Math.ceil(1000 / throttle);
-      callback({ time, overdue, frame });
+      const delta = (elapsed - lastTime).toFixed(2);
+      callback({ time, delta, frame });
       lastTime = elapsed - (elapsed % throttle);
     }
 
@@ -481,14 +461,14 @@ function setRafInterval(callback, throttle) {
   };
 }
 
-setRafInterval(function({time, overdue, frame}){
-  $.log(`time: ${time}, overdue: ${overdue}, frame: ${frame}`);
+setRafInterval(function({time, delta, frame}){
+  delta > 130 && $.warn(`time: ${time}, delta: ${delta}, frame: ${frame}`);
 
   $.swap($state, _.fmap(_,
     _.pipe(
       system(["disappearing"], disappears),
       system(["controlled"], control),
-      system(["seeking"], seeks),
+      system(["seeking"], seeks, frame),
       system(["falling"], gravity),
       system(["alive"], explodes))));
 }, 100);
