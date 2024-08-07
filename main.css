@@ -125,6 +125,11 @@ body {
   75%, 87.5% { background-position: -192px -96px; }
   87.5%, 100% { background-position: -224px -96px; }
 }
+@keyframes radiate {
+  100% {
+    background-position: -224px -288px;
+  }
+}
 @keyframes run-right {
   100%   {
     background-position: -224px -160px;
@@ -167,6 +172,10 @@ body {
 [data-noun='explosion'] {
   background-position: -64px 0;
   animation: disappearing .3s forwards;
+}
+[data-noun='firefly'] {
+  background-position: 0px -288px;
+  animation: radiate .3s steps(7) infinite;
 }
 @keyframes disappearing {
   0%   {opacity: 1;}

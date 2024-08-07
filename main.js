@@ -21,6 +21,7 @@ const vars = {
 el.focus();
 
 const explosive = true,
+      going = "left",
       alive = true,
       disappearing = 3,
       collectible = true,
@@ -69,7 +70,7 @@ function dirt(positioned){
 
 function enemy(noun, seeking){
   return function(positioned){
-    return _.assoc(_, w.uids(), {noun, seeking, explosive, positioned});
+    return _.assoc(_, w.uids(), {noun, seeking, going, explosive, positioned});
   }
 }
 
@@ -81,9 +82,9 @@ function boulder(positioned){
   return _.assoc(_, w.uids(), {noun, pushable, explosive, rounded, positioned, gravitated});
 }
 
-const spawn = _.get({".": dirt, "X": rockford, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
+const spawn = _.get({".": dirt, "X": rockford, "q": firefly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
 
-const board = await _.fmap(fetch("./boards/l01.txt"),  resp =>resp.text());
+const board = await _.fmap(fetch("./boards/l02.txt"),  resp =>resp.text());
 
 const positions = _.braid(_.array, _.range(40), _.range(23));
 
@@ -232,6 +233,38 @@ function explodes(inputs, entities, world){
   }, world, entities);
 }
 
+const counterclockwise = _.cycle(["left", "down", "right", "up"]);
+const clockwise = _.cycle(["left", "up", "right", "down"]);
+const orient = _.get({clockwise, counterclockwise}, _);
+
+function seek(world, id, positioned, seeking, going){
+  let headings = orient(seeking);
+  do {
+    headings = _.rest(headings);
+  } while (_.first(headings) !== going)
+  const alt = _.second(headings);
+  const alternate = nearby(positioned, alt);
+  const alternateBlocked = _.get(world.db.via.positioned, alternate);
+  if (alternateBlocked) {
+    const dest = nearby(positioned, going);
+    const destBlocked = _.get(world.db.via.positioned, dest);
+    if (destBlocked) {
+      const turn = _.chain(headings, _.take(3, _), _.last);
+      return _.chain(world, w.patch(_, id, {going: turn}), _.plug(seek, _, id, positioned, seeking, turn));
+    } else {
+      return _.chain(world, move(id, going, positioned, dest));
+    }
+  } else {
+    return _.chain(world, w.patch(_, id, {going: alt}), move(id, alt, positioned, alternate));
+  }
+}
+
+function seeks(inputs, entities, world){
+  return _.reduce(function(world, [id, {positioned, seeking, going}]){
+    return seek(world, id, positioned, seeking, going);
+  }, world, entities);
+}
+
 function disappears(inputs, entities, world){
   return _.reduce(function(world, [id, entity]){
     return _.dissoc(world, id);
@@ -275,7 +308,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "positioned", "facing", "moving", "controlled", "gravitated", "falling", "alive", "disappearing"]),
+  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "positioned", "facing", "moving", "controlled", "gravitated", "falling", "alive", "disappearing", "going"]),
   w.via("positioned"),
   _.assoc(_, vars.stats, {total: 0, collected: 0, needed: 10, each: 10, extra: 15}));
 
@@ -393,6 +426,7 @@ setRafInterval(function(time){
     _.pipe(
       system(["disappearing"], disappears),
       system(["controlled"], control),
+      system(["seeking"], seeks),
       system(["falling"], gravity),
       system(["alive"], explodes))));
 }, 100);
