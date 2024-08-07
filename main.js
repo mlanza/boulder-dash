@@ -222,14 +222,23 @@ function explode(at){
   }
 }
 
+function around(positioned, immediate = false){
+  return _.chain([["none"],["up"],["up","left"],["up","right"],["left"],["right"],["down"],["down","left"],["down","right"]],
+    _.filter(function(relative){
+      return !immediate || _.count(relative) == 1;
+    }, _),
+    _.map(function(relative){
+      return _.reduce(nearby, positioned, relative);
+    }, _));
+}
+
 function explodes(inputs, entities, world){
   return _.reduce(function(world, [id, {positioned, alive}]){
     return alive ? world : _.chain(world,
       _.dissoc(_, id),
-      _.reduce(function(world, relative){
-        const at = _.reduce(nearby, positioned, relative);
+      _.reduce(function(world, at){
         return explode(at)(world);
-      }, _, [["none"],["up"],["up","left"],["up","right"],["left"],["right"],["down"],["down","left"],["down","right"]]));
+      }, _, around(positioned)));
   }, world, entities);
 }
 
@@ -245,7 +254,22 @@ function orient2(seeking, going){
 }
 const orient = _.overload(null, orient1, orient2);
 
+function victim(world, positioned){
+  return _.chain(positioned,
+    _.plug(around, _, true),
+    _.map(_.get(world.db.via.positioned, _), _),
+    _.compact,
+    _.detect(function(id){
+      const {controlled, alive} = _.get(world, id, {});
+      return controlled && alive;
+    }, _));
+}
+
 function seek(world, id, positioned, seeking, going){
+  const vid = victim(world, positioned);
+  if (vid) {
+    return _.chain(world, w.patch(_, vid, {alive: false}));
+  }
   const headings = orient(seeking, going);
   const alt = _.second(headings);
   const alternate = nearby(positioned, alt);
