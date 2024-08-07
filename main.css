@@ -14,7 +14,9 @@ body {
   width: 64px;
   height: 16px;
 }
-
+body[data-mode='debug'] .falling {
+  outline: solid 1px red;
+}
 [data-noun] {
   position: absolute;
   height: 32px;
