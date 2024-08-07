@@ -235,13 +235,18 @@ function explodes(inputs, entities, world){
 
 const counterclockwise = _.cycle(["left", "down", "right", "up"]);
 const clockwise = _.cycle(["left", "up", "right", "down"]);
-const orient = _.get({clockwise, counterclockwise}, _);
-
-function seek(world, id, positioned, seeking, going){
-  let headings = orient(seeking);
+const orient1 = _.get({clockwise, counterclockwise}, _);
+function orient2(seeking, going){
+  let headings = orient1(seeking);
   do {
     headings = _.rest(headings);
-  } while (_.first(headings) !== going)
+  } while (_.first(headings) !== going);
+  return headings;
+}
+const orient = _.overload(null, orient1, orient2);
+
+function seek(world, id, positioned, seeking, going){
+  const headings = orient(seeking, going);
   const alt = _.second(headings);
   const alternate = nearby(positioned, alt);
   const alternateBlocked = _.get(world.db.via.positioned, alternate);
