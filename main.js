@@ -340,7 +340,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "impactExplosive", "destructible", "positioned", "facing", "moving", "controlled", "gravitated", "falling", "exploding", "residue", "going"]),
+  w.world(inputs, ["seeking", "controlled", "falling", "exploding", "residue"]),
   w.via("positioned"),
   _.assoc(_, vars.stats, _.merge(level.diamonds, {total: 0, collected: 0})));
 

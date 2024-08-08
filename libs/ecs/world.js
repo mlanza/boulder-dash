@@ -20,7 +20,7 @@ function World(entities, inputs, db, hooks){
   this.hooks = hooks;
 }
 
-export function world(inputs, tags){
+export function world(inputs, indices){
   const touching = _.binary(_.conj);
   return _.chain(new World(
     pm.map([]),
@@ -28,9 +28,9 @@ export function world(inputs, tags){
     {},
     []),
     touched(),
-    _.reduce(function(memo, tag){
-      return component(tag)(memo);
-    }, _, tags));
+    _.reduce(function(memo, prop){
+      return component(prop)(memo);
+    }, _, indices));
 }
 
 function lookup(self, id){
