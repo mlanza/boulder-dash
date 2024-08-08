@@ -29,7 +29,7 @@ export function world(inputs, indices){
     []),
     touched(),
     _.reduce(function(memo, prop){
-      return component(prop)(memo);
+      return has(prop)(memo);
     }, _, indices));
 }
 
@@ -110,7 +110,7 @@ function touched(init = s.set([])){
   });
 }
 
-function component(tag, init =  s.set([])){
+function has(tag, init =  s.set([])){
   const props = _.assoc({}, tag, _.includes(["added", "removed"], _));
   const pattern = {props};
   return install(["components", tag], init, _.plug(r.modified, _, {props: [tag], pattern}), function(id, {triggered}){
