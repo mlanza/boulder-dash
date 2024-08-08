@@ -333,8 +333,8 @@ function seek(world, id, positioned, seeking, going){
   }
 }
 
-function seeks(inputs, entities, world, frame){
-  return _.includes([0, 3, 6], frame) ? world : _.reduce(function(world, [id, {positioned, seeking, going}]){
+function seeks(inputs, entities, world){
+  return _.reduce(function(world, [id, {positioned, seeking, going}]){
     return seek(world, id, positioned, seeking, going);
   }, world, entities);
 }
@@ -438,6 +438,7 @@ function setRafInterval(callback, throttle) {
   let lastTime = 0;
   let rafId;
   let frame = 0;
+  let ticks = 1;
 
   function tick(time) {
     if (!startTime) {
@@ -449,9 +450,10 @@ function setRafInterval(callback, throttle) {
 
     if (elapsed - lastTime >= throttle) {
       frame = expectedFrames % Math.ceil(1000 / throttle);
-      const delta = (elapsed - lastTime).toFixed(2);
-      callback({ time, delta, frame });
+      const delta = Math.round((elapsed - lastTime) * 100) / 100;
+      callback({ time, ticks, delta, frame });
       lastTime = elapsed - (elapsed % throttle);
+      ticks++;
     }
 
     rafId = requestAnimationFrame(tick);
@@ -464,14 +466,18 @@ function setRafInterval(callback, throttle) {
   };
 }
 
-setRafInterval(function({time, delta, frame}){
+function rate(n, ticks){
+  return f => ticks % n === 0 ? f : _.identity;
+}
+
+setRafInterval(function({time, ticks, delta, frame}){
   delta > lagging && $.warn(`time: ${time}, delta: ${delta}, frame: ${frame}`);
 
   $.swap($state, _.fmap(_,
     _.pipe(
       system(["disappearing"], disappears),
       system(["controlled"], control),
-      system(["seeking"], seeks, frame),
+      system(["seeking"], seeks),
       system(["falling"], gravity),
       system(["alive"], explodes))));
 
