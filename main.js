@@ -353,7 +353,7 @@ $.sub($inputs, _.noop); //without subscribers, won't activate
 const blank = _.chain(
   w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "impactExplosive", "destructible", "positioned", "facing", "moving", "controlled", "gravitated", "falling", "exploding", "residue", "going"]),
   w.via("positioned"),
-  _.assoc(_, vars.stats, {total: 0, collected: 0, needed: 10, each: 10, extra: 15}));
+  _.assoc(_, vars.stats, _.merge(level.diamonds, {total: 0, collected: 0})));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(w.changed, $state);
