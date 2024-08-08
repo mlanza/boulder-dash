@@ -8,6 +8,7 @@ import pm from "./libs/ecs_/part-map.js";
 import ps from "./libs/ecs_/part-set.js";
 import r from "./libs/ecs_/reel.js";
 import w from "./libs/ecs_/world.js";
+import levels from "./levels.js";
 import {reg} from "./libs/cmd.js";
 
 const fps = 10;
@@ -23,6 +24,9 @@ const vars = {
 
 const params = new URLSearchParams(location.search);
 const mode = params.get('mode');
+const l = _.maybe(params.get("l"), parseInt) || 1;
+const level = _.get(levels, l - 1);
+const [width, height] = level.size;
 
 dom.attr(document.body, "data-mode", mode);
 
@@ -90,14 +94,13 @@ function boulder(positioned){
 
 const spawn = _.get({".": dirt, "X": rockford, "q": firefly, "B": butterfly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
 
-const board = await _.fmap(fetch("./boards/l02.txt"),  resp =>resp.text());
-
-const positions = _.braid(_.array, _.range(40), _.range(23));
+const positions = _.braid(_.array, _.range(width), _.range(height));
 
 function load(board){
   const parts = _.chain(board,
     _.split(_, "\n"),
     _.map(_.trim, _),
+    _.compact,
     _.filter(_.seq, _),
     _.mapIndexed(function(row, chars){
       return _.mapIndexed(function(col, char){
@@ -423,7 +426,7 @@ $.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
 
 $.sub($changed, $.each($.reset($change, _), _));
 
-$.swap($state, _.fmap(_, _.comp(vacancies, load(board))));
+$.swap($state, _.fmap(_, _.comp(vacancies, load(level.map))));
 
 $.on(document, "keydown", function(e){
   if (_.includes(["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft"], e.key)) {
