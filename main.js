@@ -10,6 +10,9 @@ import r from "./libs/ecs_/reel.js";
 import w from "./libs/ecs_/world.js";
 import {reg} from "./libs/cmd.js";
 
+const fps = 10;
+const throttle = 1000 / fps;
+const lagging = throttle * 1.2;
 const s = ss;
 const div = dom.tag("div"), span = dom.tag("span");
 const el = dom.sel1("#stage");
@@ -65,7 +68,7 @@ function diamond(positioned){
 
 function enemy(noun, seeking){
   return function(positioned){
-    return _.assoc(_, w.uids(), {noun, seeking, going, explosive, positioned});
+    return _.assoc(_, w.uids(), {noun, seeking, going, alive, explosive, positioned});
   }
 }
 
@@ -462,7 +465,7 @@ function setRafInterval(callback, throttle) {
 }
 
 setRafInterval(function({time, delta, frame}){
-  delta > 130 && $.warn(`time: ${time}, delta: ${delta}, frame: ${frame}`);
+  delta > lagging && $.warn(`time: ${time}, delta: ${delta}, frame: ${frame}`);
 
   $.swap($state, _.fmap(_,
     _.pipe(
@@ -471,4 +474,5 @@ setRafInterval(function({time, delta, frame}){
       system(["seeking"], seeks, frame),
       system(["falling"], gravity),
       system(["alive"], explodes))));
-}, 100);
+
+}, throttle);
