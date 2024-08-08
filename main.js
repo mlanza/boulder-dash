@@ -300,7 +300,7 @@ function orient2(how, going){
 }
 const orient = _.overload(null, orient1, orient2);
 
-function victim(world, positioned, enemies){
+function found(world, positioned, enemies){
   return _.chain(positioned,
     _.plug(around, _, true),
     _.map(_.get(world.db.via.positioned, _), _),
@@ -313,27 +313,25 @@ function victim(world, positioned, enemies){
 
 function seek(world, id, positioned, seeking, going){
   const {how, enemies} = seeking;
-  const vid = victim(world, positioned, enemies);
-  if (vid) {
-    return _.chain(world,
-      w.patch(_, id, {exploding}),
-      w.patch(_, vid, {exploding}));
-  }
-  const headings = orient(how, going);
-  const alt = _.second(headings);
-  const alternate = nearby(positioned, alt);
-  const alternateBlocked = _.get(world.db.via.positioned, alternate);
-  if (alternateBlocked) {
-    const dest = nearby(positioned, going);
-    const destBlocked = _.get(world.db.via.positioned, dest);
-    if (destBlocked) {
-      const turn = _.chain(headings, _.take(3, _), _.last);
-      return _.chain(world, w.patch(_, id, {going: turn}));
-    } else {
-      return _.chain(world, move(id, going, positioned, dest));
-    }
+  if (found(world, positioned, enemies)) {
+    return _.chain(world, w.patch(_, id, {exploding}));
   } else {
-    return _.chain(world, w.patch(_, id, {going: alt}), move(id, alt, positioned, alternate));
+    const headings = orient(how, going);
+    const alt = _.second(headings);
+    const alternate = nearby(positioned, alt);
+    const alternateBlocked = _.get(world.db.via.positioned, alternate);
+    if (alternateBlocked) {
+      const dest = nearby(positioned, going);
+      const destBlocked = _.get(world.db.via.positioned, dest);
+      if (destBlocked) {
+        const turn = _.chain(headings, _.take(3, _), _.last);
+        return _.chain(world, w.patch(_, id, {going: turn}));
+      } else {
+        return _.chain(world, move(id, going, positioned, dest));
+      }
+    } else {
+      return _.chain(world, w.patch(_, id, {going: alt}), move(id, alt, positioned, alternate));
+    }
   }
 }
 
