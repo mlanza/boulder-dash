@@ -33,7 +33,8 @@ dom.attr(document.body, "data-mode", mode);
 el.focus();
 
 const destructible = _.constantly(_.identity),
-      alive = true,
+      impactExplosive = true,
+      exploding = true,
       collectible = true,
       diggable = true,
       gravitated = true,
@@ -60,7 +61,7 @@ function rockford(positioned){
     ["ArrowRight", "right"]
   ]);
   const noun = "Rockford";
-  return _.assoc(_, vars.R, {noun, controlled, destructible, positioned, moving, alive});
+  return _.assoc(_, vars.R, {noun, controlled, impactExplosive, destructible, positioned, moving});
 }
 
 function diamond(positioned){
@@ -68,14 +69,15 @@ function diamond(positioned){
   return _.assoc(_, w.uids(), {noun, collectible, destructible, rounded, positioned, gravitated});
 }
 
-function enemy(noun, seeking, {going = "left", destructible = _.constantly(_.identity)} = {}){
+function enemy(noun, how, enemies, {going = "left", destructible = _.constantly(_.identity)} = {}){
+  const seeking = {how, enemies};
   return function(positioned){
-    return _.assoc(_, w.uids(), {noun, seeking, going, alive, destructible, positioned});
+    return _.assoc(_, w.uids(), {noun, seeking, going, impactExplosive, destructible, positioned});
   }
 }
 
-const firefly = enemy("firefly", "clockwise");
-const butterfly = enemy("butterfly", "counterclockwise", {going: "down", destructible: diamond});
+const firefly = enemy("firefly", "clockwise", ["Rockford", "amoeba", "butterfly"]);
+const butterfly = enemy("butterfly", "counterclockwise", ["Rockford", "amoeba", "firefly"], {going: "down", destructible: diamond});
 
 function explosion(positioned, residue){
   const noun = "explosion";
@@ -218,7 +220,7 @@ function fall(id){
     const bottom = _.maybe(belowId, _.get(world, _));
     const halted = bottom && !bottom.falling;
     return _.chain(world,
-      !bottom?.alive ? _.identity : w.patch(_, belowId, {alive: false}),
+      bottom?.impactExplosive ? w.patch(_, belowId, {exploding}) : _.identity,
       bottom || !gravitated ? _.identity : w.patch(_, id, {positioned: below}),
       halted ? _.comp(roll(positioned), w.patch(_, id, {falling: null})) : _.identity);
   }
@@ -277,20 +279,20 @@ function explode(at, destructible){
 }
 
 function explodes(inputs, entities, world){
-  return _.reduce(function(world, [id, {positioned, destructible, alive}]){
-    return alive ? world : _.chain(world,
+  return _.reduce(function(world, [id, {positioned, destructible, exploding}]){
+    return exploding ? _.chain(world,
       _.dissoc(_, id),
       _.reduce(function(world, at){
         return explode(at, destructible)(world);
-      }, _, around(positioned)));
+      }, _, around(positioned))) : world;
   }, world, entities);
 }
 
 const counterclockwise = _.cycle(["left", "down", "right", "up"]);
 const clockwise = _.cycle(["left", "up", "right", "down"]);
 const orient1 = _.get({clockwise, counterclockwise}, _);
-function orient2(seeking, going){
-  let headings = orient1(seeking);
+function orient2(how, going){
+  let headings = orient1(how);
   do {
     headings = _.rest(headings);
   } while (_.first(headings) !== going);
@@ -298,25 +300,26 @@ function orient2(seeking, going){
 }
 const orient = _.overload(null, orient1, orient2);
 
-function victim(world, positioned){
+function victim(world, positioned, enemies){
   return _.chain(positioned,
     _.plug(around, _, true),
     _.map(_.get(world.db.via.positioned, _), _),
     _.compact,
     _.detect(function(id){
-      const {controlled, alive} = _.get(world, id, {});
-      return controlled && alive;
+      const {noun, exploding} = _.get(world, id, {});
+      return !exploding && _.includes(enemies, noun);
     }, _));
 }
 
 function seek(world, id, positioned, seeking, going){
-  const vid = victim(world, positioned);
+  const {how, enemies} = seeking;
+  const vid = victim(world, positioned, enemies);
   if (vid) {
     return _.chain(world,
-      w.patch(_, id, {alive: false}),
-      w.patch(_, vid, {alive: false}));
+      w.patch(_, id, {exploding}),
+      w.patch(_, vid, {exploding}));
   }
-  const headings = orient(seeking, going);
+  const headings = orient(how, going);
   const alt = _.second(headings);
   const alternate = nearby(positioned, alt);
   const alternateBlocked = _.get(world.db.via.positioned, alternate);
@@ -348,7 +351,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "destructible", "positioned", "facing", "moving", "controlled", "gravitated", "falling", "alive", "destructible", "residue", "going"]),
+  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "impactExplosive", "destructible", "positioned", "facing", "moving", "controlled", "gravitated", "falling", "exploding", "residue", "going"]),
   w.via("positioned"),
   _.assoc(_, vars.stats, {total: 0, collected: 0, needed: 10, each: 10, extra: 15}));
 
@@ -480,6 +483,6 @@ setRafInterval(function({time, ticks, delta, frame}){
       system(["controlled"], control),
       system(["seeking"], seeks),
       system(["falling"], gravity),
-      system(["alive"], explodes))));
+      system(["exploding"], explodes))));
 
 }, throttle);
