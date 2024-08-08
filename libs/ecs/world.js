@@ -171,3 +171,12 @@ function changed1(reel){
 }
 
 export const changed = _.overload(null, changed1, changed2);
+
+export function system(components, f){
+  return function(world){
+    const inputs = world.inputs();
+    return f(inputs, _.map(function(id){
+      return [id, _.get(world, id)];
+    }, having(world, components)), world);
+  }
+}
