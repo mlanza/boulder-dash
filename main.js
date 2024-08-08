@@ -28,10 +28,8 @@ dom.attr(document.body, "data-mode", mode);
 
 el.focus();
 
-const explosive = true,
-      going = "left",
+const destructible = _.constantly(_.identity),
       alive = true,
-      disappearing = 3,
       collectible = true,
       diggable = true,
       gravitated = true,
@@ -47,7 +45,7 @@ function steelWall(positioned){
 
 function wall(positioned){
   const noun = "wall";
-  return _.assoc(_, w.uids(), {noun, explosive, positioned, rounded});
+  return _.assoc(_, w.uids(), {noun, destructible, positioned, rounded});
 }
 
 function rockford(positioned){
@@ -58,36 +56,36 @@ function rockford(positioned){
     ["ArrowRight", "right"]
   ]);
   const noun = "Rockford";
-  return _.assoc(_, vars.R, {noun, controlled, explosive, positioned, moving, alive});
+  return _.assoc(_, vars.R, {noun, controlled, destructible, positioned, moving, alive});
 }
 
 function diamond(positioned){
   const noun = "diamond";
-  return _.assoc(_, w.uids(), {noun, collectible, explosive, rounded, positioned, gravitated});
+  return _.assoc(_, w.uids(), {noun, collectible, destructible, rounded, positioned, gravitated});
 }
 
-function enemy(noun, seeking){
+function enemy(noun, seeking, {going = "left", destructible = _.constantly(_.identity)} = {}){
   return function(positioned){
-    return _.assoc(_, w.uids(), {noun, seeking, going, alive, explosive, positioned});
+    return _.assoc(_, w.uids(), {noun, seeking, going, alive, destructible, positioned});
   }
 }
 
 const firefly = enemy("firefly", "clockwise");
-const butterfly = enemy("butterfly", "counterclockwise");
+const butterfly = enemy("butterfly", "counterclockwise", {going: "down", destructible: diamond});
 
-function explosion(positioned){
+function explosion(positioned, residue){
   const noun = "explosion";
-  return _.assoc(_, w.uids(), {noun, positioned, disappearing});
+  return _.assoc(_, w.uids(), {noun, positioned, residue});
 }
 
 function dirt(positioned){
   const noun = "dirt";
-  return _.assoc(_, w.uids(), {noun, diggable, explosive, positioned});
+  return _.assoc(_, w.uids(), {noun, diggable, destructible, positioned});
 }
 
 function boulder(positioned){
   const noun = "boulder";
-  return _.assoc(_, w.uids(), {noun, pushable, explosive, rounded, positioned, gravitated});
+  return _.assoc(_, w.uids(), {noun, pushable, rounded, positioned, gravitated});
 }
 
 const spawn = _.get({".": dirt, "X": rockford, "q": firefly, "B": butterfly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
@@ -154,9 +152,9 @@ function system(components, f, frame = null){
   }
 }
 
-function disappears(inputs, entities, world){
-  return _.reduce(function(world, [id, entity]){
-    return _.dissoc(world, id);
+function settles(inputs, entities, world){
+  return _.reduce(function(world, [id, {residue, positioned}]){
+    return _.chain(world, _.dissoc(_, id), residue(positioned));
   }, world, entities)
 }
 
@@ -240,15 +238,6 @@ function roll(positioned){
   }
 }
 
-function explode(at){
-  return function(world){
-    const id = _.get(world.db.via.positioned, at);
-    const {explosive} = _.maybe(id, _.get(world, _)) || {explosive: true};
-    return _.chain(world,
-      explosive ? _.comp(_.dissoc(_, id), explosion(at)) : _.identity);
-  }
-}
-
 function gravity(inputs, entities, world){
   const vacated = _.sort(_.desc(_.get(_, 1)), world.db.vacated);
   return _.chain(world,
@@ -275,12 +264,21 @@ function gravity(inputs, entities, world){
     });
 }
 
+function explode(at, destructible){
+  return function(world){
+    const id = _.get(world.db.via.positioned, at);
+    const exploded = _.maybe(id, _.get(world, _));
+    return _.chain(world,
+      exploded ? _.comp(_.dissoc(_, id), explosion(at, destructible)) : _.identity);
+  }
+}
+
 function explodes(inputs, entities, world){
-  return _.reduce(function(world, [id, {positioned, alive}]){
+  return _.reduce(function(world, [id, {positioned, destructible, alive}]){
     return alive ? world : _.chain(world,
       _.dissoc(_, id),
       _.reduce(function(world, at){
-        return explode(at)(world);
+        return explode(at, destructible)(world);
       }, _, around(positioned)));
   }, world, entities);
 }
@@ -347,7 +345,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "explosive", "positioned", "facing", "moving", "controlled", "gravitated", "falling", "alive", "disappearing", "going"]),
+  w.world(inputs, ["noun", "pushable", "diggable", "rounded", "lethal", "seeking", "collectible", "destructible", "positioned", "facing", "moving", "controlled", "gravitated", "falling", "alive", "destructible", "residue", "going"]),
   w.via("positioned"),
   _.assoc(_, vars.stats, {total: 0, collected: 0, needed: 10, each: 10, extra: 15}));
 
@@ -475,7 +473,7 @@ setRafInterval(function({time, ticks, delta, frame}){
 
   $.swap($state, _.fmap(_,
     _.pipe(
-      system(["disappearing"], disappears),
+      system(["residue"], settles),
       system(["controlled"], control),
       system(["seeking"], seeks),
       system(["falling"], gravity),
