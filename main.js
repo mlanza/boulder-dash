@@ -148,15 +148,6 @@ function around(positioned, immediate = false){
     }, _));
 }
 
-function system(components, f, frame = null){
-  return function(world){
-    const inputs = world.inputs();
-    return f(inputs, _.map(function(id){
-      return [id, _.get(world, id)];
-    }, w.having(world, components)), world, frame);
-  }
-}
-
 function settles(inputs, entities, world){
   return _.reduce(function(world, [id, {residue, positioned}]){
     return _.chain(world, _.dissoc(_, id), residue(positioned));
@@ -468,19 +459,15 @@ function setRafInterval(callback, throttle) {
   };
 }
 
-function rate(n, ticks){
-  return f => ticks % n === 0 ? f : _.identity;
-}
-
 setRafInterval(function({time, ticks, delta, frame}){
   delta > lagging && $.warn(`time: ${time}, delta: ${delta}, frame: ${frame}`);
 
   $.swap($state, _.fmap(_,
     _.pipe(
-      system(["residue"], settles),
-      system(["controlled"], control),
-      system(["seeking"], seeks),
-      system(["falling"], gravity),
-      system(["exploding"], explodes))));
+      w.system(["residue"], settles),
+      w.system(["controlled"], control),
+      w.system(["seeking"], seeks),
+      w.system(["falling"], gravity),
+      w.system(["exploding"], explodes))));
 
 }, throttle);
