@@ -65,7 +65,7 @@ export function clear(path){
   }
 }
 
-export function sets(path, value){
+function sets(path, value){
   return function(self){
     return new World(self.entities,
       self.inputs,
@@ -74,11 +74,16 @@ export function sets(path, value){
   }
 }
 
-function capture(self){
-  return _.chain(self,
-    sets(["components", "last-touched"], self.db.components.touched),
-    clear(["components", "touched"]));
+function track(key){
+  return function(self){
+    const was = _.getIn(self.db, ["components", key]);
+    return _.chain(self,
+      sets(["components", `last-${key}`], was),
+      clear(["components", key]));
+  }
 }
+
+const capture = track("touched");
 
 function keys(self){
   return _.keys(self.entities);
