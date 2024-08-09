@@ -3,7 +3,7 @@ export default [{
   title: "Intro",
   author: "Peter Liepa",
   time: 150,
-  size: [40, 23],
+  size: [40, 22],
   diamonds: {needed: 12, worth: 10, extras: 15},
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -34,7 +34,7 @@ export default [{
   title: "Rooms",
   author: "Peter Liepa",
   time: 150,
-  size: [40, 23],
+  size: [40, 22],
   diamonds: {needed: 10, worth: 20, extras: 50},
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
