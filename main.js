@@ -32,8 +32,8 @@ dom.attr(document.body, "data-mode", mode);
 
 el.focus();
 
-const destructible = _.constantly(_.identity),
-      impactExplosive = true,
+const indestructible = true,
+      explosive = _.constantly(_.identity),
       exploding = true,
       collectible = true,
       diggable = true,
@@ -45,12 +45,12 @@ const destructible = _.constantly(_.identity),
 
 function steelWall(positioned){
   const noun = "steel-wall";
-  return _.assoc(_, w.uids(), {noun, positioned});
+  return _.assoc(_, w.uids(), {noun, positioned, indestructible});
 }
 
 function wall(positioned){
   const noun = "wall";
-  return _.assoc(_, w.uids(), {noun, destructible, positioned, rounded});
+  return _.assoc(_, w.uids(), {noun, positioned, rounded});
 }
 
 function rockford(positioned){
@@ -61,23 +61,23 @@ function rockford(positioned){
     ["ArrowRight", "right"]
   ]);
   const noun = "Rockford";
-  return _.assoc(_, vars.R, {noun, controlled, impactExplosive, destructible, positioned, moving});
+  return _.assoc(_, vars.R, {noun, controlled, explosive, positioned, moving});
 }
 
 function diamond(positioned){
   const noun = "diamond";
-  return _.assoc(_, w.uids(), {noun, collectible, destructible, rounded, positioned, gravitated});
+  return _.assoc(_, w.uids(), {noun, collectible, rounded, positioned, gravitated});
 }
 
-function enemy(noun, how, enemies, {going = "left", destructible = _.constantly(_.identity)} = {}){
+function enemy(noun, how, enemies, {going = "left", explosive = _.constantly(_.identity)} = {}){
   const seeking = {how, enemies};
   return function(positioned){
-    return _.assoc(_, w.uids(), {noun, seeking, going, impactExplosive, destructible, positioned});
+    return _.assoc(_, w.uids(), {noun, seeking, going, explosive, positioned});
   }
 }
 
 const firefly = enemy("firefly", "clockwise", ["Rockford", "amoeba", "butterfly"]);
-const butterfly = enemy("butterfly", "counterclockwise", ["Rockford", "amoeba", "firefly"], {going: "down", destructible: diamond});
+const butterfly = enemy("butterfly", "counterclockwise", ["Rockford", "amoeba", "firefly"], {going: "down", explosive: diamond});
 
 function explosion(positioned, residue){
   const noun = "explosion";
@@ -86,7 +86,7 @@ function explosion(positioned, residue){
 
 function dirt(positioned){
   const noun = "dirt";
-  return _.assoc(_, w.uids(), {noun, diggable, destructible, positioned});
+  return _.assoc(_, w.uids(), {noun, diggable, positioned});
 }
 
 function boulder(positioned){
@@ -211,7 +211,7 @@ function fall(id){
     const bottom = _.maybe(belowId, _.get(world, _));
     const halted = bottom && !bottom.falling;
     return _.chain(world,
-      bottom?.impactExplosive ? w.patch(_, belowId, {exploding}) : _.identity,
+      bottom?.explosive ? w.patch(_, belowId, {exploding}) : _.identity,
       bottom || !gravitated ? _.identity : w.patch(_, id, {positioned: below}),
       halted ? w.patch(_, id, {falling: null}) : _.identity);
   }
@@ -260,21 +260,21 @@ function gravity(inputs, entities, world){
     });
 }
 
-function explode(at, destructible){
+function explode(at, explosive){
   return function(world){
     const id = _.get(world.db.via.positioned, at);
-    const exploded = _.maybe(id, _.get(world, _));
+    const {indestructible} = _.maybe(id, _.get(world, _)) || {};
     return _.chain(world,
-      exploded ? _.comp(_.dissoc(_, id), explosion(at, destructible)) : _.identity);
+      indestructible ? _.identity : _.comp(_.dissoc(_, id), explosion(at, explosive)));
   }
 }
 
 function explodes(inputs, entities, world){
-  return _.reduce(function(world, [id, {positioned, destructible, exploding}]){
+  return _.reduce(function(world, [id, {positioned, explosive, exploding}]){
     return exploding ? _.chain(world,
       _.dissoc(_, id),
       _.reduce(function(world, at){
-        return explode(at, destructible)(world);
+        return explode(at, explosive)(world);
       }, _, around(positioned))) : world;
   }, world, entities);
 }
