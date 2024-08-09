@@ -213,7 +213,7 @@ function fall(id){
     return _.chain(world,
       bottom?.impactExplosive ? w.patch(_, belowId, {exploding}) : _.identity,
       bottom || !gravitated ? _.identity : w.patch(_, id, {positioned: below}),
-      halted ? _.comp(roll(positioned), w.patch(_, id, {falling: null})) : _.identity);
+      halted ? w.patch(_, id, {falling: null}) : _.identity);
   }
 }
 
@@ -237,7 +237,7 @@ function roll(positioned){
 function gravity(inputs, entities, world){
   const vacated = _.sort(_.desc(_.get(_, 1)), world.db.vacated);
   return _.chain(world,
-    w.clear(_, ["vacated"]),
+    w.clear(["vacated"]),
     _.reduce(function(world, positioned){
       return _.chain(world,
         roll(_.chain(positioned, nearby(_, "left"))),
@@ -333,8 +333,9 @@ function seeks(inputs, entities, world){
 }
 
 function rolls(inputs, entities, world){
-  debugger
-  return world;
+  return _.reduce(function(world, [id, {positioned}]){
+    return roll(positioned)(world);
+  }, world, entities);
 }
 
 const $keys = dom.depressed(document.body);
@@ -435,7 +436,6 @@ function setRafInterval(callback, throttle) {
   let startTime = 0;
   let lastTime = 0;
   let rafId;
-  let frame = 0;
   let ticks = 1;
 
   function tick(time) {
@@ -447,9 +447,8 @@ function setRafInterval(callback, throttle) {
     const expectedFrames = Math.floor(elapsed / throttle);
 
     if (elapsed - lastTime >= throttle) {
-      frame = expectedFrames % Math.ceil(1000 / throttle);
       const delta = Math.round((elapsed - lastTime) * 100) / 100;
-      callback({ time, ticks, delta, frame });
+      callback({ time, ticks, delta });
       lastTime = elapsed - (elapsed % throttle);
       ticks++;
     }
@@ -464,15 +463,15 @@ function setRafInterval(callback, throttle) {
   };
 }
 
-setRafInterval(function({time, ticks, delta, frame}){
-  delta > lagging && $.warn(`time: ${time}, delta: ${delta}, frame: ${frame}`);
+setRafInterval(function({time, ticks, delta}){
+  delta > lagging && $.warn(`time: ${time}, delta: ${delta}, ticks: ${ticks}`);
 
   $.swap($state, _.fmap(_,
     _.pipe(
       w.system(["residue"], settles),
       w.system(["controlled"], control),
       w.system(["seeking"], seeks),
-      //w.system(["touched", "gravitated"], rolls),
+      w.system(["last-touched", "gravitated"], rolls),
       w.system(["falling"], gravity),
       w.system(["exploding"], explodes))));
 

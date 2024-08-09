@@ -27,7 +27,10 @@ export function world(inputs, indices){
     inputs,
     {},
     []),
-    touched(),
+    install(["components", "touched"], s.set([]), r.modified, function(id){
+      return _.conj(_, id);
+    }),
+    install(["components", "last-touched"], s.set([])),
     _.reduce(function(memo, prop){
       return has(prop)(memo);
     }, _, indices));
@@ -52,16 +55,29 @@ function contains(self, id){
   return _.contains(self.entities, id);
 }
 
-export function clear(self, path){
-  const curr = _.getIn(self.db, path);
-  return _.seq(curr) ? new World(self.entities,
-    self.inputs,
-    _.updateIn(self.db, path, _.empty),
-    self.hooks) : self;
+export function clear(path){
+  return function(self){
+    const curr = _.getIn(self.db, path);
+    return _.seq(curr) ? new World(self.entities,
+      self.inputs,
+      _.updateIn(self.db, path, _.empty),
+      self.hooks) : self;
+  }
+}
+
+export function sets(path, value){
+  return function(self){
+    return new World(self.entities,
+      self.inputs,
+      _.assocIn(self.db, path, value),
+      self.hooks);
+  }
 }
 
 function capture(self){
-  return clear(self, ["components", "touched"]);
+  return _.chain(self,
+    sets(["components", "last-touched"], self.db.components.touched),
+    clear(["components", "touched"]));
 }
 
 function keys(self){
@@ -80,7 +96,7 @@ $.doto(World,
   _.implement(c.ICapture, {capture})); //TODO implement frame
 
 //concrete fns
-export function install(path, init, trigger, update){
+export function install(path, init, trigger = _.constantly(_.constantly(null)), update = _.noop){
   return function(self){
     return new World(
       self.entities,
@@ -102,12 +118,6 @@ function hooks(id, prior){
       }, self.db, self.hooks),
       self.hooks);
   }
-}
-
-function touched(init = s.set([])){
-  return install(["components", "touched"], init, r.modified, function(id){
-    return _.conj(_, id);
-  });
 }
 
 function has(tag, init =  s.set([])){
