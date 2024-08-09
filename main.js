@@ -184,8 +184,8 @@ function dig(id){
 }
 
 function control(inputs, entities, world){
-  const keys = _.chain(inputs.keys, _.omit(_, "ShiftKey"), _.omit(_, "CtrlKey"), _.seq);
-  const stationary = _.chain(inputs.keys, _.includes(_, "ShiftKey"));
+  const keys = _.chain(inputs.keys, _.omit(_, "Shift"), _.omit(_, "Ctrl"), _.seq);
+  const stationary = _.chain(inputs.keys, _.includes(_, "Shift"));
   return _.reduce(function(memo, [id, {positioned, controlled}]){
     const direction = _.some(_.get(controlled, _), keys);
     if (direction){
