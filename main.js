@@ -263,9 +263,23 @@ function gravity(inputs, entities, world){
 function explode(at, explosive, origin = false){
   return function(world){
     const id = _.get(world.db.via.positioned, at);
-    const {indestructible, explosive} = _.maybe(id, _.get(world, _)) || {};
-    return _.chain(world,
-      indestructible ? _.identity : explosive && !origin ? w.patch(_, id, {exploding}) : _.comp(_.dissoc(_, id), explosion(at, explosive)));
+    const subject = _.maybe(id, _.get(world, _));
+    if (subject){
+      const {indestructible, explosive} = subject;
+      if (indestructible) {
+        return world;
+      } else if (explosive) {
+        if (origin) {
+          return _.chain(world, _.comp(_.dissoc(_, id), explosion(at, explosive)));
+        } else {
+          return _.chain(world, w.patch(_, id, {exploding}));
+        }
+      } else {
+        return _.chain(world, _.dissoc(_, id));
+      }
+    } else {
+      return world;
+    }
   }
 }
 
