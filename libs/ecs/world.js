@@ -61,7 +61,7 @@ export function clear(self, path){
 }
 
 function capture(self){
-  return clear(self, ["touched"]);
+  return clear(self, ["components", "touched"]);
 }
 
 function keys(self){
@@ -105,7 +105,7 @@ function hooks(id, prior){
 }
 
 function touched(init = s.set([])){
-  return install(["touched"], init, r.modified, function(id){
+  return install(["components", "touched"], init, r.modified, function(id){
     return _.conj(_, id);
   });
 }
@@ -167,7 +167,7 @@ function changed2(reel, id, options = {}){
 }
 
 function changed1(reel){
-  return _.chain(reel, r.frame, world => world.db.touched, _.mapa(_.partial(changed2, reel), _));
+  return _.chain(reel, r.frame, world => world.db.components.touched, _.mapa(_.partial(changed2, reel), _));
 }
 
 export const changed = _.overload(null, changed1, changed2);

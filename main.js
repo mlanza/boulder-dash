@@ -332,6 +332,11 @@ function seeks(inputs, entities, world){
   }, world, entities);
 }
 
+function rolls(inputs, entities, world){
+  debugger
+  return world;
+}
+
 const $keys = dom.depressed(document.body);
 const $inputs = $.map(function(keys){
   return {keys};
@@ -340,7 +345,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["seeking", "controlled", "falling", "exploding", "residue"]),
+  w.world(inputs, ["gravitated", "seeking", "controlled", "falling", "exploding", "residue"]),
   w.via("positioned"),
   _.assoc(_, vars.stats, _.merge(level.diamonds, {total: 0, collected: 0})));
 
@@ -467,6 +472,7 @@ setRafInterval(function({time, ticks, delta, frame}){
       w.system(["residue"], settles),
       w.system(["controlled"], control),
       w.system(["seeking"], seeks),
+      //w.system(["touched", "gravitated"], rolls),
       w.system(["falling"], gravity),
       w.system(["exploding"], explodes))));
 
