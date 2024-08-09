@@ -260,12 +260,12 @@ function gravity(inputs, entities, world){
     });
 }
 
-function explode(at, explosive){
+function explode(at, explosive, origin = false){
   return function(world){
     const id = _.get(world.db.via.positioned, at);
-    const {indestructible} = _.maybe(id, _.get(world, _)) || {};
+    const {indestructible, explosive} = _.maybe(id, _.get(world, _)) || {};
     return _.chain(world,
-      indestructible ? _.identity : _.comp(_.dissoc(_, id), explosion(at, explosive)));
+      indestructible ? _.identity : explosive && !origin ? w.patch(_, id, {exploding}) : _.comp(_.dissoc(_, id), explosion(at, explosive)));
   }
 }
 
@@ -273,9 +273,10 @@ function explodes(inputs, entities, world){
   return _.reduce(function(world, [id, {positioned, explosive, exploding}]){
     return exploding ? _.chain(world,
       _.dissoc(_, id),
+      explode(positioned, explosive, true),
       _.reduce(function(world, at){
         return explode(at, explosive)(world);
-      }, _, around(positioned))) : world;
+      }, _, _.rest(around(positioned)))) : world;
   }, world, entities);
 }
 
