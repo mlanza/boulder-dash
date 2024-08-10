@@ -70,7 +70,17 @@ body.smooth [data-noun] {
   background-position: -64px 0;
   animation: disappearing .3s forwards;
 }
-[data-noun='wall'] {
+[data-enchantment='on'] [data-noun='magic-wall'] {
+  background-position: -128px -192px;
+  animation: shimmy .3s steps(3) infinite;
+}
+@keyframes shimmy {
+  100% {
+    background-position: -224px -192px;
+  }
+}
+[data-noun='wall'],
+[data-noun='magic-wall'] {
   background-position: -96px -192px;
 }
 [data-noun='steel-wall'] {

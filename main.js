@@ -21,7 +21,8 @@ const div = dom.tag("div"), span = dom.tag("span");
 const el = dom.sel1("#stage");
 const vars = {
   R: uid(),
-  stats: uid()
+  stats: uid(),
+  E: uid()
 }
 
 function die(n){
@@ -46,6 +47,7 @@ dom.toggleClass(document.body, "debug", debug);
 el.focus();
 
 const indestructible = true,
+      enchanted = true,
       explosive = _.constantly(_.identity),
       exploding = true,
       collectible = true,
@@ -55,6 +57,21 @@ const indestructible = true,
       rounded = true,
       pushable = true,
       moving = true;
+
+function enchantment(){
+  const transitioning = [null, {status: "on", transitioning: [30 * fps, {status: "expired", transitioning: null}]}];
+  return _.assoc(_, vars.E, {status: "dormant", transitioning});
+}
+
+function activate(enchantment){
+  const {transitioning} = enchantment;
+  if (transitioning) {
+    const [tick, patch] = transitioning;
+    return tick == null ? _.merge(enchantment, patch) : enchantment;
+  } else {
+    return enchantment;
+  }
+}
 
 function entrance(positioned){
   const noun = "entrance";
@@ -81,6 +98,11 @@ function amoeba(positioned){
 function wall(positioned){
   const noun = "wall";
   return _.assoc(_, uid(), {noun, positioned, rounded});
+}
+
+function magicWall(positioned){
+  const noun = "magic-wall";
+  return _.assoc(_, uid(), {noun, positioned, enchanted});
 }
 
 function rockford(positioned){
@@ -125,7 +147,7 @@ function boulder(positioned){
   return _.assoc(_, uid(), {noun, pushable, rounded, positioned, gravitated});
 }
 
-const spawn = _.get({".": dirt, "X": debug ? rockford : entrance, "q": firefly, "B": butterfly, "a": amoeba, "r": boulder, "w": wall, "m": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
+const spawn = _.get({".": dirt, "X": debug ? rockford : entrance, "q": firefly, "B": butterfly, "a": amoeba, "r": boulder, "w": wall, "m": magicWall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
 
 const positions = _.braid(_.array, _.range(width), _.range(height));
 
@@ -183,6 +205,14 @@ function settles(inputs, entities, world){
   return _.reduce(function(world, [id, {residue, positioned}]){
     return _.chain(world, _.dissoc(_, id), residue(positioned));
   }, world, entities)
+}
+
+function transitions(inputs, entities, world){
+  return _.reduce(function(world, [id, {transitioning: [tick, patch]}]){
+    return tick == null ? world : tick > 0 ?
+      _.chain(world, w.patch(_, id, {transitioning: [tick - 1, patch]})) :
+      _.chain(world, w.patch(_, id, patch));
+  }, world, entities);
 }
 
 function becomes(inputs, entities, world){
@@ -260,6 +290,7 @@ function fall(id){
     const bottom = _.maybe(belowId, _.get(world, _));
     const halted = bottom && !bottom.falling;
     return _.chain(world,
+      bottom?.enchanted ? _.update(_, vars.E, activate) : _.identity,
       bottom?.explosive ? w.patch(_, belowId, {exploding}) : _.identity,
       bottom || !gravitated ? _.identity : w.patch(_, id, {positioned: below}),
       halted ? w.patch(_, id, {falling: null}) : _.identity);
@@ -427,8 +458,9 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["gravitated", "seeking", "controlled", "falling", "exploding", "becoming", "residue"]),
+  w.world(inputs, ["gravitated", "seeking", "controlled", "falling", "exploding", "becoming", "transitioning", "residue"]),
   w.via("positioned"),
+  enchantment(),
   _.assoc(_, vars.stats, _.merge(level.diamonds, {total: 0, collected: 0})));
 
 const $state = $.atom(r.reel(blank));
@@ -496,6 +528,10 @@ $.sub($change, on("falling"), function({id, props: {falling}}){
       dom.removeClass(_, "falling"));
 });
 
+$.sub($change, on(vars.E, "status"), function({id, props: {status}, compared: [curr]}){
+  dom.attr(el, "data-enchantment", curr.status);
+});
+
 $.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
   _.maybe(document.getElementById(id),
     $.doto(_,
@@ -549,6 +585,7 @@ setRafInterval(function({time, ticks, delta}){
 
   $.swap($state, _.fmap(_,
     _.pipe(
+      w.system(["transitioning"], transitions),
       w.system(["becoming"], becomes),
       w.system(["residue"], settles),
       w.system(["controlled"], abort),
