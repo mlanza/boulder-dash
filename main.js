@@ -90,10 +90,7 @@ function enemy(noun, how, enemies, {going = "left", explosive = _.constantly(_.i
 const firefly = enemy("firefly", "clockwise", ["Rockford", "amoeba", "butterfly"]);
 const butterfly = enemy("butterfly", "counterclockwise", ["Rockford", "amoeba", "firefly"], {going: "down", explosive: diamond});
 
-function explosion(positioned, residue){
-  if (!residue){
-    throw new Error("Explosions must have residue");
-  }
+function explosion(positioned, residue = explosive){
   const noun = "explosion";
   return _.assoc(_, uid(), {noun, positioned, residue});
 }
@@ -289,10 +286,10 @@ function explode(at, explosive, origin = false){
           return _.chain(world, w.patch(_, id, {exploding}));
         }
       } else {
-        return _.chain(world, _.dissoc(_, id));
+        return _.chain(world, _.comp(_.dissoc(_, id), explosion(at)));
       }
     } else {
-      return world;
+      return _.chain(world, explosion(at));
     }
   }
 }
