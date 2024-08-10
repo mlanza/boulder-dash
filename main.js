@@ -14,13 +14,23 @@ import {reg} from "./libs/cmd.js";
 const fps = 10;
 const throttle = 1000 / fps;
 const lagging = throttle * 1.2;
+const alt = _.chance(8675309);
+const uid = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 const s = ss;
 const div = dom.tag("div"), span = dom.tag("span");
 const el = dom.sel1("#stage");
 const vars = {
-  R: w.uids(),
-  stats: w.uids()
+  R: uid(),
+  stats: uid()
 }
+
+function die(n){
+  return function(){
+    return _.randInt(alt.random, n) === 0;
+  }
+}
+
+const d8 = die(8);
 
 const params = new URLSearchParams(location.search);
 const mode = params.get('mode');
@@ -45,12 +55,12 @@ const indestructible = true,
 
 function steelWall(positioned){
   const noun = "steel-wall";
-  return _.assoc(_, w.uids(), {noun, positioned, indestructible});
+  return _.assoc(_, uid(), {noun, positioned, indestructible});
 }
 
 function wall(positioned){
   const noun = "wall";
-  return _.assoc(_, w.uids(), {noun, positioned, rounded});
+  return _.assoc(_, uid(), {noun, positioned, rounded});
 }
 
 function rockford(positioned){
@@ -66,13 +76,13 @@ function rockford(positioned){
 
 function diamond(positioned){
   const noun = "diamond";
-  return _.assoc(_, w.uids(), {noun, collectible, rounded, positioned, gravitated});
+  return _.assoc(_, uid(), {noun, collectible, rounded, positioned, gravitated});
 }
 
 function enemy(noun, how, enemies, {going = "left", explosive = _.constantly(_.identity)} = {}){
   const seeking = {how, enemies};
   return function(positioned){
-    return _.assoc(_, w.uids(), {noun, seeking, going, explosive, positioned});
+    return _.assoc(_, uid(), {noun, seeking, going, explosive, positioned});
   }
 }
 
@@ -80,18 +90,21 @@ const firefly = enemy("firefly", "clockwise", ["Rockford", "amoeba", "butterfly"
 const butterfly = enemy("butterfly", "counterclockwise", ["Rockford", "amoeba", "firefly"], {going: "down", explosive: diamond});
 
 function explosion(positioned, residue){
+  if (!residue){
+    throw new Error("Explosions must have residue");
+  }
   const noun = "explosion";
-  return _.assoc(_, w.uids(), {noun, positioned, residue});
+  return _.assoc(_, uid(), {noun, positioned, residue});
 }
 
 function dirt(positioned){
   const noun = "dirt";
-  return _.assoc(_, w.uids(), {noun, diggable, positioned});
+  return _.assoc(_, uid(), {noun, diggable, positioned});
 }
 
 function boulder(positioned){
   const noun = "boulder";
-  return _.assoc(_, w.uids(), {noun, pushable, rounded, positioned, gravitated});
+  return _.assoc(_, uid(), {noun, pushable, rounded, positioned, gravitated});
 }
 
 const spawn = _.get({".": dirt, "X": rockford, "q": firefly, "B": butterfly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
@@ -165,14 +178,12 @@ function move(id, direction, from, to){
     const there = _.get(world.db.via.positioned, to);
     const collision = !!there; //TODO handle collision
     return _.chain(world,
-      _.update(_, id, w.patch({moving: !collision})),
-      _.includes(["left", "right"], direction) ? _.update(_, id, w.patch({facing: direction})) : _.identity,
       collision ? _.identity : _.update(_, id, w.patch({positioned: to})));
   };
 }
 
 function push(id, direction, from, to){
-  return _.includes(["left", "right"], direction) ? function(world){
+  return _.includes(["left", "right"], direction) && d8() ? function(world){
     const {gravitated} = _.get(world, id);
     const occupied = _.get(world.db.via.positioned, to);
     return occupied ? world : _.update(world, id, w.patch(Object.assign({positioned: to}, gravitated ? {falling: true} : {})));
@@ -193,6 +204,7 @@ function control(inputs, entities, world){
       const beyondId = _.get(world.db.via.positioned, beyond);
       const {diggable, pushable, falling, collectible} = _.get(world, beyondId) || {};
       return _.chain(memo,
+        _.includes(["left", "right"], direction) ? _.update(_, id, w.patch({facing: direction, moving: true})) : _.identity,
         collectible ? collect(beyondId) : _.identity,
         diggable ? dig(beyondId) : pushable && !falling ? push(beyondId, direction, beyond, nearby(beyond, direction)) : _.identity,
         stationary ? _.identity : move(id, direction, positioned, beyond));

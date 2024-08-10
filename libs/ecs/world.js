@@ -10,8 +10,6 @@ import * as ps from "./part-set.js";
 export {capture, frame} from "./icapture.js";
 
 const s = ss;
-const alt = _.chance(8675309);
-export const uids = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 
 function World(entities, inputs, db, hooks){
   this.entities = entities;
