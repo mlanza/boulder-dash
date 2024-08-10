@@ -117,9 +117,9 @@ function rockford(positioned){
   return _.assoc(_, vars.R, {noun, facing, controlled, explosive, positioned});
 }
 
-function diamond(positioned){
+function diamond(positioned, id = uid()){
   const noun = "diamond";
-  return _.assoc(_, uid(), {noun, collectible, rounded, positioned, falling, gravitated});
+  return _.assoc(_, id, {noun, collectible, rounded, positioned, falling, gravitated});
 }
 
 function enemy(noun, how, enemies, {going = "left", explosive = _.constantly(_.identity)} = {}){
@@ -142,9 +142,9 @@ function dirt(positioned){
   return _.assoc(_, uid(), {noun, diggable, positioned});
 }
 
-function boulder(positioned){
+function boulder(positioned, id = uid()){
   const noun = "boulder";
-  return _.assoc(_, uid(), {noun, pushable, rounded, positioned, gravitated});
+  return _.assoc(_, id, {noun, pushable, rounded, positioned, gravitated});
 }
 
 const spawn = _.get({".": dirt, "X": debug ? rockford : entrance, "q": firefly, "B": butterfly, "a": amoeba, "r": boulder, "w": wall, "m": magicWall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
@@ -244,7 +244,9 @@ function push(id, direction, from, to){
   return _.includes(["left", "right"], direction) && budge() ? function(world){
     const {gravitated} = _.get(world, id);
     const occupied = _.get(world.db.via.positioned, to);
-    return occupied ? world : w.patch(world, id, Object.assign({positioned: to}, gravitated ? {falling: true} : {}));
+    const beneath = _.get(world, nearby(to, "down"));
+    const supported = beneath && !beneath.falling;
+    return occupied ? world : w.patch(world, id, Object.assign({positioned: to}, gravitated && supported ? {falling: true} : {}));
   } : _.identity;
 }
 
@@ -281,16 +283,33 @@ function control(inputs, entities, world){
   }, world, entities);
 }
 
+function transmute(id, from, to){
+  return function(world){
+    const {noun} = _.get(world, id);
+    const {status} = _.get(world, vars.E);
+    const blocked = _.get(world.db.via.positioned, to);
+    if (status == "on" && !blocked && _.includes(["boulder", "diamond"], noun)) {
+      const nid = uid();
+      const make = noun === "boulder" ? diamond : boulder;
+      return _.chain(world, _.dissoc(_, id), make(to, nid), w.patch(_, nid, {falling}));
+    } else {
+      return world;
+    }
+  }
+}
+
 function fall(id){
   return function(world){
+    const {status} = _.get(world, vars.E);
     const top = _.get(world, id, {});
     const {positioned, gravitated, falling} = top;
     const below = nearby(positioned, "down");
     const belowId = _.get(world.db.via.positioned, below);
     const bottom = _.maybe(belowId, _.get(world, _));
+    const underneath = _.chain(positioned, nearby(_, "down"), nearby(_, "down"));
     const halted = bottom && !bottom.falling;
     return _.chain(world,
-      bottom?.enchanted ? _.update(_, vars.E, activate) : _.identity,
+      bottom?.enchanted && status !== "expired" && falling ? _.comp(transmute(id, positioned, underneath), _.update(_, vars.E, activate)) : _.identity,
       bottom?.explosive ? w.patch(_, belowId, {exploding}) : _.identity,
       bottom || !gravitated ? _.identity : w.patch(_, id, {positioned: below}),
       halted ? w.patch(_, id, {falling: null}) : _.identity);
