@@ -34,13 +34,14 @@ function die(n){
 const budge = die(5);
 
 const params = new URLSearchParams(location.search);
-const mode = params.get('mode');
-const debugging = mode === "debug";
+const debug = params.get('debug') == 1;
+const smooth = params.get("smooth") == 1;
 const l = _.maybe(params.get("l"), parseInt) || 1;
 const level = _.get(levels, l - 1);
 const [width, height] = level.size;
 
-dom.attr(document.body, "data-mode", mode);
+dom.toggleClass(document.body, "smooth", smooth);
+dom.toggleClass(document.body, "debug", debug);
 
 el.focus();
 
@@ -119,7 +120,7 @@ function boulder(positioned){
   return _.assoc(_, uid(), {noun, pushable, rounded, positioned, gravitated});
 }
 
-const spawn = _.get({".": dirt, "X": debugging ? rockford : entrance, "q": firefly, "B": butterfly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
+const spawn = _.get({".": dirt, "X": debug ? rockford : entrance, "q": firefly, "B": butterfly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
 
 const positions = _.braid(_.array, _.range(width), _.range(height));
 
@@ -219,7 +220,8 @@ function dig(id){
 function control(inputs, entities, world){
   const keys = _.chain(inputs.keys, _.omit(_, "Shift"), _.omit(_, "Ctrl"), _.seq);
   const stationary = _.chain(inputs.keys, _.includes(_, "Shift"));
-  return _.reduce(function(memo, [id, {positioned, controlled}]){
+  return _.reduce(function(memo, [id, subject]){
+    const {positioned, controlled} = subject;
     const direction = _.some(_.get(controlled, _), keys);
     if (direction){
       const beyond = nearby(positioned, direction);
@@ -232,7 +234,7 @@ function control(inputs, entities, world){
         diggable ? dig(beyondId) : pushable && !falling ? push(beyondId, direction, beyond, nearby(beyond, direction)) : _.identity,
         stationary ? _.identity : move(id, direction, positioned, beyond));
     } else {
-      return w.patch(memo, id, {moving: null});
+      return subject.moving ? w.patch(memo, id, {moving: null}) : world;
     }
   }, world, entities);
 }
@@ -256,12 +258,10 @@ function roll(positioned){
   return function(world){
     const id = _.get(world.db.via.positioned, positioned);
     const ent = _.get(world, id, {});
-    const above = nearby(positioned, "up");
-    const aboveId = _.get(world.db.via.positioned, above);
     const below = nearby(positioned, "down");
     const belowId = _.get(world.db.via.positioned, below);
     const belowEnt = _.get(world, belowId, {});
-    return ent.gravitated && belowEnt.rounded && !belowEnt.falling && !aboveId ? _.reduce(function(world, side){
+    return ent.gravitated && belowEnt.rounded && !belowEnt.falling ? _.reduce(function(world, side){
       const beside = nearby(positioned, side);
       const besideId = _.get(world.db.via.positioned, beside);
       const besideBelow = nearby(below, side);
@@ -278,6 +278,14 @@ function alternate([x, y]){
 
 const alternating = _.sort(_.asc(alternate), _);
 
+function pinned(world){ //unpinned items to roll first
+  return function(positioned){
+    const over = nearby(positioned, "up");
+    const overId = _.get(world.db.via.positioned, over);
+    return _.get(world, overId) ? 1 : 0;
+  }
+}
+
 function gravity(inputs, entities, world){
   const vacated = alternating(world.db.vacated);
   const surrounding = _.chain(vacated,
@@ -287,7 +295,7 @@ function gravity(inputs, entities, world){
         _.chain(positioned, nearby(_, "right")),
         _.chain(positioned, nearby(_, "up"), nearby(_, "left")),
         _.chain(positioned, nearby(_, "up"), nearby(_, "right"))];
-    }, _), alternating, _.dedupe, _.toArray);
+    }, _), alternating, _.dedupe, _.sort(_.asc(pinned(world)), _));
 
   return _.chain(world,
     w.clear(["vacated"]),
@@ -480,7 +488,7 @@ $.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
   _.maybe(document.getElementById(id),
     $.doto(_,
       dom.toggleClass(_, "idle", !curr?.moving),
-      dom.toggleClass(_, "moving", curr?.moving)));
+      dom.toggleClass(_, "moving", !!curr?.moving)));
 });
 
 $.sub($changed, $.each($.reset($change, _), _));
