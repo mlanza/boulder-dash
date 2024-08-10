@@ -23,6 +23,14 @@ body[data-mode='debug'] .falling {
   width: 32px;
   background-image: url(./images/sprites.png);
 }
+[data-noun='entrance'] {
+  background-position: -64px -192px;
+  animation: flash .5s steps(1) infinite;
+}
+[data-noun='poof'] {
+  background-position: 0 -192px;
+  animation: materialize .2s steps(1);
+}
 [data-noun='Rockford'].idle {
   background-position: 0 0;
   animation:  idle-a .5s steps(1) 5s,
@@ -435,7 +443,22 @@ body[data-mode='debug'] .falling {
 .bright [data-char='9']{
   background-position: -256px -400px;
 }
-
+@keyframes flash {
+  0%, 50% {
+    background-position: -64px -192px;
+  }
+  50%, 100% {
+    background-position: -32px -192px;
+  }
+}
+@keyframes materialize {
+  0%, 50% {
+    background-position: -96px -224px;
+  }
+  50%, 100% {
+    background-position: -128px -224px;
+  }
+}
 @keyframes idle-a {
   0%, 12.5% { background-position: 0 -32px; }
   12.5%, 25% { background-position: -32px -32px; }
