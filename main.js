@@ -55,6 +55,18 @@ const indestructible = true,
       pushable = true,
       moving = false;
 
+function entrance(positioned){
+  const noun = "entrance";
+  const becoming = [25, poof];
+  return _.assoc(_, uid(), {noun, positioned, indestructible, becoming});
+}
+
+function poof(positioned){
+  const noun = "poof";
+  const becoming = [1, rockford];
+  return _.assoc(_, uid(), {noun, positioned, indestructible, becoming});
+}
+
 function steelWall(positioned){
   const noun = "steel-wall";
   return _.assoc(_, uid(), {noun, positioned, indestructible});
@@ -107,7 +119,7 @@ function boulder(positioned){
   return _.assoc(_, uid(), {noun, pushable, rounded, positioned, gravitated});
 }
 
-const spawn = _.get({".": dirt, "X": rockford, "q": firefly, "B": butterfly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
+const spawn = _.get({".": dirt, "X": entrance, "q": firefly, "B": butterfly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
 
 const positions = _.braid(_.array, _.range(width), _.range(height));
 
@@ -165,6 +177,15 @@ function settles(inputs, entities, world){
   return _.reduce(function(world, [id, {residue, positioned}]){
     return _.chain(world, _.dissoc(_, id), residue(positioned));
   }, world, entities)
+}
+
+function becomes(inputs, entities, world){
+  return _.reduce(function(world, [id, {becoming, positioned}]){
+    const [tick, become] = becoming;
+    return tick > 0 ?
+      _.chain(world, w.patch(_, id, {becoming: [tick - 1, become]})) :
+      _.chain(world, _.dissoc(_, id), become(positioned));
+  }, world, entities);
 }
 
 function collect(id){
@@ -374,7 +395,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["gravitated", "seeking", "controlled", "falling", "exploding", "residue"]),
+  w.world(inputs, ["gravitated", "seeking", "controlled", "falling", "exploding", "becoming", "residue"]),
   w.via("positioned"),
   _.assoc(_, vars.stats, _.merge(level.diamonds, {total: 0, collected: 0})));
 
@@ -496,6 +517,7 @@ setRafInterval(function({time, ticks, delta}){
 
   $.swap($state, _.fmap(_,
     _.pipe(
+      w.system(["becoming"], becomes),
       w.system(["residue"], settles),
       w.system(["controlled"], control),
       w.system(["seeking"], seeks),
