@@ -36,6 +36,7 @@ const budge = die(5);
 
 const params = new URLSearchParams(location.search);
 const mode = params.get('mode');
+const debugging = mode === "debug";
 const l = _.maybe(params.get("l"), parseInt) || 1;
 const level = _.get(levels, l - 1);
 const [width, height] = level.size;
@@ -119,7 +120,7 @@ function boulder(positioned){
   return _.assoc(_, uid(), {noun, pushable, rounded, positioned, gravitated});
 }
 
-const spawn = _.get({".": dirt, "X": entrance, "q": firefly, "B": butterfly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
+const spawn = _.get({".": dirt, "X": debugging ? rockford : entrance, "q": firefly, "B": butterfly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
 
 const positions = _.braid(_.array, _.range(width), _.range(height));
 
