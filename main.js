@@ -217,6 +217,13 @@ function dig(id){
   return _.dissoc(_, id);
 }
 
+function abort(inputs, entities, world){
+  const esc = _.chain(inputs.keys, _.includes(_, "Escape"));
+  return esc ? _.reduce(function(memo, [id]){
+    return w.patch(memo, id, {exploding});
+  }, world, entities) : world;
+}
+
 function control(inputs, entities, world){
   const keys = _.chain(inputs.keys, _.omit(_, "Shift"), _.omit(_, "Ctrl"), _.seq);
   const stationary = _.chain(inputs.keys, _.includes(_, "Shift"));
@@ -539,6 +546,7 @@ setRafInterval(function({time, ticks, delta}){
     _.pipe(
       w.system(["becoming"], becomes),
       w.system(["residue"], settles),
+      w.system(["controlled"], abort),
       w.system(["controlled"], control),
       w.system(["seeking"], seeks),
       w.system(["last-touched", "gravitated"], rolls),
