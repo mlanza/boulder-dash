@@ -34,6 +34,10 @@ body.smooth [data-noun] {
   background-position: 0 -192px;
   animation: materialize .2s steps(1);
 }
+[data-noun='amoeba'] {
+  background-position: 0 -256px;
+  animation: ooze .6s steps(7) infinite;
+}
 [data-noun='Rockford'].idle {
   background-position: 0 0;
   animation:  idle-a .5s steps(1) 5s,
@@ -500,6 +504,11 @@ body.smooth [data-noun] {
 @keyframes flutter {
   100% {
     background-position: -224px -352px;
+  }
+}
+@keyframes ooze {
+  100% {
+    background-position: -224px -256px;
   }
 }
 @keyframes run-right {
