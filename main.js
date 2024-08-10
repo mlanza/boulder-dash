@@ -11,7 +11,7 @@ import w from "./libs/ecs_/world.js";
 import levels from "./levels.js";
 import {reg} from "./libs/cmd.js";
 
-const fps = 10;
+const fps = 2;
 const throttle = 1000 / fps;
 const lagging = throttle * 1.2;
 const alt = _.chance(8675309);
@@ -256,10 +256,12 @@ function roll(positioned){
   return function(world){
     const id = _.get(world.db.via.positioned, positioned);
     const ent = _.get(world, id, {});
+    const above = nearby(positioned, "up");
+    const aboveId = _.get(world.db.via.positioned, above);
     const below = nearby(positioned, "down");
     const belowId = _.get(world.db.via.positioned, below);
     const belowEnt = _.get(world, belowId, {});
-    return ent.gravitated && belowEnt.rounded && !belowEnt.falling ? _.reduce(function(world, side){
+    return ent.gravitated && belowEnt.rounded && !belowEnt.falling && !aboveId ? _.reduce(function(world, side){
       const beside = nearby(positioned, side);
       const besideId = _.get(world.db.via.positioned, beside);
       const besideBelow = nearby(below, side);
@@ -269,17 +271,32 @@ function roll(positioned){
   }
 }
 
+function alternate([x, y]){
+  const alt = _.isEven(y) ? -1 : 1;
+  return y * -100 + x * alt;
+}
+
+const alternating = _.sort(_.asc(alternate), _);
+
 function gravity(inputs, entities, world){
-  const vacated = _.sort(_.desc(_.get(_, 1)), world.db.vacated);
+  const vacated = alternating(world.db.vacated);
+  const surrounding = _.chain(vacated,
+    _.mapcat(function(positioned){
+      return [
+        _.chain(positioned, nearby(_, "left")),
+        _.chain(positioned, nearby(_, "right")),
+        _.chain(positioned, nearby(_, "up"), nearby(_, "left")),
+        _.chain(positioned, nearby(_, "up"), nearby(_, "right"))];
+    }, _), alternating, _.dedupe, _.toArray);
+
   return _.chain(world,
     w.clear(["vacated"]),
+    _.reduce(function(world, [id, entity]){
+      return fall(id)(world);
+    }, _, entities),
     _.reduce(function(world, positioned){
-      return _.chain(world,
-        roll(_.chain(positioned, nearby(_, "left"))),
-        roll(_.chain(positioned, nearby(_, "right"))),
-        roll(_.chain(positioned, nearby(_, "up"), nearby(_, "left"))),
-        roll(_.chain(positioned, nearby(_, "up"), nearby(_, "right"))));
-    }, _, vacated),
+      return roll(positioned)(world);
+    }, _, surrounding),
     _.reduce(function(world, positioned){
       const over = nearby(positioned, "up");
       const overId = _.get(world.db.via.positioned, over);
@@ -287,12 +304,7 @@ function gravity(inputs, entities, world){
       const {falling} = _.get(world, id, {});
       const {gravitated} = _.get(world, overId, {});
       return gravitated && (!id || falling) ? w.patch(world, overId, {falling: true}) : world;
-    }, _, vacated),
-    function(world){
-      return _.reduce(function(world, [id, entity]){
-        return fall(id)(world);
-      }, world, entities);
-    });
+    }, _, vacated));
 }
 
 function explode(at, explosive, origin = false){
