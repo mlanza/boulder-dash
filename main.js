@@ -71,7 +71,8 @@ function rockford(positioned){
     ["ArrowRight", "right"]
   ]);
   const noun = "Rockford";
-  return _.assoc(_, vars.R, {noun, controlled, explosive, positioned, moving});
+  const facing = "right";
+  return _.assoc(_, vars.R, {noun, facing, controlled, explosive, positioned, moving});
 }
 
 function diamond(positioned){
@@ -178,7 +179,7 @@ function move(id, direction, from, to){
     const there = _.get(world.db.via.positioned, to);
     const collision = !!there; //TODO handle collision
     return _.chain(world,
-      collision ? _.identity : _.update(_, id, w.patch({positioned: to})));
+      collision ? _.identity : w.patch(_, id, {positioned: to}));
   };
 }
 
@@ -186,7 +187,7 @@ function push(id, direction, from, to){
   return _.includes(["left", "right"], direction) && d8() ? function(world){
     const {gravitated} = _.get(world, id);
     const occupied = _.get(world.db.via.positioned, to);
-    return occupied ? world : _.update(world, id, w.patch(Object.assign({positioned: to}, gravitated ? {falling: true} : {})));
+    return occupied ? world : w.patch(world, id, Object.assign({positioned: to}, gravitated ? {falling: true} : {}));
   } : _.identity;
 }
 
@@ -204,8 +205,8 @@ function control(inputs, entities, world){
       const beyondId = _.get(world.db.via.positioned, beyond);
       const {diggable, pushable, falling, collectible} = _.get(world, beyondId) || {};
       return _.chain(memo,
-        _.update(_, id, w.patch({moving: true})),
-        _.includes(["left", "right"], direction) ? _.update(_, id, w.patch({facing: direction})) : _.identity,
+        w.patch(_, id, {moving: true}),
+        _.includes(["left", "right"], direction) ? w.patch(_, id, {facing: direction}) : _.identity,
         collectible ? collect(beyondId) : _.identity,
         diggable ? dig(beyondId) : pushable && !falling ? push(beyondId, direction, beyond, nearby(beyond, direction)) : _.identity,
         stationary ? _.identity : move(id, direction, positioned, beyond));
