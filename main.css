@@ -3,9 +3,7 @@ body {
 }
 #stage {
   position: relative;
-  margin: 2em;
-  width: 1280px;
-  height: 736px;
+  margin: 2em auto;
 }
 #collected {
   position: absolute;
