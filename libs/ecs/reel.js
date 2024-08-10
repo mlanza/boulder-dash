@@ -60,7 +60,7 @@ function capture(self){
 function fmap(self, f){
   const p = capture(self);
   const c = new Reel(p.max, _.update(p.frames, 0, f));
-  return current(p) === current(c) ? self : new Reel(p.max, _.update(p.frames, 0, f));
+  return current(p) === current(c) ? self : c;
 }
 
 const deref = _.unary(frame);
