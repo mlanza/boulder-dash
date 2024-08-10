@@ -204,7 +204,8 @@ function control(inputs, entities, world){
       const beyondId = _.get(world.db.via.positioned, beyond);
       const {diggable, pushable, falling, collectible} = _.get(world, beyondId) || {};
       return _.chain(memo,
-        _.includes(["left", "right"], direction) ? _.update(_, id, w.patch({facing: direction, moving: true})) : _.identity,
+        _.update(_, id, w.patch({moving: true})),
+        _.includes(["left", "right"], direction) ? _.update(_, id, w.patch({facing: direction})) : _.identity,
         collectible ? collect(beyondId) : _.identity,
         diggable ? dig(beyondId) : pushable && !falling ? push(beyondId, direction, beyond, nearby(beyond, direction)) : _.identity,
         stationary ? _.identity : move(id, direction, positioned, beyond));
