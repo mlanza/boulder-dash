@@ -92,7 +92,7 @@ function rockford(positioned){
 
 function diamond(positioned){
   const noun = "diamond";
-  return _.assoc(_, uid(), {noun, collectible, rounded, positioned, gravitated});
+  return _.assoc(_, uid(), {noun, collectible, rounded, positioned, falling, gravitated});
 }
 
 function enemy(noun, how, enemies, {going = "left", explosive = _.constantly(_.identity)} = {}){
@@ -300,20 +300,19 @@ function explode(at, explosive, origin = false){
     const id = _.get(world.db.via.positioned, at);
     const subject = _.maybe(id, _.get(world, _));
     if (subject){
-      const {indestructible, explosive} = subject;
-      if (indestructible) {
+      if (subject.indestructible) {
         return world;
-      } else if (explosive) {
+      } else if (subject.explosive) {
         if (origin) {
-          return _.chain(world, _.comp(_.dissoc(_, id), explosion(at, explosive)));
+          return _.chain(world, _.comp(_.dissoc(_, id), explosion(at, subject.explosive)));
         } else {
           return _.chain(world, w.patch(_, id, {exploding}));
         }
       } else {
-        return _.chain(world, _.comp(_.dissoc(_, id), explosion(at)));
+        return _.chain(world, _.comp(_.dissoc(_, id), explosion(at, explosive)));
       }
     } else {
-      return _.chain(world, explosion(at));
+      return _.chain(world, explosion(at, explosive));
     }
   }
 }
@@ -321,8 +320,8 @@ function explode(at, explosive, origin = false){
 function explodes(inputs, entities, world){
   return _.reduce(function(world, [id, {positioned, explosive, exploding}]){
     return exploding ? _.chain(world,
-      _.dissoc(_, id),
       explode(positioned, explosive, true),
+      //_.dissoc(_, id),
       _.reduce(function(world, at){
         return explode(at, explosive)(world);
       }, _, _.rest(around(positioned)))) : world;
@@ -477,7 +476,7 @@ $.sub($changed, $.each($.reset($change, _), _));
 $.swap($state, _.fmap(_, _.comp(vacancies, load(level.map))));
 
 $.on(document, "keydown", function(e){
-  if (_.includes(["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft"], e.key)) {
+  if (_.includes(["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"], e.key)) {
     e.preventDefault(); //to prevent moving the page around
   }
 });
