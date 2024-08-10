@@ -11,7 +11,7 @@ import w from "./libs/ecs_/world.js";
 import levels from "./levels.js";
 import {reg} from "./libs/cmd.js";
 
-const fps = 2;
+const fps = 10;
 const throttle = 1000 / fps;
 const lagging = throttle * 1.2;
 const alt = _.chance(8675309);
@@ -26,9 +26,8 @@ const vars = {
 
 function die(n){
   return function(){
-    const roll = _.randInt(alt.random, n);
-    $.log("rolled", roll);
-    return roll === 0;
+    const rolled = _.randInt(alt.random, n);
+    return rolled === 0;
   }
 }
 
@@ -165,7 +164,7 @@ const nearby = _.partly(function nearby([x, y], key, offset = 1){
 });
 
 function around(positioned, immediate = false){
-  return _.chain([["none"],["up"],["up","left"],["up","right"],["left"],["right"],["down"],["down","left"],["down","right"]],
+  return _.chain([["none"],["up","left"],["up"],["up","right"],["left"],["right"],["down","left"], ["down"],["down","right"]],
     _.filter(function(relative){
       return !immediate || _.count(relative) == 1;
     }, _),
@@ -197,10 +196,11 @@ function collect(id){
 
 function move(id, direction, from, to){
   return function(world){
+    const {exploding} = _.get(world, id);
     const there = _.get(world.db.via.positioned, to);
     const collision = !!there; //TODO handle collision
     return _.chain(world,
-      collision ? _.identity : w.patch(_, id, {positioned: to}));
+      collision || exploding ? _.identity : w.patch(_, id, {positioned: to}));
   };
 }
 
@@ -295,16 +295,16 @@ function gravity(inputs, entities, world){
       return fall(id)(world);
     }, _, entities),
     _.reduce(function(world, positioned){
-      return roll(positioned)(world);
-    }, _, surrounding),
-    _.reduce(function(world, positioned){
       const over = nearby(positioned, "up");
       const overId = _.get(world.db.via.positioned, over);
       const id = _.get(world.db.via.positioned, positioned);
       const {falling} = _.get(world, id, {});
       const {gravitated} = _.get(world, overId, {});
       return gravitated && (!id || falling) ? w.patch(world, overId, {falling: true}) : world;
-    }, _, vacated));
+    }, _, vacated),
+    _.reduce(function(world, positioned){
+      return roll(positioned)(world);
+    }, _, surrounding));
 }
 
 function explode(at, explosive, origin = false){
