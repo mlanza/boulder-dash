@@ -26,11 +26,13 @@ const vars = {
 
 function die(n){
   return function(){
-    return _.randInt(alt.random, n) === 0;
+    const roll = _.randInt(alt.random, n);
+    $.log("rolled", roll);
+    return roll === 0;
   }
 }
 
-const d8 = die(8);
+const budge = die(5);
 
 const params = new URLSearchParams(location.search);
 const mode = params.get('mode');
@@ -181,7 +183,7 @@ function move(id, direction, from, to){
 }
 
 function push(id, direction, from, to){
-  return _.includes(["left", "right"], direction) && d8() ? function(world){
+  return _.includes(["left", "right"], direction) && budge() ? function(world){
     const {gravitated} = _.get(world, id);
     const occupied = _.get(world.db.via.positioned, to);
     return occupied ? world : w.patch(world, id, Object.assign({positioned: to}, gravitated ? {falling: true} : {}));
