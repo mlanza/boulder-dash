@@ -73,6 +73,11 @@ function steelWall(positioned){
   return _.assoc(_, uid(), {noun, positioned, indestructible});
 }
 
+function amoeba(positioned){
+  const noun = "amoeba";
+  return _.assoc(_, uid(), {noun, positioned, indestructible});
+}
+
 function wall(positioned){
   const noun = "wall";
   return _.assoc(_, uid(), {noun, positioned, rounded});
@@ -120,7 +125,7 @@ function boulder(positioned){
   return _.assoc(_, uid(), {noun, pushable, rounded, positioned, gravitated});
 }
 
-const spawn = _.get({".": dirt, "X": debug ? rockford : entrance, "q": firefly, "B": butterfly, "r": boulder, "w": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
+const spawn = _.get({".": dirt, "X": debug ? rockford : entrance, "q": firefly, "B": butterfly, "a": amoeba, "r": boulder, "w": wall, "m": wall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
 
 const positions = _.braid(_.array, _.range(width), _.range(height));
 
