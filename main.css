@@ -3,12 +3,33 @@ body {
 }
 #stage {
   position: relative;
-  margin: 2em auto;
+  margin: 0 auto;
+}
+#stats {
+  position: relative;
+  width: 1280px;
+  height: 16px;
+  margin: 5px auto;
+}
+#stats * {
+  height: 16px;
+}
+#stats > * {
+  position: absolute;
+}
+#scoring {
+  left: 96px;
+  width: 192px;
+}
+#time {
+  left: 832px;
+}
+#score {
+  left: 1024px;
 }
 #collected {
   position: absolute;
-  top: 5px;
-  right: 3em;
+  left: 416px;
   width: 64px;
   height: 16px;
 }
@@ -404,6 +425,9 @@ body.smooth [data-noun] {
   width: 32px;
   display: inline-block;
   background-image: url(./images/sprites.png);
+}
+[data-char='diamond']{
+  background-position: -256px -64px;
 }
 [data-char='0']{
   background-position: -288px -256px;
