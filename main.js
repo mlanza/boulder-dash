@@ -616,10 +616,13 @@ function setRafInterval(callback, throttle) {
 
 function countdown(ticks){
   return function(inputs, entities, world){
-    const hero = _.get(world, vars.R);
-    const time =  _.getIn(world, [vars.stats, "time"]);
-    const tick = ticks % 10 === 0;
-    return time === 0 ? w.patch(world, vars.R, {exploding}) : time > 0 && hero && tick ? _.updateIn(world, [vars.stats, "time"], _.dec) : world;
+    const stats =  _.getIn(world, [vars.stats]);
+    const {time, started} = stats;
+    if (!started && _.get(world, vars.R)) {
+      return _.assocIn(world, [vars.stats, "started"], ticks);
+    }
+    const tick = (ticks - started) % 10 === 0;
+    return time === 0 ? w.patch(world, vars.R, {exploding}) : time > 0 && tick ? _.updateIn(world, [vars.stats, "time"], _.dec) : world;
   }
 }
 
