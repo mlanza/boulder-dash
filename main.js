@@ -40,6 +40,7 @@ const debug = params.get('debug') == 1;
 const smooth = params.get("smooth") == 1;
 const l = _.maybe(params.get("l"), parseInt) || 1;
 const level = _.get(levels, l - 1);
+const {time} = level;
 const [width, height] = level.size;
 
 dom.addStyle(el, "width", `${width * 32}px`)
@@ -235,11 +236,13 @@ function becomes(inputs, entities, world){
 
 function collect(id){
   return function(world){
-    const revised = _.chain(world,
+    const {collected, needed, worth, extras} = _.get(world, vars.stats);
+    const pts = collected < needed ? worth : extras;
+    return _.chain(world,
       _.updateIn(_, [vars.stats, "collected"], _.inc),
+      _.updateIn(_, [vars.stats, "score"], _.add(_, pts)),
+      collected + 1 < needed ? _.identity : w.patch(_, vars.exit, {portal}),
       _.dissoc(_, id));
-    const {needed, collected} = _.get(revised, vars.stats);
-      return collected < needed ? revised : _.chain(revised, w.patch(_, vars.exit, {portal}));
   }
 }
 
@@ -409,9 +412,8 @@ function explode(at, explosive, origin = false){
 
 function explodes(inputs, entities, world){
   return _.reduce(function(world, [id, {positioned, explosive, exploding}]){
-    return exploding ? _.chain(world,
+    return exploding && positioned ? _.chain(world,
       explode(positioned, explosive, true),
-      //_.dissoc(_, id),
       _.reduce(function(world, at){
         return explode(at, explosive)(world);
       }, _, _.rest(around(positioned)))) : world;
@@ -486,7 +488,7 @@ const blank = _.chain(
   w.world(inputs, ["gravitated", "seeking", "controlled", "falling", "exploding", "becoming", "transitioning", "residue"]),
   w.via("positioned"),
   enchantment(),
-  _.assoc(_, vars.stats, _.merge(level.diamonds, {total: 0, collected: 0})));
+  _.assoc(_, vars.stats, _.merge(level.diamonds, {time, score: 0, collected: 0})));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(w.changed, $state);
@@ -533,11 +535,14 @@ $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [c
   }
 });
 
-$.sub($change, on(vars.stats, "collected"), function({compared: [curr]}){
-  dom.html(dom.sel1("#collected"), _.map(function(char){
-    return span({"data-char": char});
-  }, _.lpad(curr.collected, 2, 0)));
-});
+$.eachkv(function(key, digits){
+  $.sub($change, on(vars.stats, key), function({compared: [curr]}){
+    dom.html(dom.sel1(`#${key}`), _.map(function(char){
+      return span({"data-char": char});
+    }, _.lpad(_.get(curr, key), digits, 0)));
+  });
+}, {needed: 2, worth: 2, collected: 2, time: 3, score: 6});
+
 
 $.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
   _.maybe(document.getElementById(id),
@@ -609,19 +614,29 @@ function setRafInterval(callback, throttle) {
   };
 }
 
+function countdown(ticks){
+  return function(inputs, entities, world){
+    const hero = _.get(world, vars.R);
+    const time =  _.getIn(world, [vars.stats, "time"]);
+    const tick = ticks % 10 === 0;
+    return time === 0 ? w.patch(world, vars.R, {exploding}) : time > 0 && hero && tick ? _.updateIn(world, [vars.stats, "time"], _.dec) : world;
+  }
+}
+
 setRafInterval(function({time, ticks, delta}){
   delta > lagging && $.warn(`time: ${time}, delta: ${delta}, ticks: ${ticks}`);
 
   $.swap($state, _.fmap(_,
     _.pipe(
-      w.system(["transitioning"], transitions),
-      w.system(["becoming"], becomes),
-      w.system(["residue"], settles),
-      w.system(["controlled"], abort),
-      w.system(["controlled"], control),
-      w.system(["seeking"], seeks),
-      w.system(["last-touched", "gravitated"], rolls),
-      w.system(["falling"], gravity),
-      w.system(["exploding"], explodes))));
+      w.system(transitions, ["transitioning"]),
+      w.system(becomes, ["becoming"]),
+      w.system(settles, ["residue"]),
+      w.system(abort, ["controlled"]),
+      w.system(control, ["controlled"]),
+      w.system(seeks, ["seeking"]),
+      w.system(rolls, ["last-touched", "gravitated"]),
+      w.system(gravity, ["falling"]),
+      w.system(explodes, ["exploding"]),
+      w.system(countdown(ticks)))));
 
 }, throttle);

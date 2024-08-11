@@ -5,7 +5,7 @@ export default [{
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
-  diamonds: {needed: 1, worth: 10, extras: 15},
+  diamonds: {needed: 12, worth: 10, extras: 15},
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     W...... ..d.r .....r.r....... ....r....W
@@ -19,12 +19,11 @@ export default [{
     W..d.....r..... ........rr r..r....r...W
     W...r..r.r..............r .r..r........W
     W.r.....r........rrr.......r.. .d....r.W
-    W.d.. ..r. .....r.rd..d....r...r..d.  .W
+    W.d.. ..r.  .....r.rd..d....r...r..d. .W
     W. r..............r r..r........d.....rW
     W........wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwW
     W r.........r...d....r.....r...r.......W
     W r......... r..r........r......r.rr..PW
-    W. ..r........r.....r.  ....d...r.rr...W
     W. ..r........r.....r.  ....d...r.rr...W
     W....rd..r........r......r.rd......r...W
     W... ..r. ..r.rr.........r.rd...... ..rW

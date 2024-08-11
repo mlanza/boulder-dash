@@ -185,7 +185,7 @@ export function augment(...args){
   return _.map(_.juxt(_.identity, ...fs), xs);
 }
 
-export function system(components, f){
+export function system(f, components = []){
   return function(world){
     return f(world.inputs(), augment(_.get(world, _), having(world, components)), world);
   }
