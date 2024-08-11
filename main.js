@@ -478,6 +478,23 @@ function rolls(inputs, entities, world){
   }, world, entities);
 }
 
+function countdown(ticks){
+  return function(inputs, entities, world){
+    const hero = _.get(world, vars.R);
+    const stats =  _.getIn(world, [vars.stats]);
+    const {time, started, exited} = stats;
+    if (started && hero && !hero.controlled && time){
+      const amt = _.min(time, 10);
+      return _.chain(world, _.updateIn(_, [vars.stats, "time"], _.subtract(_, amt)), _.updateIn(_, [vars.stats, "score"], _.add(_, amt * 10)));
+    }
+    if (!started && _.get(world, vars.R)) {
+      return _.assocIn(world, [vars.stats, "started"], ticks);
+    }
+    const tick = (ticks - started) % 10 === 0;
+    return time === 0 && !exited ? w.patch(world, vars.R, {exploding}) : time > 0 && tick ? _.updateIn(world, [vars.stats, "time"], _.dec) : world;
+  }
+}
+
 const $keys = dom.depressed(document.body);
 const $inputs = $.map(function(keys){
   return {keys};
@@ -489,7 +506,7 @@ const blank = _.chain(
   w.world(inputs, ["gravitated", "seeking", "controlled", "falling", "exploding", "becoming", "transitioning", "residue"]),
   w.via("positioned"),
   enchantment(),
-  _.assoc(_, vars.stats, _.merge(level.diamonds, {time, exited: false, score: 0, collected: 0})));
+  _.assoc(_, vars.stats, _.merge(level.diamonds, {time, ready: false, exited: false, score: 0, collected: 0})));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(w.changed, $state);
@@ -542,7 +559,7 @@ $.eachkv(function(key, digits){
       return span({"data-char": char});
     }, _.lpad(_.get(curr, key), digits, 0)));
   });
-}, {needed: 2, worth: 2, collected: 2, time: 3, score: 6});
+}, {needed: 2, worth: 2, extras: 2, collected: 2, time: 3, score: 6});
 
 
 $.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
@@ -564,7 +581,7 @@ $.sub($change, on(vars.enchantment, "status"), function({id, props: {status}, co
 });
 
 $.sub($change, on(vars.exit, "portal"), function({id, props: {portal}, compared: [curr]}){
-  _.maybe(document.getElementById(id), dom.toggleClass(_, "portal", curr?.portal));
+  _.maybe(document.body, dom.toggleClass(_, "portal", curr?.portal));
 });
 
 $.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
@@ -600,6 +617,7 @@ function setRafInterval(callback, throttle) {
 
     if (elapsed - lastTime >= throttle) {
       const delta = Math.round((elapsed - lastTime) * 100) / 100;
+      delta > lagging && $.warn(`time: ${time}, delta: ${delta}, ticks: ${ticks}`);
       callback({ time, ticks, delta });
       lastTime = elapsed - (elapsed % throttle);
       ticks++;
@@ -615,37 +633,18 @@ function setRafInterval(callback, throttle) {
   };
 }
 
-function countdown(ticks){
-  return function(inputs, entities, world){
-    const hero = _.get(world, vars.R);
-    const stats =  _.getIn(world, [vars.stats]);
-    const {time, started, exited} = stats;
-    if (started && hero && !hero.controlled && time){
-      const amt = _.min(time, 10);
-      return _.chain(world, _.updateIn(_, [vars.stats, "time"], _.subtract(_, amt)), _.updateIn(_, [vars.stats, "score"], _.add(_, amt * 10)));
-    }
-    if (!started && _.get(world, vars.R)) {
-      return _.assocIn(world, [vars.stats, "started"], ticks);
-    }
-    const tick = (ticks - started) % 10 === 0;
-    return time === 0 && !exited ? w.patch(world, vars.R, {exploding}) : time > 0 && tick ? _.updateIn(world, [vars.stats, "time"], _.dec) : world;
-  }
-}
-
 setRafInterval(function({time, ticks, delta}){
-  delta > lagging && $.warn(`time: ${time}, delta: ${delta}, ticks: ${ticks}`);
-
-  $.swap($state, _.fmap(_,
-    _.pipe(
-      w.system(transitions, ["transitioning"]),
-      w.system(becomes, ["becoming"]),
-      w.system(settles, ["residue"]),
-      w.system(abort, ["controlled"]),
-      w.system(control, ["controlled"]),
-      w.system(seeks, ["seeking"]),
-      w.system(rolls, ["last-touched", "gravitated"]),
-      w.system(gravity, ["falling"]),
-      w.system(explodes, ["exploding"]),
-      w.system(countdown(ticks)))));
-
+  $.swap($state,
+    _.fmap(_,
+      _.pipe(
+        w.system(transitions, ["transitioning"]),
+        w.system(becomes, ["becoming"]),
+        w.system(settles, ["residue"]),
+        w.system(abort, ["controlled"]),
+        w.system(control, ["controlled"]),
+        w.system(seeks, ["seeking"]),
+        w.system(rolls, ["last-touched", "gravitated"]),
+        w.system(gravity, ["falling"]),
+        w.system(explodes, ["exploding"]),
+        w.system(countdown(ticks)))));
 }, throttle);
