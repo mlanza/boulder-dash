@@ -249,9 +249,11 @@ function collect(id){
 function move(id, direction, from, to){
   return function(world){
     const {exploding} = _.get(world, id);
-    const there = _.get(world.db.via.positioned, to);
-    const collision = !!there; //TODO handle collision
+    const there = locate(world, to);
+    const portal = there.entity?.portal;
+    const collision = !!there.id && !portal;
     return _.chain(world,
+      portal ? _.comp(_.dissoc(_, there.id), w.patch(_, id, {moving: false, facing: null, controlled: null}), _.assocIn(_, [vars.stats, "exited"], true)) : _.identity,
       collision || exploding ? _.identity : w.patch(_, id, {positioned: to}));
   };
 }
@@ -284,15 +286,14 @@ function control(inputs, entities, world){
     const {positioned, controlled} = subject;
     const direction = _.some(_.get(controlled, _), keys);
     if (direction){
-      const beyond = nearby(positioned, direction);
-      const beyondId = _.get(world.db.via.positioned, beyond);
-      const {diggable, pushable, falling, collectible} = _.get(world, beyondId) || {};
+      const beyond = locate(world, nearby(positioned, direction));
+      const {diggable, pushable, falling, collectible} = beyond.entity || {};
       return _.chain(memo,
         w.patch(_, id, {moving}),
         _.includes(["left", "right"], direction) ? w.patch(_, id, {facing: direction}) : _.identity,
-        collectible ? collect(beyondId) : _.identity,
-        diggable ? dig(beyondId) : pushable && !falling ? push(beyondId, direction, beyond, nearby(beyond, direction)) : _.identity,
-        stationary ? _.identity : move(id, direction, positioned, beyond));
+        collectible ? collect(beyond.id) : _.identity,
+        diggable ? dig(beyond.id) : pushable && !falling ? push(beyond.id, direction, beyond, nearby(beyond.positioned, direction)) : _.identity,
+        stationary ? _.identity : move(id, direction, positioned, beyond.positioned));
     } else {
       return subject.moving ? w.patch(memo, id, {moving: null}) : world;
     }
@@ -488,7 +489,7 @@ const blank = _.chain(
   w.world(inputs, ["gravitated", "seeking", "controlled", "falling", "exploding", "becoming", "transitioning", "residue"]),
   w.via("positioned"),
   enchantment(),
-  _.assoc(_, vars.stats, _.merge(level.diamonds, {time, score: 0, collected: 0})));
+  _.assoc(_, vars.stats, _.merge(level.diamonds, {time, exited: false, score: 0, collected: 0})));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(w.changed, $state);
@@ -563,7 +564,7 @@ $.sub($change, on(vars.enchantment, "status"), function({id, props: {status}, co
 });
 
 $.sub($change, on(vars.exit, "portal"), function({id, props: {portal}, compared: [curr]}){
-  dom.toggleClass(document.getElementById(id), "portal", curr.portal);
+  _.maybe(document.getElementById(id), dom.toggleClass(_, "portal", curr?.portal));
 });
 
 $.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
@@ -616,13 +617,18 @@ function setRafInterval(callback, throttle) {
 
 function countdown(ticks){
   return function(inputs, entities, world){
+    const hero = _.get(world, vars.R);
     const stats =  _.getIn(world, [vars.stats]);
-    const {time, started} = stats;
+    const {time, started, exited} = stats;
+    if (started && hero && !hero.controlled && time){
+      const amt = _.min(time, 10);
+      return _.chain(world, _.updateIn(_, [vars.stats, "time"], _.subtract(_, amt)), _.updateIn(_, [vars.stats, "score"], _.add(_, amt * 10)));
+    }
     if (!started && _.get(world, vars.R)) {
       return _.assocIn(world, [vars.stats, "started"], ticks);
     }
     const tick = (ticks - started) % 10 === 0;
-    return time === 0 ? w.patch(world, vars.R, {exploding}) : time > 0 && tick ? _.updateIn(world, [vars.stats, "time"], _.dec) : world;
+    return time === 0 && !exited ? w.patch(world, vars.R, {exploding}) : time > 0 && tick ? _.updateIn(world, [vars.stats, "time"], _.dec) : world;
   }
 }
 
