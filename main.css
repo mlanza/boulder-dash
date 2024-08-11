@@ -17,15 +17,22 @@ body {
 #stats > * {
   position: absolute;
 }
-#scoring {
+#extra-scoring,
+.portal #scoring {
+  visibility: hidden;
+}
+.portal #extra-scoring {
+  visibility: visible;
+}
+#scoring, #extra-scoring {
   left: 96px;
   width: 192px;
 }
 #time {
-  left: 832px;
+  left: 800px;
 }
 #score {
-  left: 1024px;
+  left: 992px;
 }
 #collected {
   position: absolute;
@@ -49,7 +56,7 @@ body.smooth [data-noun] {
   background-position: -64px -192px;
   animation: flash .5s steps(1) infinite;
 }
-[data-noun='exit'].portal {
+.portal [data-noun='exit'] {
   background-position: -64px -192px;
   animation: flash .5s steps(1) infinite;
 }
