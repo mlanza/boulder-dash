@@ -22,7 +22,8 @@ const el = dom.sel1("#stage");
 const vars = {
   R: uid(),
   stats: uid(),
-  E: uid()
+  enchantment: uid(),
+  exit: uid()
 }
 
 function die(n){
@@ -49,6 +50,7 @@ dom.toggleClass(document.body, "debug", debug);
 el.focus();
 
 const indestructible = true,
+      portal = true,
       enchanted = true,
       explosive = _.constantly(_.identity),
       exploding = true,
@@ -62,16 +64,16 @@ const indestructible = true,
 
 function enchantment(){
   const transitioning = [null, {status: "on", transitioning: [30 * fps, {status: "expired", transitioning: null}]}];
-  return _.assoc(_, vars.E, {status: "dormant", transitioning});
+  return _.assoc(_, vars.enchantment, {status: "dormant", transitioning});
 }
 
-function activate(enchantment){
-  const {transitioning} = enchantment;
+function transform(entity){
+  const {transitioning} = entity;
   if (transitioning) {
     const [tick, patch] = transitioning;
-    return tick == null ? _.merge(enchantment, patch) : enchantment;
+    return tick == null ? _.merge(entity, patch) : entity;
   } else {
-    return enchantment;
+    return entity;
   }
 }
 
@@ -79,6 +81,11 @@ function entrance(positioned){
   const noun = "entrance";
   const becoming = [25, poof];
   return _.assoc(_, uid(), {noun, positioned, indestructible, becoming});
+}
+
+function exit(positioned){
+  const noun = "exit";
+  return _.assoc(_, vars.exit, {noun, positioned, indestructible});
 }
 
 function poof(positioned){
@@ -149,7 +156,7 @@ function boulder(positioned, id = uid()){
   return _.assoc(_, id, {noun, pushable, rounded, positioned, gravitated});
 }
 
-const spawn = _.get({".": dirt, "X": debug ? rockford : entrance, "q": firefly, "B": butterfly, "a": amoeba, "r": boulder, "w": wall, "m": magicWall, "W": steelWall, "d": diamond, "P": dirt}, _, _.constantly(_.identity));
+const spawn = _.get({".": dirt, "X": debug ? rockford : entrance, "P": exit, "q": firefly, "B": butterfly, "a": amoeba, "r": boulder, "w": wall, "m": magicWall, "W": steelWall, "d": diamond}, _, _.constantly(_.identity));
 
 const positions = _.braid(_.array, _.range(width), _.range(height));
 
@@ -220,16 +227,20 @@ function transitions(inputs, entities, world){
 function becomes(inputs, entities, world){
   return _.reduce(function(world, [id, {becoming, positioned}]){
     const [tick, become] = becoming;
-    return tick > 0 ?
+    return tick == null ? world : tick > 0 ?
       _.chain(world, w.patch(_, id, {becoming: [tick - 1, become]})) :
       _.chain(world, _.dissoc(_, id), become(positioned));
   }, world, entities);
 }
 
 function collect(id){
-  return _.pipe(
-    _.updateIn(_, [vars.stats, "collected"], _.inc),
-    _.dissoc(_, id));
+  return function(world){
+    const revised = _.chain(world,
+      _.updateIn(_, [vars.stats, "collected"], _.inc),
+      _.dissoc(_, id));
+    const {needed, collected} = _.get(revised, vars.stats);
+      return collected < needed ? revised : _.chain(revised, w.patch(_, vars.exit, {portal}));
+  }
 }
 
 function move(id, direction, from, to){
@@ -288,7 +299,7 @@ function control(inputs, entities, world){
 function transmute(id, from, to){
   return function(world){
     const {noun} = _.get(world, id);
-    const {status} = _.get(world, vars.E);
+    const {status} = _.get(world, vars.enchantment);
     const blocked = _.get(world.db.via.positioned, to);
     if (status == "on" && !blocked && _.includes(["boulder", "diamond"], noun)) {
       const nid = uid();
@@ -302,7 +313,7 @@ function transmute(id, from, to){
 
 function fall(id){
   return function(world){
-    const {status} = _.get(world, vars.E);
+    const {status} = _.get(world, vars.enchantment);
     const top = _.get(world, id, {});
     const {positioned, gravitated, falling} = top;
     const below = nearby(positioned, "down");
@@ -311,7 +322,7 @@ function fall(id){
     const underneath = _.chain(positioned, nearby(_, "down"), nearby(_, "down"));
     const halted = bottom && !bottom.falling;
     return _.chain(world,
-      bottom?.enchanted && status !== "expired" && falling ? _.comp(transmute(id, positioned, underneath), _.update(_, vars.E, activate)) : _.identity,
+      bottom?.enchanted && status !== "expired" && falling ? _.comp(transmute(id, positioned, underneath), _.update(_, vars.enchantment, transform)) : _.identity,
       bottom?.explosive ? w.patch(_, belowId, {exploding}) : _.identity,
       bottom || !gravitated ? _.identity : w.patch(_, id, {positioned: below}),
       halted ? w.patch(_, id, {falling: null}) : _.identity);
@@ -549,8 +560,12 @@ $.sub($change, on("falling"), function({id, props: {falling}}){
       dom.removeClass(_, "falling"));
 });
 
-$.sub($change, on(vars.E, "status"), function({id, props: {status}, compared: [curr]}){
+$.sub($change, on(vars.enchantment, "status"), function({id, props: {status}, compared: [curr]}){
   dom.attr(el, "data-enchantment", curr.status);
+});
+
+$.sub($change, on(vars.exit, "portal"), function({id, props: {portal}, compared: [curr]}){
+  dom.toggleClass(document.getElementById(id), "portal", curr.portal);
 });
 
 $.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){

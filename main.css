@@ -28,6 +28,10 @@ body.smooth [data-noun] {
   background-position: -64px -192px;
   animation: flash .5s steps(1) infinite;
 }
+[data-noun='exit'].portal {
+  background-position: -64px -192px;
+  animation: flash .5s steps(1) infinite;
+}
 [data-noun='poof'] {
   background-position: 0 -192px;
   animation: materialize .2s steps(1);
@@ -80,6 +84,9 @@ body.smooth [data-noun] {
 [data-noun='wall'],
 [data-noun='magic-wall'] {
   background-position: -96px -192px;
+}
+[data-noun='exit'] {
+  background-position: -32px -192px;
 }
 [data-noun='steel-wall'] {
   background-position: -32px -192px;
