@@ -5,11 +5,17 @@ body {
   position: relative;
   margin: 0 auto;
 }
-#stats {
+#stats,
+#hint {
   position: relative;
   width: 1280px;
   height: 16px;
   margin: 5px auto;
+  color: white;
+}
+#hint {
+  text-align: center;
+  font-family: Tahoma;
 }
 #stats * {
   height: 16px;
