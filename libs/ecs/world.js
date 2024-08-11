@@ -170,11 +170,6 @@ function patch3(world, id, patch){
 
 export const patch = _.overload(null, patch1, null, patch3);
 
-export function bestow(...args){
-  const fs = _.initial(args), xs = _.last(args);
-  return _.map(_.juxt(_.identity, ...fs), xs);
-}
-
 function changed2(reel, id, options = {}){
   return _.plug(r.modified, id, options)(reel);
 }
@@ -185,11 +180,13 @@ function changed1(reel){
 
 export const changed = _.overload(null, changed1, changed2);
 
+export function augment(...args){
+  const fs = _.initial(args), xs = _.last(args);
+  return _.map(_.juxt(_.identity, ...fs), xs);
+}
+
 export function system(components, f){
   return function(world){
-    const inputs = world.inputs();
-    return f(inputs, _.map(function(id){
-      return [id, _.get(world, id)];
-    }, having(world, components)), world);
+    return f(world.inputs(), augment(_.get(world, _), having(world, components)), world);
   }
 }
