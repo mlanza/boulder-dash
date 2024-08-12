@@ -11,18 +11,16 @@ export {capture, frame} from "./icapture.js";
 
 const s = ss;
 
-function World(entities, inputs, db, hooks){
+function World(entities, db, hooks){
   this.entities = entities;
-  this.inputs = inputs;
   this.db = db;
   this.hooks = hooks;
 }
 
-export function world(inputs, indices){
+export function world(indices){
   const touching = _.binary(_.conj);
   return _.chain(new World(
     pm.map([]),
-    inputs,
     {},
     []),
     install(["components", "touched"], s.set([]), r.modified, function(id){
@@ -39,13 +37,13 @@ function lookup(self, id){
 }
 
 function assoc(self, id, entity){
-  return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.inputs, self.db, self.hooks),
+  return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.db, self.hooks),
     hooks(id, self));
 }
 
 function dissoc(self, id){
   const entity = _.get(self, id);
-  return _.chain(new World(_.dissoc(self.entities, id), self.inputs, self.db, self.hooks),
+  return _.chain(new World(_.dissoc(self.entities, id), self.db, self.hooks),
     hooks(id, self));
 }
 
@@ -57,7 +55,6 @@ export function clear(path){
   return function(self){
     const curr = _.getIn(self.db, path);
     return _.seq(curr) ? new World(self.entities,
-      self.inputs,
       _.updateIn(self.db, path, _.empty),
       self.hooks) : self;
   }
@@ -66,7 +63,6 @@ export function clear(path){
 function sets(path, value){
   return function(self){
     return new World(self.entities,
-      self.inputs,
       _.assocIn(self.db, path, value),
       self.hooks);
   }
@@ -103,7 +99,6 @@ export function install(path, init, trigger = _.constantly(_.constantly(null)), 
   return function(self){
     return new World(
       self.entities,
-      self.inputs,
       _.assocIn(self.db, path, init),
       _.conj(self.hooks, {path, trigger, update}));
   }
@@ -114,7 +109,6 @@ function hooks(id, prior){
     const reel = r.edit(self, prior);
     return new World(
       self.entities,
-      self.inputs,
       _.reduce(function(db, {path, trigger, update}){
         const triggered = trigger(id)(reel);
         return triggered ? _.updateIn(db, path, update(id, {reel, triggered})) : db;
@@ -187,6 +181,6 @@ export function augment(...args){
 
 export function system(f, components = []){
   return function(world){
-    return f(world.inputs(), augment(_.get(world, _), having(world, components)), world);
+    return f(augment(_.get(world, _), having(world, components)), world);
   }
 }
