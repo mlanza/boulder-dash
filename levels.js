@@ -145,7 +145,7 @@ export default [{
 }, {
   cave: "E",
   title: "Guards",
-  hint: "The jewels are there for grapping, but they are guarded by the deadly fireflies.",
+  hint: "The jewels are there for grabbing, but they are guarded by the deadly fireflies.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
