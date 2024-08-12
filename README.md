@@ -8,6 +8,16 @@ I've had a longtime fascination with [Entity Component Systems](Entity_component
 
 As usual my early commits especially are experimental, figuring out how best to proceed.
 
+The protagonist is directed via the keyboard:
+* Arrow Keys to move
+* Shift is used with Arrow Keys to dig or collect without moving
+* Escape to abort
+
+Use the query string to modify how the app is loaded:
+* `l`: the level number, default is 1
+* `debug`: 1 or 0, default is 0 - displays `falling` as a visual cues
+* `smooth`: 1 or 0, default is 0 - allows repositioned elements to glide into place
+
 ## License
 MIT
 
