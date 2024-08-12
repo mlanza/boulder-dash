@@ -1,7 +1,7 @@
 export default [{
   cave: "A",
   title: "Intro",
-  hint: "Pick up jewels and exit before time is up",
+  hint: "Pick up jewels and exit before time is up.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -32,7 +32,7 @@ export default [{
 }, {
   cave: "B",
   title: "Rooms",
-  hint: "Pick up jewels, but you must move boulders to get all jewels",
+  hint: "Pick up jewels, but you must move boulders to get all jewels.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -63,7 +63,7 @@ export default [{
 }, {
   cave: "C",
   title: "Maze",
-  hint: "Pick up jewels. You must get every jewel to exit",
+  hint: "Pick up jewels. You must get every jewel to exit.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -94,7 +94,7 @@ export default [{
 }, {
   cave: "D",
   title: "Butterflies",
-  hint: "Drop boulders on butterflies to create jewels",
+  hint: "Drop boulders on butterflies to create jewels.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -126,9 +126,9 @@ export default [{
   cave: "1",
   title: "Intermission",
   author: "Peter Liepa",
-  time: 150,
+  time: 10,
   size: [21, 12],
-  diamonds: { needed: 75, worth: 50, extras: 0 },
+  diamonds: { needed: 6, worth: 30, extras: 0 },
   map: `
     WWWWWWWWWWWWWWWWWWWWW
     W                   W
@@ -140,12 +140,12 @@ export default [{
     W                   W
     W                   W
     W                   W
-    W         b       P W
+    W         B       P W
     WWWWWWWWWWWWWWWWWWWWW`
 }, {
   cave: "E",
   title: "Guards",
-  hint: "The jewels are there for grapping, but they are guarded by the deadly fireflies",
+  hint: "The jewels are there for grapping, but they are guarded by the deadly fireflies.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -176,7 +176,7 @@ export default [{
 }, {
   cave: "F",
   title: "Firefly dens",
-  hint: "Each firefly is guarding a jewel",
+  hint: "Each firefly is guarding a jewel.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -207,7 +207,7 @@ export default [{
 }, {
   cave: "G",
   title: "Amoeba",
-  hint: "Surround the amoeba with boulders, so it can't grow anymore. Pick up jewels that are created when it suffocates",
+  hint: "Surround the amoeba with boulders, so it can't grow anymore. Pick up jewels that are created when it suffocates.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -238,7 +238,7 @@ export default [{
 }, {
   cave: "H",
   title: "Enchanted wall",
-  hint: "Activate the enchanted wall and create as many jewels as you can",
+  hint: "Activate the enchanted wall and create as many jewels as you can.",
   author: "Peter Liepa",
   time: 120,
   size: [40, 22],
@@ -289,7 +289,7 @@ export default [{
 }, {
   cave: "I",
   title: "Greed",
-  hint: "You have to get a lot of jewels here, lucky there are so many",
+  hint: "You have to get a lot of jewels here, lucky there are so many.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -320,7 +320,7 @@ export default [{
 }, {
   cave: "J",
   title: "Tracks",
-  hint: "Get the jewels, avoid the fireflies",
+  hint: "Get the jewels, avoid the fireflies.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -351,7 +351,7 @@ export default [{
 }, {
   cave: "K",
   title: "Crowd",
-  hint: "You must move a lot of boulders around in some tight spaces",
+  hint: "You must move a lot of boulders around in some tight spaces.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -382,7 +382,7 @@ export default [{
 }, {
   cave: "L",
   title: "Walls",
-  hint: "You must blast hrough walls to get at some of the jewels. Drop a boulder on a firefly at the right time and place to do this",
+  hint: "You must blast hrough walls to get at some of the jewels. Drop a boulder on a firefly at the right time and place to do this.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -433,7 +433,7 @@ export default [{
 }, {
   cave: "M",
   title: "Apocalypse",
-  hint: "Magically transform the butterflies into jewels, but don't waste any boulders and watch out the fireflies",
+  hint: "Magically transform the butterflies into jewels, but don't waste any boulders and watch out the fireflies.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -464,7 +464,7 @@ export default [{
   }, {
   cave: "N",
   title: "Zigzag",
-  hint: "Bring the butterflies and amoeba together and watch the jewels fly",
+  hint: "Bring the butterflies and amoeba together and watch the jewels fly.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -495,7 +495,7 @@ export default [{
 }, {
   cave: "O",
   title: "Funnel",
-  hint: "There is an enchanted wall at the bottom of the rock tunnel",
+  hint: "There is an enchanted wall at the bottom of the rock tunnel.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -526,7 +526,7 @@ export default [{
 }, {
   cave: "P",
   title: "Enchanted boxes",
-  hint: "The top of each square room is an enchanted wall, but you'll have to blast your way inside",
+  hint: "The top of each square room is an enchanted wall, but you'll have to blast your way inside.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
@@ -558,9 +558,9 @@ export default [{
   cave: "4",
   title: "Intermission",
   author: "Peter Liepa",
-  time: 150,
+  time: 20,
   size: [21, 12],
-  diamonds: { needed: 75, worth: 50, extras: 0 },
+  diamonds: { needed: 6, worth: 30, extras: 0 },
   map: `
     WWWWWWWWWWWWWWWWWWWWW
     W..X.......rrr......W
