@@ -212,13 +212,13 @@ function around(positioned, immediate = false){
     }, _));
 }
 
-function settles(inputs, entities, world){
+function settles(entities, world){
   return _.reduce(function(world, [id, {residue, positioned}]){
     return _.chain(world, _.dissoc(_, id), residue(positioned));
   }, world, entities)
 }
 
-function transitions(inputs, entities, world){
+function transitions(entities, world){
   return _.reduce(function(world, [id, {transitioning: [tick, patch]}]){
     return tick == null ? world : tick > 0 ?
       _.chain(world, w.patch(_, id, {transitioning: [tick - 1, patch]})) :
@@ -226,7 +226,7 @@ function transitions(inputs, entities, world){
   }, world, entities);
 }
 
-function becomes(inputs, entities, world){
+function becomes(entities, world){
   return _.reduce(function(world, [id, {becoming, positioned}]){
     const [tick, become] = becoming;
     return tick == null ? world : tick > 0 ?
@@ -273,32 +273,36 @@ function dig(id){
   return _.dissoc(_, id);
 }
 
-function abort(inputs, entities, world){
-  const esc = _.chain(inputs.keys, _.includes(_, "Escape"));
-  return esc ? _.reduce(function(memo, [id]){
-    return w.patch(memo, id, {exploding});
-  }, world, entities) : world;
+function abort(inputs){
+  return function(entities, world){
+    const esc = _.chain(inputs.keys, _.includes(_, "Escape"));
+    return esc ? _.reduce(function(memo, [id]){
+      return w.patch(memo, id, {exploding});
+    }, world, entities) : world;
+  }
 }
 
-function control(inputs, entities, world){
-  const keys = _.chain(inputs.keys, _.omit(_, "Shift"), _.omit(_, "Ctrl"), _.seq);
-  const stationary = _.chain(inputs.keys, _.includes(_, "Shift"));
-  return _.reduce(function(memo, [id, subject]){
-    const {positioned, controlled} = subject;
-    const direction = _.some(_.get(controlled, _), keys);
-    if (direction){
-      const beyond = locate(world, nearby(positioned, direction));
-      const {diggable, pushable, falling, collectible} = beyond.entity || {};
-      return _.chain(memo,
-        w.patch(_, id, {moving}),
-        _.includes(["left", "right"], direction) ? w.patch(_, id, {facing: direction}) : _.identity,
-        collectible ? collect(beyond.id) : _.identity,
-        diggable ? dig(beyond.id) : pushable && !falling ? push(beyond.id, direction, beyond, nearby(beyond.positioned, direction)) : _.identity,
-        stationary ? _.identity : move(id, direction, positioned, beyond.positioned));
-    } else {
-      return subject.moving ? w.patch(memo, id, {moving: null}) : world;
-    }
-  }, world, entities);
+function control(inputs){
+  return function(entities, world){
+    const keys = _.chain(inputs.keys, _.omit(_, "Shift"), _.omit(_, "Ctrl"), _.seq);
+    const stationary = _.chain(inputs.keys, _.includes(_, "Shift"));
+    return _.reduce(function(memo, [id, subject]){
+      const {positioned, controlled} = subject;
+      const direction = _.some(_.get(controlled, _), keys);
+      if (direction){
+        const beyond = locate(world, nearby(positioned, direction));
+        const {diggable, pushable, falling, collectible} = beyond.entity || {};
+        return _.chain(memo,
+          w.patch(_, id, {moving}),
+          _.includes(["left", "right"], direction) ? w.patch(_, id, {facing: direction}) : _.identity,
+          collectible ? collect(beyond.id) : _.identity,
+          diggable ? dig(beyond.id) : pushable && !falling ? push(beyond.id, direction, beyond, nearby(beyond.positioned, direction)) : _.identity,
+          stationary ? _.identity : move(id, direction, positioned, beyond.positioned));
+      } else {
+        return subject.moving ? w.patch(memo, id, {moving: null}) : world;
+      }
+    }, world, entities);
+  }
 }
 
 function transmute(id, from, to){
@@ -364,7 +368,7 @@ function pinned(world){ //unpinned items to roll first
   }
 }
 
-function gravity(inputs, entities, world){
+function gravity(entities, world){
   const vacated = alternating(world.db.vacated);
   const surrounding = _.chain(vacated,
     _.mapcat(function(positioned){
@@ -412,7 +416,7 @@ function explode(at, explosive, origin = false){
   }
 }
 
-function explodes(inputs, entities, world){
+function explodes(entities, world){
   return _.reduce(function(world, [id, {positioned, explosive, exploding}]){
     return exploding && positioned ? _.chain(world,
       explode(positioned, explosive, true),
@@ -467,20 +471,20 @@ function seek(world, id, positioned, seeking, going){
   }
 }
 
-function seeks(inputs, entities, world){
+function seeks(entities, world){
   return _.reduce(function(world, [id, {positioned, seeking, going}]){
     return seek(world, id, positioned, seeking, going);
   }, world, entities);
 }
 
-function rolls(inputs, entities, world){
+function rolls(entities, world){
   return _.reduce(function(world, [id, {positioned}]){
     return roll(positioned)(world);
   }, world, entities);
 }
 
 function countdown(ticks){
-  return function(inputs, entities, world){
+  return function(entities, world){
     const hero = _.get(world, vars.R);
     const stats =  _.getIn(world, [vars.stats]);
     const {time, started, exited} = stats;
@@ -504,7 +508,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(inputs, ["gravitated", "seeking", "controlled", "falling", "exploding", "becoming", "transitioning", "residue"]),
+  w.world(["gravitated", "seeking", "controlled", "falling", "exploding", "becoming", "transitioning", "residue"]),
   w.via("positioned"),
   enchantment(),
   _.assoc(_, vars.stats, _.merge(level.diamonds, {time, ready: false, exited: false, score: 0, collected: 0})));
@@ -635,14 +639,15 @@ function setRafInterval(callback, throttle) {
 }
 
 setRafInterval(function({time, ticks, delta}){
+  const inputs = _.deref($inputs);
   $.swap($state,
     _.fmap(_,
       _.pipe(
         w.system(transitions, ["transitioning"]),
         w.system(becomes, ["becoming"]),
         w.system(settles, ["residue"]),
-        w.system(abort, ["controlled"]),
-        w.system(control, ["controlled"]),
+        w.system(abort(inputs), ["controlled"]),
+        w.system(control(inputs), ["controlled"]),
         w.system(seeks, ["seeking"]),
         w.system(rolls, ["last-touched", "gravitated"]),
         w.system(gravity, ["falling"]),
