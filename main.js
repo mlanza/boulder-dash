@@ -71,7 +71,10 @@ const params = new URLSearchParams(location.search);
 const debug = params.get('debug') == 1;
 const smooth = params.get("smooth") == 1;
 const l = _.maybe(params.get("l"), parseInt) || 1;
-const level = _.get(levels, l - 1);
+const d = _.maybe(params.get("d"), parseInt) || 1;
+const lvl = _.get(levels, l - 1);
+const {difficulty} = lvl;
+const level = _.absorb(lvl, _.get(difficulty, d - 2, {}));
 const {cave, time, hint, slowGrowth} = level;
 const [width, height] = level.size;
 
