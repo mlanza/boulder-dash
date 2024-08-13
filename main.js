@@ -30,14 +30,30 @@ const vars = {
 function audio(path){
   const audio = new Audio(path);
   audio.preload = true;
-  return audio;
+  return function(){
+    try {
+      audio.play();
+    } catch {
+    }
+  }
+}
+
+function audios(...files){
+  let fs = _.cycle(_.mapa(audio, files));
+  return function(){
+    const f = _.first(fs);
+    fs = _.rest(fs);
+    f();
+  }
 }
 
 const sounds = {
   walk: audio('./sounds/walk_d.ogg'),
   collected: audio('./sounds/diamond_collect.ogg'),
-  stone: audio('./sounds/stone.ogg'),
-  crack: audio('./sounds/crack.ogg')
+  stone: audios('./sounds/stone.ogg', './sounds/stone_2.ogg'),
+  crack: audio('./sounds/crack.ogg'),
+  exploded: audio('./sounds/exploded.ogg'),
+  timeout: audios('./sounds/timeout_9.ogg', './sounds/timeout_8.ogg', './sounds/timeout_7.ogg', './sounds/timeout_6.ogg', './sounds/timeout_5.ogg', './sounds/timeout_4.ogg', './sounds/timeout_3.ogg', './sounds/timeout_2.ogg', './sounds/timeout_1.ogg')
 }
 
 function die(n){
@@ -549,10 +565,13 @@ const on = _.overload(null, on1, on2);
 
 $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
   if (id === vars.R && positioned === "updated") {
-    sounds.walk.play();
+    sounds.walk();
   }
   switch(positioned){
     case "added": {
+      if (curr.noun == "explosion") {
+        sounds.exploded();
+      }
       const [x, y] = curr.positioned;
       dom.append(el,
         $.doto(div({"data-noun": curr.noun, id}),
@@ -578,13 +597,19 @@ $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [c
 
 $.sub($change, on(vars.R, "positioned"), function({touched, props: {positioned}}){
   if (positioned === "added"){
-    sounds.crack.play();
+    sounds.crack();
   }
 });
 
 $.sub($change, on(vars.stats, "collected"), function({props: {collected}}){
   if (collected === "updated"){
-    sounds.collected.play();
+    sounds.collected();
+  }
+});
+
+$.sub($change, on(vars.stats, "time"), function({props: {time}, compared: [curr]}){
+  if (time === "updated" && curr.time < 10 && curr.time > 0){
+    sounds.timeout();
   }
 });
 
@@ -605,7 +630,7 @@ $.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
 
 $.sub($change, on("falling"), function({id, props: {falling}}){
   if (falling == "removed") {
-    sounds.stone.play();
+    sounds.stone();
   }
   _.maybe(document.getElementById(id),
     _.includes(["added"], falling) ?
