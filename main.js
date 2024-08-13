@@ -85,6 +85,7 @@ dom.text(dom.sel1("#hint"), hint);
 el.focus();
 
 const indestructible = true,
+      growing = true,
       portal = true,
       enchanted = true,
       explosive = _.constantly(_.identity),
@@ -136,7 +137,7 @@ function steelWall(positioned){
 
 function amoeba(positioned){
   const noun = "amoeba";
-  return _.assoc(_, uid(), {noun, positioned, indestructible});
+  return _.assoc(_, uid(), {noun, positioned, growing});
 }
 
 function wall(positioned){
@@ -541,7 +542,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(["gravitated", "seeking", "controlled", "falling", "exploding", "becoming", "transitioning", "residue"]),
+  w.world(["gravitated", "seeking", "controlled", "growing", "falling", "exploding", "becoming", "transitioning", "residue"]),
   w.via("positioned"),
   enchantment(),
   _.assoc(_, vars.stats, _.merge(level.diamonds, {time, ready: false, finished: false, score: 0, collected: 0})));
@@ -703,6 +704,38 @@ function setRafInterval(callback, throttle) {
   };
 }
 
+const slow = die(32);
+
+function room(world){
+  return function(at){
+    const adjacent = locate(world, at);
+    return !adjacent.id || adjacent.entity.diggable;
+  }
+}
+
+function grows(entities, world){
+  const size = _.count(entities);
+  const space = room(world);
+  const area = _.filter(function([id, {positioned}]){
+    return _.detect(space, around(positioned, true));
+  }, entities);
+  const suffocated = !_.seq(area);
+  function grow(world){
+    const id = _.chain(_.map(_.first, area), _.shuffle(alt.random, _), _.first);
+    const {positioned} = _.get(world, id);
+    const target = _.chain(
+      around(positioned, true),
+      _.filter(space, _),
+      _.shuffle(alt.random, _),
+      _.first,
+      _.plug(locate, world, _));
+    return _.chain(world,
+      target.id ? _.dissoc(_, target.id) : _.identity,
+      amoeba(target.positioned));
+  }
+  return slow() ? grow(world) : world;
+}
+
 setRafInterval(function({time, ticks, delta}){
   const inputs = _.deref($inputs);
   $.swap($state,
@@ -714,6 +747,7 @@ setRafInterval(function({time, ticks, delta}){
         w.system(abort(inputs), ["controlled"]),
         w.system(control(inputs), ["controlled"]),
         w.system(seeks, ["seeking"]),
+        w.system(grows, ["growing"]),
         w.system(rolls, ["last-touched", "gravitated"]),
         w.system(gravity, ["falling"]),
         w.system(explodes, ["exploding"]),
