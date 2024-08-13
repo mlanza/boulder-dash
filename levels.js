@@ -6,6 +6,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: {needed: 12, worth: 10, extras: 15},
+  difficulty: [{time: 110}, {time: 70}, {time: 40}, {time: 30}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     W...... ..d.r .....r.r....... ....r....W
@@ -37,6 +38,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: {needed: 10, worth: 20, extras: 50},
+  difficulty: [{time: 110, diamonds: {needed: 12}}, {time: 70, diamonds: {needed: 9}}, {time: 70, diamonds: {needed: 13}}, {time: 70, diamonds: {needed: 10}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     W.r..r..w.r...d.w... .r.wr......w..rr..W
@@ -67,7 +69,8 @@ export default [{
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
-  diamonds: {needed: 10, worth: 15, extras: 0},
+  diamonds: {needed: 24, worth: 15, extras: 0},
+  difficulty: [{time: 100, diamonds: {needed: 23}}, {time: 90, diamonds: {needed: 24}}, {time: 80, diamonds: {needed: 23}}, {time: 70, diamonds: {needed: 21}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     Wr.ww.wrr.w...rwr..r....w...r.....rw.d.W
@@ -98,7 +101,8 @@ export default [{
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
-  diamonds: {needed: 10, worth: 5, extras: 20},
+  diamonds: {needed: 36, worth: 5, extras: 20},
+  difficulty: [{time: 100}, {time: 80}, {time: 60}, {time: 50}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     WX.....r....................r........r.W
@@ -150,6 +154,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: {needed: 4, worth: 50, extras: 90},
+  difficulty: [{time: 120, diamonds: {needed: 5}}, {time: 90, diamonds: {needed: 6}}, {time: 60, diamonds: {needed: 7}}, {time: 30, diamonds: {needed: 8}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     WX.....................................W
@@ -180,7 +185,8 @@ export default [{
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
-  diamonds: {needed: 4, worth: 50, extras: 90},
+  diamonds: {needed: 4, worth: 40, extras: 60},
+  difficulty: [{time: 120, diamonds: {needed: 6}}, {time: 100, diamonds: {needed: 7}}, {time: 90, diamonds: {needed: 8}}, {time: 80, diamonds: {needed: 8}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     Wwwwwwwwww....r.r..r........r.wwwwwwwwwW
@@ -209,10 +215,11 @@ export default [{
   title: "Amoeba",
   hint: "Surround the amoeba with boulders, so it can't grow anymore. Pick up jewels that are created when it suffocates.",
   author: "Peter Liepa",
-  slowGrowth: 20,
-  time: 150,
+  slowGrowth: 75,
+  time: 120,
   size: [40, 22],
   diamonds: {needed: 15, worth: 10, extras: 20},
+  difficulty: [{diamonds: {needed: 20}}, {diamonds: {needed: 25}}, {diamonds: {needed: 25}}, {diamonds: {needed: 25}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     W. .. .rr..... ..r. X.... rr r..r. .  .W
@@ -243,7 +250,8 @@ export default [{
   author: "Peter Liepa",
   time: 120,
   size: [40, 22],
-  diamonds: {needed: 15, worth: 10, extras: 20},
+  diamonds: {needed: 10, worth: 10, extras: 20},
+  difficulty: [{time: 110, diamonds: {needed: 15}}, {time: 100, diamonds: {needed: 20}}, {time: 90, diamonds: {needed: 20}}, {time: 80, diamonds: {needed: 20}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     W . r.. . .. ..r. ..X ..r.  ..r. r... .W
@@ -271,9 +279,9 @@ export default [{
   cave: "2",
   title: "Intermission",
   author: "Peter Liepa",
-  time: 150,
+  time: 15,
   size: [21, 12],
-  diamonds: { needed: 75, worth: 50, extras: 0 },
+  diamonds: { needed: 16, worth: 50, extras: 0 },
   map: `
     WWWWWWWWWWWWWWWWWWWWW
     Wrq...............r.W
@@ -294,7 +302,8 @@ export default [{
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
-  diamonds: {needed: 75, worth: 10, extras: 20},
+  diamonds: {needed: 75, worth: 5, extras: 10},
+  difficulty: [{diamonds: {needed: 75}}, {time: 130, diamonds: {needed: 80}}, {time: 130, diamonds: {needed: 85}}, {time: 120, diamonds: {needed: 90}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     Wdddrrddrddr.rrrrdrdd.ddrddrddddrrdrdrrW
@@ -325,7 +334,8 @@ export default [{
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
-  diamonds: {needed: 75, worth: 25, extras: 60},
+  diamonds: {needed: 12, worth: 25, extras: 60},
+  difficulty: [{time: 130}, {time: 120}, {time: 110}, {time: 100}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     W............X.........................W
@@ -356,7 +366,8 @@ export default [{
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
-  diamonds: {needed: 75, worth: 50, extras: 0},
+  diamonds: {needed: 6, worth: 50, extras: 0},
+  difficulty: [{time: 120}, {time: 150}, {time: 150}, {time: 240}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     Wr.rd.rrr.w...drr..rw...d...r.w...dr.r.W
@@ -383,11 +394,12 @@ export default [{
 }, {
   cave: "L",
   title: "Walls",
-  hint: "You must blast hrough walls to get at some of the jewels. Drop a boulder on a firefly at the right time and place to do this.",
+  hint: "You must blast through walls to get at some of the jewels. Drop a boulder on a firefly at the right time and place to do this.",
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
-  diamonds: {needed: 75, worth: 50, extras: 0},
+  diamonds: {needed: 19, worth: 20, extras: 0},
+  difficulty: [{time: 170, diamonds: {needed: 19}}, {time: 160, diamonds: {needed: 14}}, {time: 160, diamonds: {needed: 16}}, {time: 160, diamonds: {needed: 21}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     Wr. ...rr.....r.r..r........r.....r..d.W
@@ -415,9 +427,9 @@ export default [{
   cave: "3",
   title: "Intermission",
   author: "Peter Liepa",
-  time: 150,
+  time: 20,
   size: [21, 12],
-  diamonds: { needed: 75, worth: 50, extras: 0 },
+  diamonds: { needed: 14, worth: 10, extras: 0 },
   map: `
     WWWWWWWWWWWWWWWWWWWWW
     W       X           W
@@ -437,8 +449,10 @@ export default [{
   hint: "Magically transform the butterflies into jewels, but don't waste any boulders and watch out the fireflies.",
   author: "Peter Liepa",
   time: 150,
+  slowGrowth: 140,
   size: [40, 22],
-  diamonds: {needed: 75, worth: 50, extras: 0},
+  diamonds: {needed: 50, worth: 5, extras: 8},
+  difficulty: [{time: 155, diamonds: {needed: 55}}, {time: 150, diamonds: {needed: 60}}, {time: 145, diamonds: {needed: 70}}, {time: 140, diamonds: {needed: 80}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     W..X...................................W
@@ -465,11 +479,13 @@ export default [{
   }, {
   cave: "N",
   title: "Zigzag",
-  hint: "Bring the butterflies and amoeba together and watch the jewels fly.",
+  hint: "Magically transform the butterflies into jewels, but don't waste any boulders and watch out the fireflies.",
   author: "Peter Liepa",
   time: 150,
+  slowGrowth: 20,
   size: [40, 22],
-  diamonds: { needed: 75, worth: 50, extras: 0 },
+  diamonds: { needed: 30, worth: 10, extras: 20 },
+  difficulty: [{time: 145, diamonds: {needed: 35}}, {time: 140, diamonds: {needed: 40}}, {time: 135, diamonds: {needed: 42}}, {time: 130, diamonds: {needed: 45}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     Wr.....rr.P.....r.Xra.......r........r.W
@@ -500,7 +516,8 @@ export default [{
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
-  diamonds: { needed: 75, worth: 50, extras: 0 },
+  diamonds: { needed: 15, worth: 10, extras: 20 },
+  difficulty: [{diamonds: {needed: 20}}, {diamonds: {needed: 20}}, {diamonds: {needed: 25}}, {time: 140, diamonds: {needed: 30}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     Wr.rr..  r..r..r.r..Xr..r.rr..r.rr...r.W
@@ -531,7 +548,8 @@ export default [{
   author: "Peter Liepa",
   time: 150,
   size: [40, 22],
-  diamonds: { needed: 75, worth: 50, extras: 0 },
+  diamonds: { needed: 12, worth: 10, extras: 20 },
+  difficulty: [{diamonds: {needed: 15}}, {diamonds: {needed: 15}}, {diamonds: {needed: 15}}, {diamonds: {needed: 12}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     WX..r..........r........r.....r..r.....W

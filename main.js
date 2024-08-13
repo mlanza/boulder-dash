@@ -717,16 +717,17 @@ function suffocate(world, what){
 
 function grow(world, area){
   const id = _.chain(_.map(_.first, area), _.shuffle(alt.random, _), _.first);
-  const {positioned} = _.get(world, id);
-  const target = _.chain(
-    around(positioned, true),
+  const {positioned} = _.maybe(id, _.get(world, _)) || {};
+  const target = _.maybe(
+    positioned,
+    _.plug(around, _, true),
     _.filter(room(world), _),
     _.shuffle(alt.random, _),
     _.first,
     _.plug(locate, world, _));
   return _.chain(world,
-    target.id ? _.dissoc(_, target.id) : _.identity,
-    amoeba(target.positioned));
+    target?.id ? _.dissoc(_, target.id) : _.identity,
+    target ? amoeba(target.positioned) : _.identity);
 }
 
 function grows(entities, world){
