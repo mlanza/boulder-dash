@@ -1,6 +1,5 @@
 import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
-import imm from "../atomic_/immutables.js";
 import * as c from "./icapture.js";
 import * as r from "./reel.js";
 import * as sm from "./serial-map.js";
