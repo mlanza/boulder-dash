@@ -209,6 +209,7 @@ export default [{
   title: "Amoeba",
   hint: "Surround the amoeba with boulders, so it can't grow anymore. Pick up jewels that are created when it suffocates.",
   author: "Peter Liepa",
+  slowGrowth: 20,
   time: 150,
   size: [40, 22],
   diamonds: {needed: 15, worth: 10, extras: 20},
