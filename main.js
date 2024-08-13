@@ -1,7 +1,6 @@
 import _ from "./libs/atomic_/core.js";
 import $ from "./libs/atomic_/shell.js";
 import dom from "./libs/atomic_/dom.js";
-import imm from "./libs/atomic_/immutables.js";
 import ss from "./libs/ecs_/serial-set.js";
 import sm from "./libs/ecs_/serial-map.js";
 import pm from "./libs/ecs_/part-map.js";
