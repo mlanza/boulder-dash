@@ -19,11 +19,25 @@ const uid = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 const s = ss;
 const div = dom.tag("div"), span = dom.tag("span");
 const el = dom.sel1("#stage");
+
 const vars = {
   R: uid(),
   stats: uid(),
   enchantment: uid(),
   exit: uid()
+}
+
+function audio(path){
+  const audio = new Audio(path);
+  audio.preload = true;
+  return audio;
+}
+
+const sounds = {
+  walk: audio('./sounds/walk_d.ogg'),
+  collected: audio('./sounds/diamond_collect.ogg'),
+  stone: audio('./sounds/stone.ogg'),
+  crack: audio('./sounds/crack.ogg')
 }
 
 function die(n){
@@ -518,7 +532,7 @@ const $state = $.atom(r.reel(blank));
 const $changed = $.map(w.changed, $state);
 const $change = $.atom(null);
 
-reg({$state, $change, $inputs, vars, r, w});
+reg({$state, $change, $inputs, vars, r, w, sounds});
 
 function on2(id, prop){
   return _.filter(
@@ -534,6 +548,9 @@ function on1(prop){
 const on = _.overload(null, on1, on2);
 
 $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
+  if (id === vars.R && positioned === "updated") {
+    sounds.walk.play();
+  }
   switch(positioned){
     case "added": {
       const [x, y] = curr.positioned;
@@ -559,6 +576,18 @@ $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [c
   }
 });
 
+$.sub($change, on(vars.R, "positioned"), function({touched, props: {positioned}}){
+  if (positioned === "added"){
+    sounds.crack.play();
+  }
+});
+
+$.sub($change, on(vars.stats, "collected"), function({props: {collected}}){
+  if (collected === "updated"){
+    sounds.collected.play();
+  }
+});
+
 $.eachkv(function(key, digits){
   $.sub($change, on(vars.stats, key), function({compared: [curr]}){
     dom.html(dom.sel1(`#${key}`), _.map(function(char){
@@ -566,7 +595,6 @@ $.eachkv(function(key, digits){
     }, _.lpad(_.get(curr, key), digits, 0)));
   });
 }, {needed: 2, worth: 2, extras: 2, collected: 2, time: 3, score: 6});
-
 
 $.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
   _.maybe(document.getElementById(id),
@@ -576,6 +604,9 @@ $.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
 });
 
 $.sub($change, on("falling"), function({id, props: {falling}}){
+  if (falling == "removed") {
+    sounds.stone.play();
+  }
   _.maybe(document.getElementById(id),
     _.includes(["added"], falling) ?
       dom.addClass(_, "falling") :
