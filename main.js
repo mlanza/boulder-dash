@@ -55,6 +55,7 @@ const sounds = {
   stone: audio('./sounds/stone.ogg', './sounds/stone_2.ogg'),
   crack: audio('./sounds/crack.ogg'),
   exploded: audio('./sounds/exploded.ogg'),
+  finished: audio('./sounds/finished.ogg'),
   timeout: audio('./sounds/timeout_9.ogg', './sounds/timeout_8.ogg', './sounds/timeout_7.ogg', './sounds/timeout_6.ogg', './sounds/timeout_5.ogg', './sounds/timeout_4.ogg', './sounds/timeout_3.ogg', './sounds/timeout_2.ogg', './sounds/timeout_1.ogg')
 }
 
@@ -287,7 +288,7 @@ function move(id, direction, from, to){
     const portal = there.entity?.portal;
     const collision = !!there.id && !portal;
     return _.chain(world,
-      portal ? _.comp(_.dissoc(_, there.id), w.patch(_, id, {moving: false, facing: null, controlled: null}), _.assocIn(_, [vars.stats, "exited"], true)) : _.identity,
+      portal ? _.comp(_.dissoc(_, there.id), w.patch(_, id, {moving: false, facing: null, controlled: null}), _.assocIn(_, [vars.stats, "finished"], true)) : _.identity,
       collision || exploding ? _.identity : w.patch(_, id, {positioned: to}));
   };
 }
@@ -520,7 +521,7 @@ function countdown(ticks){
   return function(entities, world){
     const hero = _.get(world, vars.R);
     const stats =  _.getIn(world, [vars.stats]);
-    const {time, started, exited} = stats;
+    const {time, started, finished} = stats;
     if (started && hero && !hero.controlled && time){
       const amt = _.min(time, 10);
       return _.chain(world, _.updateIn(_, [vars.stats, "time"], _.subtract(_, amt)), _.updateIn(_, [vars.stats, "score"], _.add(_, amt * 10)));
@@ -529,7 +530,7 @@ function countdown(ticks){
       return _.assocIn(world, [vars.stats, "started"], ticks);
     }
     const tick = (ticks - started) % 10 === 0;
-    return time === 0 && !exited ? w.patch(world, vars.R, {exploding}) : time > 0 && tick ? _.updateIn(world, [vars.stats, "time"], _.dec) : world;
+    return time === 0 && !finished ? w.patch(world, vars.R, {exploding}) : time > 0 && tick ? _.updateIn(world, [vars.stats, "time"], _.dec) : world;
   }
 }
 
@@ -544,7 +545,7 @@ const blank = _.chain(
   w.world(["gravitated", "seeking", "controlled", "falling", "exploding", "becoming", "transitioning", "residue"]),
   w.via("positioned"),
   enchantment(),
-  _.assoc(_, vars.stats, _.merge(level.diamonds, {time, ready: false, exited: false, score: 0, collected: 0})));
+  _.assoc(_, vars.stats, _.merge(level.diamonds, {time, ready: false, finished: false, score: 0, collected: 0})));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(w.changed, $state);
@@ -609,8 +610,14 @@ $.sub($change, on(vars.stats, "collected"), function({props: {collected}}){
   }
 });
 
-$.sub($change, on(vars.stats, "time"), function({props: {time}, compared: [curr]}){
-  if (time === "updated" && curr.time < 10 && curr.time > 0){
+$.sub($change, on(vars.stats, "finished"), function({props: {finished}}){
+  if (finished === "updated"){
+    sounds.finished();
+  }
+});
+
+$.sub($change, on(vars.stats, "time"), function({props: {time}, compared: [curr], reel}){
+  if (time === "updated" && curr.time < 10 && curr.time > 0 && !_.chain(reel, w.current, _.getIn(_, [vars.stats, "finished"]))) {
     sounds.timeout();
   }
 });

@@ -35,7 +35,7 @@ export function modified(id, {path = [], props = null, pattern = null} = {}){
       return memo;
      }, {}, props || _.union(_.keys(curr), _.keys(prior))) : {}, _.compact, _.blot);
     if (_touched) {
-      const change = {id, path, touched: _touched, props: _props, compared};
+      const change = {id, path, touched: _touched, props: _props, compared, reel};
       return conform(pattern, change) ? change : null;
     } else {
       return null;
