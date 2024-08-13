@@ -27,7 +27,7 @@ const vars = {
   exit: uid()
 }
 
-function audio(path){
+function audio1(path){
   const audio = new Audio(path);
   audio.preload = true;
   return function(){
@@ -38,8 +38,8 @@ function audio(path){
   }
 }
 
-function audios(...files){
-  let fs = _.cycle(_.mapa(audio, files));
+function audio2(...files){
+  let fs = _.cycle(_.mapa(audio1, files));
   return function(){
     const f = _.first(fs);
     fs = _.rest(fs);
@@ -47,13 +47,15 @@ function audios(...files){
   }
 }
 
+const audio = _.overload(null, audio1, audio2);
+
 const sounds = {
-  walk: audio('./sounds/walk_d.ogg'),
+  walk: audio('./sounds/walk_d.ogg', './sounds/walk_e.ogg'),
   collected: audio('./sounds/diamond_collect.ogg'),
-  stone: audios('./sounds/stone.ogg', './sounds/stone_2.ogg'),
+  stone: audio('./sounds/stone.ogg', './sounds/stone_2.ogg'),
   crack: audio('./sounds/crack.ogg'),
   exploded: audio('./sounds/exploded.ogg'),
-  timeout: audios('./sounds/timeout_9.ogg', './sounds/timeout_8.ogg', './sounds/timeout_7.ogg', './sounds/timeout_6.ogg', './sounds/timeout_5.ogg', './sounds/timeout_4.ogg', './sounds/timeout_3.ogg', './sounds/timeout_2.ogg', './sounds/timeout_1.ogg')
+  timeout: audio('./sounds/timeout_9.ogg', './sounds/timeout_8.ogg', './sounds/timeout_7.ogg', './sounds/timeout_6.ogg', './sounds/timeout_5.ogg', './sounds/timeout_4.ogg', './sounds/timeout_3.ogg', './sounds/timeout_2.ogg', './sounds/timeout_1.ogg')
 }
 
 function die(n){
