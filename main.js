@@ -72,7 +72,7 @@ const debug = params.get('debug') == 1;
 const smooth = params.get("smooth") == 1;
 const l = _.maybe(params.get("l"), parseInt) || 1;
 const level = _.get(levels, l - 1);
-const {cave, time, hint} = level;
+const {cave, time, hint, slowGrowth} = level;
 const [width, height] = level.size;
 
 dom.addStyle(el, "width", `${width * 32}px`)
@@ -545,7 +545,7 @@ const blank = _.chain(
   w.world(["gravitated", "seeking", "controlled", "growing", "falling", "exploding", "becoming", "transitioning", "residue"]),
   w.via("positioned"),
   enchantment(),
-  _.assoc(_, vars.stats, _.merge(level.diamonds, {time, ready: false, finished: false, score: 0, collected: 0})));
+  _.assoc(_, vars.stats, _.merge(level.diamonds, {allotted: time, time, slowGrowth, ready: false, finished: false, score: 0, collected: 0})));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(w.changed, $state);
@@ -704,8 +704,6 @@ function setRafInterval(callback, throttle) {
   };
 }
 
-const slow = die(32);
-
 const room = _.curry(function(world, at){
   const adjacent = locate(world, at);
   return !adjacent.id || adjacent.entity.diggable;
@@ -733,12 +731,15 @@ function grow(world, area){
 
 function grows(entities, world){
   const size = _.count(entities);
+  const {time, allotted, slowGrowth} = _.get(world, vars.stats);
+  const slow = time >= allotted - slowGrowth;
+  const expand = die(slow ? 32 : 4);
   const oversized = size >= 200;
   const area = _.filter(function([id, {positioned}]){
     return _.detect(room(world), around(positioned, true));
   }, entities);
   const suffocated = !_.seq(area);
-  return oversized ? suffocate(world, oversized ? boulder : diamond) : slow() ? grow(world, area) : world;
+  return oversized ? suffocate(world, oversized ? boulder : diamond) : expand() ? grow(world, area) : world;
 }
 
 setRafInterval(function({time, ticks, delta}){
