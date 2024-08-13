@@ -91,7 +91,7 @@ $.doto(World,
   _.implement(_.ILookup, {lookup}),
   _.implement(_.IAssociative, {assoc, contains}),
   _.implement(_.ISeqable, {seq}),
-  _.implement(c.ICapture, {capture})); //TODO implement frame
+  _.implement(c.ICapture, {capture}));
 
 //concrete fns
 export function install(path, init, trigger = _.constantly(_.constantly(null)), update = _.noop){
