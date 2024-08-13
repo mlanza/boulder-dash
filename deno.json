@@ -1,0 +1,7 @@
+{
+  "tasks": {
+    "positioned": "deno run positioned.js",
+    "sprites": "magick convert ./images/sprites.png -fuzz 3% -fill \"#c37c75\" -opaque \"#626262\" -fuzz 3% -fill \"#6a5400\" -opaque \"#a26d2e\" spritesp.png",
+    "serve": "http-server"
+  }
+}
