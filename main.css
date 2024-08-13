@@ -53,7 +53,56 @@ body.debug .falling {
   position: absolute;
   height: 32px;
   width: 32px;
+  color: #6a5400;
+  color: #a26d2e;
+  color: #626262;
+  color: #9B6639;
   background-image: url(./images/sprites.png);
+}
+#stage[data-cave='b'] [data-noun] {
+  background-image: url(./images/spritesb.png);
+}
+#stage[data-cave='c'] [data-noun] {
+  background-image: url(./images/spritesc.png);
+}
+#stage[data-cave='d'] [data-noun] {
+  background-image: url(./images/spritesd.png);
+}
+#stage[data-cave='e'] [data-noun] {
+  background-image: url(./images/spritese.png);
+}
+#stage[data-cave='f'] [data-noun] {
+  background-image: url(./images/spritesf.png);
+}
+#stage[data-cave='g'] [data-noun] {
+  background-image: url(./images/spritesg.png);
+}
+#stage[data-cave='h'] [data-noun] {
+  background-image: url(./images/spritesh.png);
+}
+#stage[data-cave='i'] [data-noun] {
+  background-image: url(./images/spritesi.png);
+}
+#stage[data-cave='j'] [data-noun] {
+  background-image: url(./images/spritesj.png);
+}
+#stage[data-cave='k'] [data-noun] {
+  background-image: url(./images/spritesk.png);
+}
+#stage[data-cave='l'] [data-noun] {
+  background-image: url(./images/spritesl.png);
+}
+#stage[data-cave='m'] [data-noun] {
+  background-image: url(./images/spritesm.png);
+}
+#stage[data-cave='n'] [data-noun] {
+  background-image: url(./images/spritesn.png);
+}
+#stage[data-cave='o'] [data-noun] {
+  background-image: url(./images/spriteso.png);
+}
+#stage[data-cave='p'] [data-noun] {
+  background-image: url(./images/spritesp.png);
 }
 body.smooth [data-noun] {
   transition: top .1s, left .1s;

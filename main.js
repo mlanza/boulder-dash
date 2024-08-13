@@ -40,11 +40,12 @@ const debug = params.get('debug') == 1;
 const smooth = params.get("smooth") == 1;
 const l = _.maybe(params.get("l"), parseInt) || 1;
 const level = _.get(levels, l - 1);
-const {time, hint} = level;
+const {cave, time, hint} = level;
 const [width, height] = level.size;
 
 dom.addStyle(el, "width", `${width * 32}px`)
 dom.addStyle(el, "height", `${height * 32}px`);
+dom.attr(el, "data-cave", _.lowerCase(cave));
 dom.toggleClass(document.body, "smooth", smooth);
 dom.toggleClass(document.body, "debug", debug);
 dom.text(dom.sel1("#hint"), hint);
