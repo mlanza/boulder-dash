@@ -620,7 +620,7 @@ $.sub($change, on(vars.stats, "finished"), function({props: {finished}}){
 });
 
 $.sub($change, on(vars.stats, "time"), function({props: {time}, compared: [curr], reel}){
-  if (time === "updated" && curr.time < 10 && curr.time > 0 && !_.chain(reel, w.current, _.getIn(_, [vars.stats, "finished"]))) {
+  if (time === "updated" && curr.time < 10 && curr.time > 0 && !_.chain(reel, r.current, _.getIn(_, [vars.stats, "finished"]))) {
     sounds.timeout();
   }
 });
