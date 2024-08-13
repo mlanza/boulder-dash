@@ -706,34 +706,39 @@ function setRafInterval(callback, throttle) {
 
 const slow = die(32);
 
-function room(world){
-  return function(at){
-    const adjacent = locate(world, at);
-    return !adjacent.id || adjacent.entity.diggable;
-  }
+const room = _.curry(function(world, at){
+  const adjacent = locate(world, at);
+  return !adjacent.id || adjacent.entity.diggable;
+});
+
+function suffocate(world, what){
+  return _.reduce(function(world, [id]){
+    return w.patch(world, id, {becoming: [0, what]});
+  }, world, entities);
+}
+
+function grow(world, area){
+  const id = _.chain(_.map(_.first, area), _.shuffle(alt.random, _), _.first);
+  const {positioned} = _.get(world, id);
+  const target = _.chain(
+    around(positioned, true),
+    _.filter(room(world), _),
+    _.shuffle(alt.random, _),
+    _.first,
+    _.plug(locate, world, _));
+  return _.chain(world,
+    target.id ? _.dissoc(_, target.id) : _.identity,
+    amoeba(target.positioned));
 }
 
 function grows(entities, world){
   const size = _.count(entities);
-  const space = room(world);
+  const oversized = size >= 200;
   const area = _.filter(function([id, {positioned}]){
-    return _.detect(space, around(positioned, true));
+    return _.detect(room(world), around(positioned, true));
   }, entities);
   const suffocated = !_.seq(area);
-  function grow(world){
-    const id = _.chain(_.map(_.first, area), _.shuffle(alt.random, _), _.first);
-    const {positioned} = _.get(world, id);
-    const target = _.chain(
-      around(positioned, true),
-      _.filter(space, _),
-      _.shuffle(alt.random, _),
-      _.first,
-      _.plug(locate, world, _));
-    return _.chain(world,
-      target.id ? _.dissoc(_, target.id) : _.identity,
-      amoeba(target.positioned));
-  }
-  return slow() ? grow(world) : world;
+  return oversized ? suffocate(world, oversized ? boulder : diamond) : slow() ? grow(world, area) : world;
 }
 
 setRafInterval(function({time, ticks, delta}){
@@ -741,13 +746,13 @@ setRafInterval(function({time, ticks, delta}){
   $.swap($state,
     _.fmap(_,
       _.pipe(
+        w.system(grows, ["growing"]),
         w.system(transitions, ["transitioning"]),
         w.system(becomes, ["becoming"]),
         w.system(settles, ["residue"]),
         w.system(abort(inputs), ["controlled"]),
         w.system(control(inputs), ["controlled"]),
         w.system(seeks, ["seeking"]),
-        w.system(grows, ["growing"]),
         w.system(rolls, ["last-touched", "gravitated"]),
         w.system(gravity, ["falling"]),
         w.system(explodes, ["exploding"]),
