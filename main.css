@@ -46,6 +46,9 @@ body {
   width: 64px;
   height: 16px;
 }
+body.debug [data-noun='magic-wall'] {
+  outline: solid 1px cyan;
+}
 body.debug .falling {
   outline: solid 1px red;
 }
