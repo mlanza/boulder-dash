@@ -29,10 +29,14 @@ const vars = {
 function audio1(path){
   const audio = new Audio(path);
   audio.preload = true;
-  return function(){
+  return function(loop = false){
     try {
+      audio.loop = loop;
       audio.play();
     } catch {
+    }
+    return function(){
+      audio.pause();
     }
   }
 }
@@ -52,11 +56,14 @@ const sounds = {
   walk: audio('./sounds/walk_d.ogg', './sounds/walk_e.ogg'),
   collected: audio('./sounds/diamond_collect.ogg'),
   stone: audio('./sounds/stone.ogg', './sounds/stone_2.ogg'),
+  amoeba: audio('./sounds/amoeba.ogg'),
+  magicWall: audio('./sounds/magic_wall.ogg'),
   crack: audio('./sounds/crack.ogg'),
   exploded: audio('./sounds/exploded.ogg'),
   finished: audio('./sounds/finished.ogg'),
   timeout: audio('./sounds/timeout_9.ogg', './sounds/timeout_8.ogg', './sounds/timeout_7.ogg', './sounds/timeout_6.ogg', './sounds/timeout_5.ogg', './sounds/timeout_4.ogg', './sounds/timeout_3.ogg', './sounds/timeout_2.ogg', './sounds/timeout_1.ogg')
 }
+const cease = {};
 
 function die(n){
   return function(){
@@ -167,7 +174,7 @@ function rockford(positioned){
 
 function diamond(positioned, id = uid()){
   const noun = "diamond";
-  return _.assoc(_, id, {noun, collectible, rounded, positioned, falling, gravitated});
+  return _.assoc(_, id, {noun, collectible, rounded, positioned, gravitated, falling});
 }
 
 function enemy(noun, how, enemies, {going = "left", explosive = _.constantly(_.identity)} = {}){
@@ -192,7 +199,7 @@ function dirt(positioned){
 
 function boulder(positioned, id = uid()){
   const noun = "boulder";
-  return _.assoc(_, id, {noun, pushable, rounded, positioned, gravitated});
+  return _.assoc(_, id, {noun, pushable, rounded, positioned, gravitated, falling});
 }
 
 const spawn = _.get({".": dirt, "X": debug ? rockford : entrance, "P": exit, "q": firefly, "B": butterfly, "a": amoeba, "r": boulder, "w": wall, "m": magicWall, "W": steelWall, "d": diamond}, _, _.constantly(_.identity));
@@ -304,7 +311,7 @@ function push(id, direction, from, to){
     const beneath = _.get(world, nearby(to, "down"));
     const supported = beneath && !beneath.falling;
     return _.chain(world,
-      occupied || !pushable || falling ? _.identity : w.patch(_, id, Object.assign({positioned: to}, gravitated && supported ? {falling: true} : {})));
+      occupied || !pushable || falling ? _.identity : w.patch(_, id, Object.assign({positioned: to}, gravitated && !supported ? {falling: true} : {})));
   } : _.identity;
 }
 
@@ -616,6 +623,17 @@ $.sub($change, on(vars.R, "positioned"), function({touched, props: {positioned}}
   }
 });
 
+$.sub($change, on("growing"), function({touched, props: {growing}, reel}){
+  if (growing === "added"){
+    cease.amoeba = sounds.amoeba(true);
+  } else if (growing === "removed") {
+    const world = r.current(reel);
+    if (!_.seq(world.db.components.growing)){
+      cease.amoeba();
+    }
+  }
+});
+
 $.sub($change, on(vars.stats, "collected"), function({props: {collected}}){
   if (collected === "updated"){
     sounds.collected();
@@ -660,6 +678,14 @@ $.sub($change, on("falling"), function({id, props: {falling}}){
 });
 
 $.sub($change, on(vars.enchantment, "status"), function({id, props: {status}, compared: [curr]}){
+  switch(curr.status) {
+    case "on":
+      cease.magicWall = sounds.magicWall(true);
+      break;
+    case "expired":
+      cease.magicWall();
+      break;
+  }
   dom.attr(el, "data-enchantment", curr.status);
 });
 
@@ -721,7 +747,7 @@ const room = _.curry(function(world, at){
   return !adjacent.id || adjacent.entity.diggable;
 });
 
-function suffocate(world, what){
+function suffocate(world, entities, what){
   return _.reduce(function(world, [id]){
     return w.patch(world, id, {becoming: [0, what]});
   }, world, entities);
@@ -752,7 +778,7 @@ function grows(entities, world){
     return _.detect(room(world), around(positioned, true));
   }, entities);
   const suffocated = !_.seq(area);
-  return oversized ? suffocate(world, oversized ? boulder : diamond) : expand() ? grow(world, area) : world;
+  return suffocated || oversized ? suffocate(world, entities, oversized ? boulder : diamond) : expand() ? grow(world, area) : world;
 }
 
 setRafInterval(function({time, ticks, delta}){
