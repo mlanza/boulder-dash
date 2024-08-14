@@ -274,13 +274,14 @@ function becomes(entities, world){
 
 function collect(id){
   return function(world){
+    const {collectible} = _.maybe(id, _.get(world, _)) || {};
     const {collected, needed, worth, extras} = _.get(world, vars.stats);
     const pts = collected < needed ? worth : extras;
-    return _.chain(world,
+    return collectible ? _.chain(world,
       _.updateIn(_, [vars.stats, "collected"], _.inc),
       _.updateIn(_, [vars.stats, "score"], _.add(_, pts)),
       collected + 1 < needed ? _.identity : w.patch(_, vars.exit, {portal}),
-      _.dissoc(_, id));
+      _.dissoc(_, id)) : world;
   }
 }
 
@@ -298,16 +299,24 @@ function move(id, direction, from, to){
 
 function push(id, direction, from, to){
   return _.includes(["left", "right"], direction) && budge() ? function(world){
-    const {gravitated} = _.get(world, id);
+    const {pushable, falling, gravitated} = _.maybe(id, _.get(world, _)) || {};
     const occupied = _.get(world.db.via.positioned, to);
     const beneath = _.get(world, nearby(to, "down"));
     const supported = beneath && !beneath.falling;
-    return occupied ? world : w.patch(world, id, Object.assign({positioned: to}, gravitated && supported ? {falling: true} : {}));
+    return _.chain(world,
+      occupied || !pushable || falling ? _.identity : w.patch(_, id, Object.assign({positioned: to}, gravitated && supported ? {falling: true} : {})));
   } : _.identity;
 }
 
 function dig(id){
-  return _.dissoc(_, id);
+  return function(world){
+    const {diggable} = _.maybe(id, _.get(world, _)) || {};
+    return diggable ? _.dissoc(world, id) : world;
+  }
+}
+
+function face(id, direction){
+  return _.chain(_, _.includes(["left", "right"], direction) ? w.patch(_, id, {facing: direction}) : _.identity);
 }
 
 function abort(inputs){
@@ -328,12 +337,12 @@ function control(inputs){
       const direction = _.some(_.get(controlled, _), keys);
       if (direction){
         const beyond = locate(world, nearby(positioned, direction));
-        const {diggable, pushable, falling, collectible} = beyond.entity || {};
         return _.chain(memo,
           w.patch(_, id, {moving}),
-          _.includes(["left", "right"], direction) ? w.patch(_, id, {facing: direction}) : _.identity,
-          collectible ? collect(beyond.id) : _.identity,
-          diggable ? dig(beyond.id) : pushable && !falling ? push(beyond.id, direction, beyond, nearby(beyond.positioned, direction)) : _.identity,
+          face(id, direction),
+          collect(beyond.id),
+          dig(beyond.id),
+          push(beyond.id, direction, beyond, nearby(beyond.positioned, direction)),
           stationary ? _.identity : move(id, direction, positioned, beyond.positioned));
       } else {
         return subject.moving ? w.patch(memo, id, {moving: null}) : world;
