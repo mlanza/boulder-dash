@@ -19,7 +19,6 @@ export function world(indices){
     install(["components", "touched"], _.sset([]), r.modified, function(id){
       return _.conj(_, id);
     }),
-    install(["components", "last-touched"], _.sset([])),
     _.reduce(function(memo, prop){
       return has(prop)(memo);
     }, _, indices));
@@ -61,16 +60,7 @@ function sets(path, value){
   }
 }
 
-function track(key){
-  return function(self){
-    const was = _.getIn(self.db, ["components", key]);
-    return _.chain(self,
-      sets(["components", `last-${key}`], was),
-      clear(["components", key]));
-  }
-}
-
-const capture = track("touched");
+const capture = clear(["components", "touched"]);
 
 function keys(self){
   return _.keys(self.entities);
