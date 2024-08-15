@@ -52,6 +52,13 @@ body.debug [data-noun='magic-wall'] {
 body.debug .falling {
   outline: solid 1px red;
 }
+body.debug .rolling {
+  outline: solid 1px white;
+}
+body.debug .falling.rolling {
+  outline: solid 2px pink;
+}
+
 [data-noun] {
   position: absolute;
   height: 32px;
