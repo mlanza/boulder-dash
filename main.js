@@ -395,14 +395,15 @@ function fall(id){
   }
 }
 
-function roll(positioned){
+function roll(id){
   return function(world){
-    const subject = locate(world, positioned);
+    const subject = _.get(world, id);
+    const {positioned} = subject || {};
     const below = locate(world, nearby(positioned, "down"));
-    return subject.entity?.gravitated && below.entity?.rounded && !below.entity?.falling ? _.reduce(function(world, side){
+    return subject?.gravitated && below.entity?.rounded && !below.entity?.falling ? _.reduce(function(world, side){
       const beside = locate(world, nearby(positioned, side));
       const besideBelow = locate(world, nearby(below.positioned, side));
-      return beside.id || besideBelow.id ? world : _.reduced(w.patch(world, subject.id, {positioned: beside.positioned, falling: true}));
+      return beside.id || besideBelow.id ? world : _.reduced(w.patch(world, id, {positioned: beside.positioned, falling: true}));
     }, world, ["left", "right"]) : world;
   }
 }
@@ -430,7 +431,13 @@ function gravity(entities, world){
         _.chain(positioned, nearby(_, "right")),
         _.chain(positioned, nearby(_, "up"), nearby(_, "left")),
         _.chain(positioned, nearby(_, "up"), nearby(_, "right"))];
-    }, _), alternating, _.dedupe, _.sort(_.asc(pinned(world)), _));
+    }, _),
+    alternating,
+    _.dedupe,
+    _.sort(_.asc(pinned(world)), _),
+    _.map(_.get(world.db.via.positioned, _), _),
+    _.compact,
+    _.toArray);
 
   return _.chain(world,
     w.clear(["vacated"]),
@@ -442,8 +449,8 @@ function gravity(entities, world){
       const over = locate(world, nearby(positioned, "up"));
       return over.entity?.gravitated && (!subject.id || subject.entity?.falling) ? w.patch(world, over.id, {falling: true}) : world;
     }, _, vacated),
-    _.reduce(function(world, positioned){
-      return roll(positioned)(world);
+    _.reduce(function(world, id){
+      return roll(id)(world);
     }, _, surrounding));
 }
 
@@ -531,8 +538,8 @@ function seeks(entities, world){
 }
 
 function rolls(entities, world){
-  return _.reduce(function(world, [id, {positioned}]){
-    return roll(positioned)(world);
+  return _.reduce(function(world, [id]){
+    return roll(id)(world);
   }, world, entities);
 }
 
