@@ -395,7 +395,6 @@ function pinned(world){ //unpinned items to roll first
 }
 
 function gravity(entities, world){
-  //const more = w.having(world, ["last-touched", "gravitated"]);
   const vacated = alternating(world.db.vacated);
   const surrounding = _.chain(vacated,
     _.mapcat(function(positioned){
@@ -409,8 +408,7 @@ function gravity(entities, world){
     _.dedupe,
     _.sort(_.asc(pinned(world)), _),
     _.map(_.get(world.db.via.positioned, _), _),
-    _.compact,
-    _.toArray);
+    _.compact);
 
   return _.chain(world,
     w.clear(["vacated"]),
