@@ -4,6 +4,9 @@ import dom from "./libs/atomic_/dom.js";
 import r from "./libs/ecs_/reel.js";
 import w from "./libs/ecs_/world.js";
 import levels from "./levels.js";
+import a from "./libs/ecs_/iaudible.js";
+import s from "./libs/ecs_/sound.js";
+import ss from "./libs/ecs_/sounds.js";
 import {reg} from "./libs/cmd.js";
 
 const fps = 10;
@@ -21,44 +24,17 @@ const vars = {
   exit: uid()
 }
 
-function audio1(path){
-  const audio = new Audio(path);
-  audio.preload = true;
-  return function(loop = false){
-    try {
-      audio.loop = loop;
-      audio.play();
-    } catch {
-    }
-    return function(){
-      audio.pause();
-    }
-  }
-}
-
-function audio2(...files){
-  let fs = _.cycle(_.mapa(audio1, files));
-  return function(){
-    const f = _.first(fs);
-    fs = _.rest(fs);
-    f();
-  }
-}
-
-const audio = _.overload(null, audio1, audio2);
-
 const sounds = {
-  walk: audio('./sounds/walk_d.ogg', './sounds/walk_e.ogg'),
-  collected: audio('./sounds/diamond_collect.ogg'),
-  stone: audio('./sounds/stone.ogg', './sounds/stone_2.ogg'),
-  amoeba: audio('./sounds/amoeba.ogg'),
-  magicWall: audio('./sounds/magic_wall.ogg'),
-  crack: audio('./sounds/crack.ogg'),
-  exploded: audio('./sounds/exploded.ogg'),
-  finished: audio('./sounds/finished.ogg'),
-  timeout: audio('./sounds/timeout_9.ogg', './sounds/timeout_8.ogg', './sounds/timeout_7.ogg', './sounds/timeout_6.ogg', './sounds/timeout_5.ogg', './sounds/timeout_4.ogg', './sounds/timeout_3.ogg', './sounds/timeout_2.ogg', './sounds/timeout_1.ogg')
+  walk: ss.sounds('./sounds/walk_d.ogg', './sounds/walk_e.ogg'),
+  collected: s.sound('./sounds/diamond_collect.ogg'),
+  stone: s.sound('./sounds/stone.ogg', './sounds/stone_2.ogg'),
+  amoeba: s.sound('./sounds/amoeba.ogg'),
+  magicWall: s.sound('./sounds/magic_wall.ogg'),
+  crack: s.sound('./sounds/crack.ogg'),
+  exploded: s.sound('./sounds/exploded.ogg'),
+  finished: s.sound('./sounds/finished.ogg'),
+  timeout: ss.sounds('./sounds/timeout_9.ogg', './sounds/timeout_8.ogg', './sounds/timeout_7.ogg', './sounds/timeout_6.ogg', './sounds/timeout_5.ogg', './sounds/timeout_4.ogg', './sounds/timeout_3.ogg', './sounds/timeout_2.ogg', './sounds/timeout_1.ogg')
 }
-const cease = {};
 
 function die(n){
   return function(){
@@ -589,12 +565,12 @@ const on = _.overload(null, on1, on2);
 
 $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
   if (id === vars.R && positioned === "updated") {
-    sounds.walk();
+    a.play(sounds.walk);
   }
   switch(positioned){
     case "added": {
       if (curr.noun == "explosion") {
-        sounds.exploded();
+        a.play(sounds.exploded);
       }
       const [x, y] = curr.positioned;
       dom.append(el,
@@ -621,36 +597,36 @@ $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [c
 
 $.sub($change, on(vars.R, "positioned"), function({touched, props: {positioned}}){
   if (positioned === "added"){
-    sounds.crack();
+    a.play(sounds.crack);
   }
 });
 
 $.sub($change, on("growing"), function({touched, props: {growing}, reel}){
   if (growing === "added"){
-    cease.amoeba = sounds.amoeba(true);
+    a.play(sounds.amoeba, true);
   } else if (growing === "removed") {
     const world = r.current(reel);
     if (!_.seq(world.db.components.growing)){
-      cease.amoeba();
+      a.pause(sounds.amoeba);
     }
   }
 });
 
 $.sub($change, on(vars.stats, "collected"), function({props: {collected}}){
   if (collected === "updated"){
-    sounds.collected();
+    a.play(sounds.collected);
   }
 });
 
 $.sub($change, on(vars.stats, "finished"), function({props: {finished}}){
   if (finished === "updated"){
-    sounds.finished();
+    a.play(sounds.finished);
   }
 });
 
 $.sub($change, on(vars.stats, "time"), function({props: {time}, compared: [curr], reel}){
   if (time === "updated" && curr.time < 10 && curr.time > 0 && !_.chain(reel, r.current, _.getIn(_, [vars.stats, "finished"]))) {
-    sounds.timeout();
+    a.play(sounds.timeout);
   }
 });
 
@@ -671,7 +647,7 @@ $.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
 
 $.sub($change, on("falling"), function({id, props: {falling}}){
   if (falling == "removed") {
-    sounds.stone();
+    a.play(sounds.stone);
   }
   _.maybe(document.getElementById(id),
     _.includes(["added"], falling) ?
@@ -682,10 +658,10 @@ $.sub($change, on("falling"), function({id, props: {falling}}){
 $.sub($change, on(vars.enchantment, "status"), function({id, props: {status}, compared: [curr]}){
   switch(curr.status) {
     case "on":
-      cease.magicWall = sounds.magicWall(true);
+      a.play(sounds.magicWall, true);
       break;
     case "expired":
-      cease.magicWall();
+      a.pause(sounds.magicWall);
       break;
   }
   dom.attr(el, "data-enchantment", curr.status);
