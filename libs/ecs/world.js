@@ -2,13 +2,7 @@ import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
 import * as c from "./icapture.js";
 import * as r from "./reel.js";
-import * as sm from "./serial-map.js";
-import * as ss from "./serial-set.js";
-import * as pm from "./part-map.js";
-import * as ps from "./part-set.js";
 export {capture, frame} from "./icapture.js";
-
-const s = ss;
 
 function World(entities, db, hooks){
   this.entities = entities;
@@ -19,13 +13,13 @@ function World(entities, db, hooks){
 export function world(indices){
   const touching = _.binary(_.conj);
   return _.chain(new World(
-    pm.map([]),
+    _.pmap([]),
     {},
     []),
-    install(["components", "touched"], s.set([]), r.modified, function(id){
+    install(["components", "touched"], _.sset([]), r.modified, function(id){
       return _.conj(_, id);
     }),
-    install(["components", "last-touched"], s.set([])),
+    install(["components", "last-touched"], _.sset([])),
     _.reduce(function(memo, prop){
       return has(prop)(memo);
     }, _, indices));
@@ -116,7 +110,7 @@ function hooks(id, prior){
   }
 }
 
-function has(tag, init =  s.set([])){
+function has(tag, init =  _.sset([])){
   const props = _.assoc({}, tag, _.includes(["added", "removed"], _));
   const pattern = {props};
   return install(["components", tag], init, _.plug(r.modified, _, {props: [tag], pattern}), function(id, {triggered}){
@@ -127,7 +121,7 @@ function has(tag, init =  s.set([])){
   });
 }
 
-export function via(tag, init = sm.map([])){
+export function via(tag, init = _.smap([])){
   const props = _.assoc({}, tag, _.isSome);
   const pattern = {props};
   return install(["via", tag], init, _.plug(r.modified, _, {props: [tag], pattern}), function(id, {reel, triggered}){
