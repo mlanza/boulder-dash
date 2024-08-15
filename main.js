@@ -1,10 +1,6 @@
 import _ from "./libs/atomic_/core.js";
 import $ from "./libs/atomic_/shell.js";
 import dom from "./libs/atomic_/dom.js";
-import ss from "./libs/ecs_/serial-set.js";
-import sm from "./libs/ecs_/serial-map.js";
-import pm from "./libs/ecs_/part-map.js";
-import ps from "./libs/ecs_/part-set.js";
 import r from "./libs/ecs_/reel.js";
 import w from "./libs/ecs_/world.js";
 import levels from "./levels.js";
@@ -15,7 +11,6 @@ const throttle = 1000 / fps;
 const lagging = throttle * 1.2;
 const alt = _.chance(8675309);
 const uid = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
-const s = ss;
 const div = dom.tag("div"), span = dom.tag("span");
 const el = dom.sel1("#stage");
 
@@ -228,7 +223,7 @@ function load(board){
 function vacancies(world){
   const vacancies = _.reduce(function(memo, coords){
     return _.contains(world.db.via.positioned, coords) ? memo : _.conj(memo, coords);
-  }, ss.set([]), positions);
+  }, _.sset([]), positions);
   return w.install(["vacated"],
     vacancies,
     _.plug(r.modified, _, {path: ["positioned"], pattern: {touched: _.includes(["updated", "removed"], _)}}),

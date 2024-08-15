@@ -1324,10 +1324,10 @@ var behave$b = _.does(_.implement(ICollection, {
   assoc: assoc
 }));
 
-behave$b(_.PersistentMap);
+behave$b(_.HashMap);
 
 function empty(self) {
-  self.coll = _.persistentMap();
+  self.coll = _.hashMap();
 }
 
 function conj(self, value) {
@@ -1350,7 +1350,7 @@ var behave$a = _.does(_.implement(ISet, {
   conj: conj
 }));
 
-behave$a(_.PersistentSet);
+behave$a(_.HashSet);
 
 function sub(self, observer) {
   if (!self.terminated) {
@@ -1897,8 +1897,8 @@ _.addMethod(_.coerce, [ Array, Object ], (arr => into({}, arr)));
 
 _.addMethod(_.coerce, [ Object, Array ], (obj => into([], obj)));
 
-_.addMethod(_.coerce, [ _.PersistentSet, Array ], (set => into([], set)));
+_.addMethod(_.coerce, [ _.HashSet, Array ], (set => into([], set)));
 
-_.addMethod(_.coerce, [ Array, _.PersistentSet ], (arr => into(_.set([]), arr)));
+_.addMethod(_.coerce, [ Array, _.HashSet ], (arr => into(_.set([]), arr)));
 
 export { Atom, Bus, Command, Cursor, DrainEventsMiddleware, Event, EventMiddleware, HandlerMiddleware, IAppendable, IAssociative, ICollection, IDispatch, IEmptyableCollection, IEventProvider, IEvented, IInsertable, ILogger, IMap, IMiddleware, IOmissible, IPrependable, IPublish, IQueryable, IResettable, IReversible, ISend, ISet, ISubscribe, ISwappable, LockingMiddleware, Observable, Observer, Subject, TeeMiddleware, addHandler$1 as addHandler, addMiddleware$1 as addMiddleware, after$1 as after, alter, append$1 as append, assoc$4 as assoc, assocIn, atom, before$1 as before, behave, behaviors, bus, called, atom as cell, chan, closed$3 as closed, collect, command, complete$3 as complete, computed, config, conj$4 as conj, connect, constructs, cursor, defs, disj$2 as disj, dispatch$1 as dispatch, dispatchable, dissoc$4 as dissoc, dissocIn, doall, doing, dorun, doseq, dotimes, drainEventsMiddleware, each, eachIndexed, eachkv, eachvk, effect, empty$5 as empty, emptySet, err$3 as err, error, event, eventMiddleware, fixed, fromEvent, fromPromise, handle$6 as handle, handlerMiddleware, hist, interact, into, isMap, isWeakMap, isWeakSet, latest, lockingMiddleware, log, logging, map, nativeMap, observable, observer, omit$1 as omit, on, once, peek, pipe, prepend$1 as prepend, pub$3 as pub, query, raise, release, reset$1 as reset, resettable, reverse$1 as reverse, see, seed, send, set, share, shared, sharing, splay, sub$4 as sub, subject, swap$2 as swap, tee, teeMiddleware, then, tick, toObservable, toggles, trigger, unconj$1 as unconj, update, updateIn, warn, weakMap, weakSet, when };
