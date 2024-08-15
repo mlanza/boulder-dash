@@ -75,6 +75,7 @@ const indestructible = true,
       diggable = true,
       gravitated = true,
       falling = true,
+      rolling = true,
       rounded = true,
       pushable = true,
       moving = true;
@@ -282,7 +283,7 @@ function push(id, direction, from, to){
     const beneath = _.get(world, nearby(to, "down"));
     const supported = beneath && !beneath.falling;
     return _.chain(world,
-      occupied || !pushable || falling ? _.identity : w.patch(_, id, Object.assign({positioned: to}, gravitated && !supported ? {falling: true} : {})));
+      occupied || !pushable || falling ? _.identity : w.patch(_, id, Object.assign({positioned: to}, gravitated && !supported ? {falling: true, rolling: null} : {})));
   } : _.identity;
 }
 
@@ -337,7 +338,7 @@ function transmute(id, from, to){
     if (status == "on" && !blocked && _.includes(["boulder", "diamond"], noun)) {
       const nid = uid();
       const make = noun === "boulder" ? diamond : boulder;
-      return _.chain(world, _.dissoc(_, id), make(to, nid), w.patch(_, nid, {falling}));
+      return _.chain(world, _.dissoc(_, id), make(to, nid), w.patch(_, nid, {falling, rolling: null}));
     } else {
       return world;
     }
@@ -352,30 +353,30 @@ const locate = _.curry(function(world, positioned){
 
 function fall(id){
   return function(world){
-    const {status} = _.get(world, vars.enchantment);
+    const enchantment = _.get(world, vars.enchantment);
     const top = _.get(world, id, {});
-    const {positioned, gravitated, falling} = top;
-    const below = locate(world, nearby(positioned, "down"));
-    const underneath = _.chain(positioned, nearby(_, "down"), nearby(_, "down"));
+    const below = locate(world, nearby(top.positioned, "down"));
+    const underneath = _.chain(top.positioned, nearby(_, "down"), nearby(_, "down"));
     const halted = below.entity && !below.entity.falling;
     return _.chain(world,
-      below.entity?.enchanted && status !== "expired" && falling ? _.comp(transmute(id, positioned, underneath), _.update(_, vars.enchantment, transform)) : _.identity,
+      below.entity?.enchanted && enchantment.status !== "expired" && top.falling ? _.comp(transmute(id, top.positioned, underneath), _.update(_, vars.enchantment, transform)) : _.identity,
       below.entity?.explosive ? w.patch(_, below.id, {exploding}) : _.identity,
-      below.entity || !gravitated ? _.identity : w.patch(_, id, {positioned: below.positioned}),
-      halted ? w.patch(_, id, {falling: null}) : _.identity);
+      below.entity || !top.gravitated ? _.identity : w.patch(_, id, {positioned: below.positioned}),
+      halted ? w.patch(_, id, {rolling, falling: null}) : _.identity);
   }
 }
 
 function roll(id){
   return function(world){
     const subject = _.get(world, id);
-    const {positioned} = subject || {};
-    const below = locate(world, nearby(positioned, "down"));
-    return subject?.gravitated && below.entity?.rounded && !below.entity?.falling ? _.reduce(function(world, side){
-      const beside = locate(world, nearby(positioned, side));
-      const besideBelow = locate(world, nearby(below.positioned, side));
-      return beside.id || besideBelow.id ? world : _.reduced(w.patch(world, id, {positioned: beside.positioned, falling: true}));
-    }, world, ["left", "right"]) : world;
+    const below = locate(world, nearby(subject.positioned, "down"));
+    return _.chain(world,
+      subject?.gravitated && below.entity?.rounded && !below.entity?.falling ? _.reduce(function(world, side){
+        const beside = locate(world, nearby(subject.positioned, side));
+        const besideBelow = locate(world, nearby(below.positioned, side));
+        return beside.id || besideBelow.id ? world : _.reduced(w.patch(world, id, {positioned: beside.positioned, rolling: null, falling}));
+      }, _, ["left", "right"]) : _.identity,
+      w.patch(_, id, {rolling: null}));
   }
 }
 
@@ -394,6 +395,7 @@ function pinned(world){ //unpinned items to roll first
 }
 
 function gravity(entities, world){
+  //const more = w.having(world, ["last-touched", "gravitated"]);
   const vacated = alternating(world.db.vacated);
   const surrounding = _.chain(vacated,
     _.mapcat(function(positioned){
@@ -412,16 +414,17 @@ function gravity(entities, world){
 
   return _.chain(world,
     w.clear(["vacated"]),
-    _.reduce(function(world, [id, entity]){
-      return fall(id)(world);
-    }, _, entities),
     _.reduce(function(world, positioned){
       const subject = locate(world, positioned);
       const over = locate(world, nearby(positioned, "up"));
-      return over.entity?.gravitated && (!subject.id || subject.entity?.falling) ? w.patch(world, over.id, {falling: true}) : world;
+      return over.entity?.gravitated && (!subject.id || subject.entity?.falling) ? w.patch(world, over.id, {falling, rolling: null}) : world;
     }, _, vacated),
     _.reduce(function(world, id){
-      return roll(id)(world);
+      const {gravitated, falling, positioned} = _.get(world, id) || {};
+      const below = locate(world, nearby(positioned, "down"));
+      const left = locate(world, nearby(positioned, "left"));
+      const right = locate(world, nearby(positioned, "right"));
+      return !gravitated || below.entity?.falling || (left.id && right.id) ? world : w.patch(world, id, {rolling: falling ? null : true });
     }, _, surrounding));
 }
 
@@ -508,6 +511,12 @@ function seeks(entities, world){
   }, world, entities);
 }
 
+function falls(entities, world){
+  return _.reduce(function(world, [id]){
+    return fall(id)(world);
+  }, world, entities);
+}
+
 function rolls(entities, world){
   return _.reduce(function(world, [id]){
     return roll(id)(world);
@@ -539,7 +548,7 @@ const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
 const blank = _.chain(
-  w.world(["gravitated", "seeking", "controlled", "growing", "falling", "exploding", "becoming", "transitioning", "residue"]),
+  w.world(["gravitated", "seeking", "controlled", "growing", "falling", "rolling", "exploding", "becoming", "transitioning", "residue"]),
   w.via("positioned"),
   enchantment(),
   _.assoc(_, vars.stats, _.merge(level.diamonds, {allotted: time, time, slowGrowth, ready: false, finished: false, score: 0, collected: 0})));
@@ -653,6 +662,13 @@ $.sub($change, on("falling"), function({id, props: {falling}}){
     _.includes(["added"], falling) ?
       dom.addClass(_, "falling") :
       dom.removeClass(_, "falling"));
+});
+
+$.sub($change, on("rolling"), function({id, props: {rolling}}){
+  _.maybe(document.getElementById(id),
+    _.includes(["added"], rolling) ?
+      dom.addClass(_, "rolling") :
+      dom.removeClass(_, "rolling"));
 });
 
 $.sub($change, on(vars.enchantment, "status"), function({id, props: {status}, compared: [curr]}){
@@ -771,7 +787,8 @@ setRafInterval(function({time, ticks, delta}){
         w.system(abort(inputs), ["controlled"]),
         w.system(control(inputs), ["controlled"]),
         w.system(seeks, ["seeking"]),
-        w.system(rolls, ["last-touched", "gravitated"]),
+        w.system(falls, ["falling"]),
+        w.system(rolls, ["rolling"]),
         w.system(gravity, ["falling"]),
         w.system(explodes, ["exploding"]),
         w.system(countdown(ticks)))));
