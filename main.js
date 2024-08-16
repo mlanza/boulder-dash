@@ -97,7 +97,7 @@ function transform(entity){
 
 function entrance(positioned){
   const noun = "entrance";
-  const becoming = [25, poof];
+  const becoming = [20, poof];
   return _.assoc(_, uid(), {noun, positioned, indestructible, becoming});
 }
 
@@ -458,8 +458,8 @@ function explodes(entities, world){
   }, world, entities);
 }
 
-const counterclockwise = _.cycle(["left", "down", "right", "up"]);
-const clockwise = _.cycle(["left", "up", "right", "down"]);
+const clockwise = _.cycle(["left", "down", "right", "up"]);
+const counterclockwise = _.cycle(["left", "up", "right", "down"]);
 const orient1 = _.get({clockwise, counterclockwise}, _);
 function orient2(how, going){
   let headings = orient1(how);
@@ -667,6 +667,13 @@ $.sub($change, on("rolling"), function({id, props: {rolling}}){
     _.includes(["added"], rolling) ?
       dom.addClass(_, "rolling") :
       dom.removeClass(_, "rolling"));
+});
+
+$.sub($change, on("exploding"), function({id, props: {exploding}}){
+  _.maybe(document.getElementById(id),
+    _.includes(["added"], exploding) ?
+      dom.addClass(_, "exploding") :
+      dom.removeClass(_, "exploding"));
 });
 
 $.sub($change, on(vars.enchantment, "status"), function({id, props: {status}, compared: [curr]}){
