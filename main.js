@@ -337,15 +337,15 @@ function control(inputs){
   }
 }
 
-function transmute(id, from, to){
+function transmute(id){
   return function(world){
-    const {noun} = _.get(world, id);
+    const {noun, positioned} = _.get(world, id);
     const {status} = _.get(world, vars.enchantment);
-    const blocked = _.get(world.db.via.positioned, to);
+    const underneath = locate(world, positioned, "down", "down");
     if (status == "on" && _.includes(["boulder", "diamond"], noun)) {
       const nid = uid();
       const make = noun === "boulder" ? diamond : boulder;
-      return _.chain(world, w.patch(_, id, {falling: null, rolling: null}), _.dissoc(_, id), blocked ? _.identity : make(to, nid), w.patch(_, nid, {falling, rolling: null}));
+      return _.chain(world, w.patch(_, id, {falling: null, rolling: null}), _.dissoc(_, id), underneath.id ? _.identity : make(underneath.positioned, nid), w.patch(_, nid, {falling, rolling: null}));
     } else {
       return world;
     }
@@ -364,11 +364,10 @@ function fall(id){
     const enchantment = _.get(world, vars.enchantment);
     const top = _.get(world, id, {});
     const below = locate(world, top.positioned, "down");
-    const underneath = nearby(top.positioned, "down", "down");
     const transmuting = below.entity?.enchanted && enchantment.status !== "expired" && top.falling;
     const halted = !transmuting && below.entity && !below.entity.falling;
     return _.chain(world,
-      transmuting ? _.comp(transmute(id, top.positioned, underneath), _.update(_, vars.enchantment, transform)) : _.identity,
+      transmuting ? _.comp(transmute(id), _.update(_, vars.enchantment, transform)) : _.identity,
       below.entity?.explosive ? w.patch(_, below.id, {exploding}) : _.identity,
       below.entity || !top.gravitated ? _.identity : w.patch(_, id, {positioned: below.positioned}),
       halted ? w.patch(_, id, {rolling, falling: null}) : _.identity);
