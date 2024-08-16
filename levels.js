@@ -314,17 +314,17 @@ export default [{
     Wdddrrdrd.ddrrddrrdddrrdrdrrr.drddrrdrdW
     Wrrrrrdrrdddd..rrrdrdd.rdrddr.rrddddddrW
     Wdrddwwwwwww.wwwwwdrrrrdrwwwwww.wwwwwwrW
-    Wd.dd             rddrrrd             rW
-    Wdrdr  XP         rddrrrd             rW
-    Wdrrd             r.rrddr             rW
-    Wdrrd             ddddrdr             dW
-    Wrddd             drrd.dr             dW
-    Wrrrr             drrddrr             rW
-    Wdrdd             .rdrrdr             rW
-    Wdrdd            wwwwwwwww            rW
-    Wrrrd                                 rW
-    Wrrrd             dd.rdrd             rW
-    Wddrr             rrrdrdd             rW
+    Wd.ddw           wrddrrrdw           wrW
+    Wdrdrw XP        wrddrrrdw           wrW
+    Wdrrdw           wr.rrddrw           wrW
+    Wdrrdw           wddddrdrw           wdW
+    Wrdddw           wdrrd.drw           wdW
+    Wrrrrw           wdrrddrrw           wrW
+    Wdrddw           w.rdrrdrw           wrW
+    Wdrddw           wwwwwwwww           wrW
+    Wrrrdw                               wrW
+    Wrrrdw           wdd.rdrdw           wrW
+    Wddrrw           wrrrdrddw           wrW
     Wdd..wwwwwwwwwwwwwdrrrdddwwwwwwwwwwwwwdW
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW`
 }, {
