@@ -97,7 +97,7 @@ function transform(entity){
 
 function entrance(positioned){
   const noun = "entrance";
-  const becoming = [20, poof];
+  const becoming = [5, poof];
   return _.assoc(_, uid(), {noun, positioned, indestructible, becoming});
 }
 
@@ -156,8 +156,8 @@ function enemy(noun, how, enemies, {going = "left", explosive = _.constantly(_.i
   }
 }
 
-const firefly = enemy("firefly", "clockwise", ["Rockford", "amoeba", "butterfly"]);
-const butterfly = enemy("butterfly", "counterclockwise", ["Rockford", "amoeba", "firefly"], {going: "down", explosive: diamond});
+const firefly = enemy("firefly", "counterclockwise", ["Rockford", "amoeba", "butterfly"]);
+const butterfly = enemy("butterfly", "clockwise", ["Rockford", "amoeba", "firefly"], {going: "down", explosive: diamond});
 
 function explosion(positioned, residue = explosive){
   const noun = "explosion";
@@ -271,7 +271,7 @@ function move(id, direction, from, to){
     const portal = there.entity?.portal;
     const collision = !!there.id && !portal;
     return _.chain(world,
-      portal ? _.comp(_.dissoc(_, there.id), w.patch(_, id, {moving: false, facing: null, controlled: null}), _.assocIn(_, [vars.stats, "finished"], true)) : _.identity,
+      portal ? _.comp(_.dissoc(_, there.id), w.patch(_, id, {moving: false, indestructible, facing: null, controlled: null}), _.assocIn(_, [vars.stats, "finished"], true)) : _.identity,
       collision || exploding ? _.identity : w.patch(_, id, {positioned: to}));
   };
 }

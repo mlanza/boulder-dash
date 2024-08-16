@@ -428,21 +428,21 @@ export default [{
   title: "Intermission",
   author: "Peter Liepa",
   time: 20,
-  size: [21, 12],
+  size: [20, 12],
   diamonds: { needed: 14, worth: 10, extras: 0 },
   map: `
-    WWWWWWWWWWWWWWWWWWWWW
-    W       X           W
-    W                   W
-    W                   W
-    W                   W
-    W                 P W
-    W                   W
-    W              qqqq W
-    W              qqqq W
-    W              qqqq W
-    Wddddddddddddddqqqq W
-    WWWWWWWWWWWWWWWWWWWWW`
+    WWWWWWWWWWWWWWWWWWWW
+    W       X          W
+    W                  W
+    W                  W
+    W                  W
+    W                 PW
+    W                  W
+    W              qqqqW
+    W              qqqqW
+    W              qqqqW
+    WddddddddddddddqqqqW
+    WWWWWWWWWWWWWWWWWWWW`
 }, {
   cave: "M",
   title: "Apocalypse",
