@@ -2,18 +2,16 @@ import _ from "../atomic_/core.js";
 import $ from "../atomic_/shell.js";
 import {IAudible} from "./iaudible.js";
 
-export function Sound(audio){
-  this.audio = audio;
+export function Sound(file){
+  this.file = file;
 }
 
 export function sound(file){
-  const audio = new Audio(file);
-  audio.preload = true;
-  return new Sound(audio);
+  return new Sound(file);
 }
 
 function play(sound, loop = false){
-  const audio = sound.audio;
+  const audio = sound.audio = new Audio(sound.file);
   audio.loop = loop;
   audio.play();
 }
