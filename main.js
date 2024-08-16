@@ -97,7 +97,7 @@ function transform(entity){
 
 function entrance(positioned){
   const noun = "entrance";
-  const becoming = [5, poof];
+  const becoming = [25, poof];
   return _.assoc(_, uid(), {noun, positioned, indestructible, becoming});
 }
 
