@@ -428,6 +428,7 @@ export default [{
   title: "Intermission",
   author: "Peter Liepa",
   time: 20,
+  arrive: 5,
   size: [20, 12],
   diamonds: { needed: 14, worth: 10, extras: 0 },
   map: `
