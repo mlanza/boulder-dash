@@ -58,7 +58,9 @@ body.debug .rolling {
 body.debug .falling.rolling {
   outline: solid 2px pink;
 }
-
+body.debug .exploding {
+  outline: solid 1px orange;
+}
 [data-noun] {
   position: absolute;
   height: 32px;
