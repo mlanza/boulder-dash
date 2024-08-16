@@ -142,7 +142,8 @@ function patch1(patch){
 }
 
 function patch3(world, id, patch){
-  return _.where(_.get(world, id), patch) ? world : _.update(world, id, patch1(patch));
+  const entity = _.get(world, id);
+  return !entity || _.where(entity, patch) ? world : _.update(world, id, patch1(patch));
 }
 
 export const patch = _.overload(null, patch1, null, patch3);
