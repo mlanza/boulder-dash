@@ -129,7 +129,8 @@ function wall(positioned){
 
 function magicWall(positioned){
   const noun = "magic-wall";
-  return _.assoc(_, uid(), {noun, positioned, enchanted});
+  const transitioning = [5, {enchanted}]
+  return _.assoc(_, uid(), {noun, positioned, transitioning});
 }
 
 function rockford(positioned){
