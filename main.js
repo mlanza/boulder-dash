@@ -53,7 +53,7 @@ const d = _.maybe(params.get("d"), parseInt) || 1;
 const lvl = _.get(levels, l - 1);
 const {difficulty} = lvl;
 const level = _.absorb(lvl, _.get(difficulty, d - 2, {}));
-const {cave, time, hint, slowGrowth} = level;
+const {cave, arrive, time, hint, slowGrowth} = level;
 const [width, height] = level.size;
 
 dom.addStyle(el, "width", `${width * 32}px`)
@@ -97,8 +97,11 @@ function transform(entity){
 
 function entrance(positioned){
   const noun = "entrance";
-  const becoming = [25, poof];
-  return _.assoc(_, uid(), {noun, positioned, indestructible, becoming});
+  return function(world){
+    const {arrive} = _.get(world, vars.stats);
+    const becoming = [arrive || 25, poof];
+    return _.assoc(world, uid(), {noun, positioned, indestructible, becoming});
+  }
 }
 
 function exit(positioned){
@@ -557,7 +560,7 @@ const blank = _.chain(
   w.world(["gravitated", "seeking", "controlled", "growing", "falling", "rolling", "exploding", "becoming", "transitioning", "residue"]),
   w.via("positioned"),
   enchantment(),
-  _.assoc(_, vars.stats, _.merge(level.diamonds, {allotted: time, time, slowGrowth, ready: false, finished: false, score: 0, collected: 0})));
+  _.assoc(_, vars.stats, _.merge(level.diamonds, {allotted: time, arrive, time, slowGrowth, ready: false, finished: false, score: 0, collected: 0})));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(w.changed, $state);
