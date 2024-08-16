@@ -215,9 +215,15 @@ function vacancies(world){
 const vertical = _.get({"up": -1, "down": 1}, _, 0);
 const horizontal = _.get({"left": -1, "right": 1}, _, 0);
 
-const nearby = _.partly(function nearby([x, y], key, offset = 1){
-  return [x + horizontal(key) * offset, y + vertical(key) * offset];
-});
+function nearby2([x, y], key){
+  return [x + horizontal(key), y + vertical(key)];
+}
+
+function nearbyN(positioned, ...directions){
+  return _.reduce(nearby2, positioned, directions);
+}
+
+const nearby = _.partly(_.overload(null, nearby2, nearbyN));
 
 function around(positioned, immediate = false){
   return _.chain([["none"],["up","left"],["up"],["up","right"],["left"],["right"],["down","left"], ["down"],["down","right"]],
@@ -281,7 +287,7 @@ function push(id, direction, from, to){
   return _.includes(["left", "right"], direction) && budge() ? function(world){
     const {pushable, falling, gravitated} = _.maybe(id, _.get(world, _)) || {};
     const occupied = locate(world, to);
-    const beneath = locate(world, nearby(to, "down"));
+    const beneath = locate(world, to, "down");
     const supported = beneath.id && !beneath.entity?.falling;
     return _.chain(world,
       occupied.id || !pushable || falling ? _.identity : w.patch(_, id, Object.assign({positioned: to}, gravitated && !supported ? {falling: true, rolling: null} : {})));
@@ -316,7 +322,7 @@ function control(inputs){
       const {positioned, controlled} = subject;
       const direction = _.some(_.get(controlled, _), keys);
       if (direction){
-        const beyond = locate(world, nearby(positioned, direction));
+        const beyond = locate(world, positioned, direction);
         return _.chain(memo,
           w.patch(_, id, {moving}),
           face(id, direction),
@@ -346,18 +352,19 @@ function transmute(id, from, to){
   }
 }
 
-const locate = _.curry(function(world, positioned){
+const locate = _.curry(function(world, start, ...directions){
+  const positioned = _.reduce(nearby, start, directions);
   const id = _.get(world.db.via.positioned, positioned);
   const entity = _.maybe(id, _.get(world, _));
   return {positioned, id, entity};
-});
+}, 2);
 
 function fall(id){
   return function(world){
     const enchantment = _.get(world, vars.enchantment);
     const top = _.get(world, id, {});
-    const below = locate(world, nearby(top.positioned, "down"));
-    const underneath = _.chain(top.positioned, nearby(_, "down"), nearby(_, "down"));
+    const below = locate(world, top.positioned, "down");
+    const underneath = nearby(top.positioned, "down", "down");
     const transmuting = below.entity?.enchanted && enchantment.status !== "expired" && top.falling;
     const halted = !transmuting && below.entity && !below.entity.falling;
     return _.chain(world,
@@ -371,11 +378,11 @@ function fall(id){
 function roll(id){
   return function(world){
     const subject = _.get(world, id);
-    const below = locate(world, nearby(subject.positioned, "down"));
+    const below = locate(world, subject.positioned, "down");
     return _.chain(world,
       subject?.gravitated && below.entity?.rounded && !below.entity?.falling ? _.reduce(function(world, side){
-        const beside = locate(world, nearby(subject.positioned, side));
-        const besideBelow = locate(world, nearby(below.positioned, side));
+        const beside = locate(world, subject.positioned, side);
+        const besideBelow = locate(world, below.positioned, side);
         return beside.id || besideBelow.id ? world : _.reduced(w.patch(world, id, {positioned: beside.positioned, rolling: null, falling}));
       }, _, ["left", "right"]) : _.identity,
       w.patch(_, id, {rolling: null}));
@@ -391,21 +398,21 @@ const alternating = _.sort(_.asc(alternate), _);
 
 function pinned(world){ //unpinned items to roll first
   return function(positioned){
-    const over = locate(world, nearby(positioned, "up"));
+    const over = locate(world, positioned, "up");
     return over.entity ? 1 : 0;
   }
 }
 
+const loose = _.juxt(
+  nearby(_, "left"),
+  nearby(_, "right"),
+  nearby(_, "up", "left"),
+  nearby(_, "up", "right"));
+
 function gravity(entities, world){
   const vacated = alternating(world.db.vacated);
   const surrounding = _.chain(vacated,
-    _.mapcat(function(positioned){
-      return [
-        _.chain(positioned, nearby(_, "left")),
-        _.chain(positioned, nearby(_, "right")),
-        _.chain(positioned, nearby(_, "up"), nearby(_, "left")),
-        _.chain(positioned, nearby(_, "up"), nearby(_, "right"))];
-    }, _),
+    _.mapcat(loose, _),
     alternating,
     _.dedupe,
     _.sort(_.asc(pinned(world)), _),
@@ -416,14 +423,14 @@ function gravity(entities, world){
     w.clear(["vacated"]),
     _.reduce(function(world, positioned){
       const subject = locate(world, positioned);
-      const over = locate(world, nearby(positioned, "up"));
+      const over = locate(world, positioned, "up");
       return over.entity?.gravitated && (!subject.id || subject.entity?.falling) ? w.patch(world, over.id, {falling, rolling: null}) : world;
     }, _, vacated),
     _.reduce(function(world, id){
       const {gravitated, falling, positioned} = _.get(world, id) || {};
-      const below = locate(world, nearby(positioned, "down"));
-      const left = locate(world, nearby(positioned, "left"));
-      const right = locate(world, nearby(positioned, "right"));
+      const below = locate(world, positioned, "down");
+      const left = locate(world, positioned, "left");
+      const right = locate(world, positioned, "right");
       return !gravitated || below.entity?.falling || (left.id && right.id) ? world : w.patch(world, id, {rolling: falling ? null : true });
     }, _, surrounding));
 }
@@ -490,9 +497,9 @@ function seek(world, id, positioned, seeking, going){
   } else {
     const headings = orient(how, going);
     const alt = _.second(headings);
-    const alternate = locate(world, nearby(positioned, alt));
+    const alternate = locate(world, positioned, alt);
     if (alternate.id) {
-      const dest = locate(world, nearby(positioned, going));
+      const dest = locate(world, positioned, going);
       if (dest.id) {
         const turn = _.chain(headings, _.take(3, _), _.last);
         return _.chain(world, w.patch(_, id, {going: turn}));
