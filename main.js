@@ -5,10 +5,12 @@ import r from "./libs/ecs_/reel.js";
 import w from "./libs/ecs_/world.js";
 import levels from "./levels.js";
 import a from "./libs/ecs_/iaudible.js";
+import anim from "./libs/ecs_/animated.js";
 import s from "./libs/ecs_/sound.js";
 import ss from "./libs/ecs_/sounds.js";
 import {reg} from "./libs/cmd.js";
 
+const {animated, play, pause} = anim;
 const params = new URLSearchParams(location.search);
 const seed = _.maybe(params.get("seed"), parseInt) || 8675309;
 const norandom = params.get("norandom") == 1;
@@ -655,8 +657,26 @@ const blank = _.chain(
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(w.changed, $state);
 const $change = $.atom(null);
+const $anim = animated(function({time, ticks, delta}){
+  const inputs = _.deref($inputs);
+  $.swap($state,
+    _.fmap(_,
+      _.pipe(
+        w.system(grows, ["growing"]),
+        w.system(transitions, ["transitioning"]),
+        w.system(becomes, ["becoming"]),
+        w.system(settles, ["residue"]),
+        w.system(abort(inputs), ["controlled"]),
+        w.system(control(inputs), ["controlled"]),
+        w.system(seeks, ["seeking"]),
+        w.system(falls, ["falling"]),
+        w.system(rolls, ["rolling"]),
+        w.system(gravity),
+        w.system(explodes, ["exploding"]),
+        w.system(countdown(ticks)))));
+}, throttle);
 
-reg({$state, $change, $inputs, vars, r, w, sounds});
+reg({$state, $change, $inputs, $anim, vars, r, w, sounds});
 
 function on2(id, prop){
   return _.filter(
@@ -804,58 +824,31 @@ $.sub($changed, $.each($.reset($change, _), _));
 
 $.swap($state, _.fmap(_, _.comp(vacancies, norandom ? _.identity : randomize, load(level.map))));
 
+function Dispenser(list){
+  this.list = list;
+}
+
+function dispenser(...list){
+  return new Dispenser(_.cycle(list));
+}
+
+function pop(disp){
+  const popped = _.first(disp.list);
+  disp.list = _.rest(disp.list);
+  return popped;
+}
+
+const playback = dispenser(play, pause);
+
 $.on(document, "keydown", function(e){
   if (_.includes(["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"], e.key)) {
     e.preventDefault(); //to prevent moving the page around
+  } else if (e.key === " ") { //pause/play toggle
+    e.preventDefault();
+    const f = pop(playback);
+    f($anim);
+    dom.toggleClass(document.body, "paused", f === pause);
   }
 });
 
-function setRafInterval(callback, throttle) {
-  let startTime = 0;
-  let lastTime = 0;
-  let rafId;
-  let ticks = 1;
-
-  function tick(time) {
-    if (!startTime) {
-      startTime = time;
-    }
-
-    const elapsed = time - startTime;
-
-    if (elapsed - lastTime >= throttle) {
-      const delta = Math.round((elapsed - lastTime) * 100) / 100;
-      delta > lagging && $.warn(`time: ${time}, delta: ${delta}, ticks: ${ticks}`);
-      callback({ time, ticks, delta });
-      lastTime = elapsed - (elapsed % throttle);
-      ticks++;
-    }
-
-    rafId = requestAnimationFrame(tick);
-  }
-
-  rafId = requestAnimationFrame(tick);
-
-  return function clearRafInterval() {
-    cancelAnimationFrame(rafId);
-  };
-}
-
-setRafInterval(function({time, ticks, delta}){
-  const inputs = _.deref($inputs);
-  $.swap($state,
-    _.fmap(_,
-      _.pipe(
-        w.system(grows, ["growing"]),
-        w.system(transitions, ["transitioning"]),
-        w.system(becomes, ["becoming"]),
-        w.system(settles, ["residue"]),
-        w.system(abort(inputs), ["controlled"]),
-        w.system(control(inputs), ["controlled"]),
-        w.system(seeks, ["seeking"]),
-        w.system(falls, ["falling"]),
-        w.system(rolls, ["rolling"]),
-        w.system(gravity),
-        w.system(explodes, ["exploding"]),
-        w.system(countdown(ticks)))));
-}, throttle);
+pop(playback)($anim);
