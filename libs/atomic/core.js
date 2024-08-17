@@ -6468,10 +6468,8 @@ function keys$3(self) {
 
 function seq$4(self) {
   return seq$h(map((function(key) {
-    const part = self.partition(key);
-    const value = getIn(self.parts, [ part, key ]);
-    return [ key, value ];
-  }), keys$3(self.parts)));
+    return [ key, get(self, key) ];
+  }), keys$3(self)));
 }
 
 var behave$9 = does(implement(ILookup, {

@@ -6,6 +6,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: {needed: 12, worth: 10, extras: 15},
+  randoms: {vacant: [60, 256], boulder: [50, 256], diamond: [9, 256]},
   difficulty: [{time: 110}, {time: 70}, {time: 40}, {time: 30}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -38,6 +39,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: {needed: 10, worth: 20, extras: 50},
+  randoms: {vacant: [60, 256], boulder: [50, 256], diamond: [9, 256], firefly: [2, 256]},
   difficulty: [{time: 110, diamonds: {needed: 12}}, {time: 70, diamonds: {needed: 9}}, {time: 70, diamonds: {needed: 13}}, {time: 70, diamonds: {needed: 10}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -70,6 +72,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: {needed: 24, worth: 15, extras: 0},
+  randoms: {wall: [100, 256], boulder: [50, 256], diamond: [9, 256]},
   difficulty: [{time: 100, diamonds: {needed: 23}}, {time: 90, diamonds: {needed: 24}}, {time: 80, diamonds: {needed: 23}}, {time: 70, diamonds: {needed: 21}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -102,6 +105,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: {needed: 36, worth: 5, extras: 20},
+  randoms: {boulder: [20, 256]},
   difficulty: [{time: 100}, {time: 80}, {time: 60}, {time: 50}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -133,6 +137,7 @@ export default [{
   time: 10,
   size: [21, 12],
   diamonds: { needed: 6, worth: 30, extras: 0 },
+  randoms: {diamond: [9, 256]},
   map: `
     WWWWWWWWWWWWWWWWWWWWW
     W                   W
@@ -186,6 +191,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: {needed: 4, worth: 40, extras: 60},
+  randoms: {boulder: [50, 256]},
   difficulty: [{time: 120, diamonds: {needed: 6}}, {time: 100, diamonds: {needed: 7}}, {time: 90, diamonds: {needed: 8}}, {time: 80, diamonds: {needed: 8}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -219,6 +225,7 @@ export default [{
   time: 120,
   size: [40, 22],
   diamonds: {needed: 15, worth: 10, extras: 20},
+  randoms: {vacant: [100, 256], boulder: [40, 256], firefly: [2, 256]},
   difficulty: [{diamonds: {needed: 20}}, {diamonds: {needed: 25}}, {diamonds: {needed: 25}}, {diamonds: {needed: 25}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -251,6 +258,7 @@ export default [{
   time: 120,
   size: [40, 22],
   diamonds: {needed: 10, worth: 10, extras: 20},
+  randoms: {vacant: [90, 256], boulder: [50, 256], firefly: [2, 256]},
   difficulty: [{time: 110, diamonds: {needed: 15}}, {time: 100, diamonds: {needed: 20}}, {time: 90, diamonds: {needed: 20}}, {time: 80, diamonds: {needed: 20}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -303,6 +311,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: {needed: 75, worth: 5, extras: 10},
+  randoms: {boulder: [240, 256], diamonds: [120, 256]},
   difficulty: [{diamonds: {needed: 75}}, {time: 130, diamonds: {needed: 80}}, {time: 130, diamonds: {needed: 85}}, {time: 120, diamonds: {needed: 90}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -367,6 +376,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: {needed: 6, worth: 50, extras: 0},
+  randoms: {vacant: [100, 256], boulder: [80, 256], firefly: [2, 256]},
   difficulty: [{time: 120}, {time: 150}, {time: 150}, {time: 240}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -399,6 +409,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: {needed: 19, worth: 20, extras: 0},
+  randoms: {vacant: [60, 256], boulder: [50, 256], diamond: [9, 256]},
   difficulty: [{time: 170, diamonds: {needed: 19}}, {time: 160, diamonds: {needed: 14}}, {time: 160, diamonds: {needed: 16}}, {time: 160, diamonds: {needed: 21}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -453,6 +464,7 @@ export default [{
   slowGrowth: 140,
   size: [40, 22],
   diamonds: {needed: 50, worth: 5, extras: 8},
+  randoms: {boulder: [40, 256]},
   difficulty: [{time: 155, diamonds: {needed: 55}}, {time: 150, diamonds: {needed: 60}}, {time: 145, diamonds: {needed: 70}}, {time: 140, diamonds: {needed: 80}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -518,6 +530,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: { needed: 15, worth: 10, extras: 20 },
+  randoms: {vacant: [100, 256], boulder: [80, 256], firefly: [2, 256]},
   difficulty: [{diamonds: {needed: 20}}, {diamonds: {needed: 20}}, {diamonds: {needed: 25}}, {time: 140, diamonds: {needed: 30}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
@@ -550,6 +563,7 @@ export default [{
   time: 150,
   size: [40, 22],
   diamonds: { needed: 12, worth: 10, extras: 20 },
+  randoms: {boulder: [50, 256]},
   difficulty: [{diamonds: {needed: 15}}, {diamonds: {needed: 15}}, {diamonds: {needed: 15}}, {diamonds: {needed: 12}}],
   map: `
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW

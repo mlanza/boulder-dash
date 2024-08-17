@@ -9,16 +9,20 @@ import s from "./libs/ecs_/sound.js";
 import ss from "./libs/ecs_/sounds.js";
 import {reg} from "./libs/cmd.js";
 
+const params = new URLSearchParams(location.search);
+const seed = _.maybe(params.get("seed"), parseInt) || 8675309;
+const norandom = params.get("norandom") == 1;
 const fps = 10;
 const throttle = 1000 / fps;
 const lagging = throttle * 1.2;
-const alt = _.chance(8675309);
+const alt = _.chance(seed);
 const uid = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 const div = dom.tag("div"), span = dom.tag("span");
 const el = dom.sel1("#stage");
 
 const vars = {
   R: uid(),
+  entrance: uid(),
   stats: uid(),
   enchantment: uid(),
   exit: uid()
@@ -36,16 +40,25 @@ const sounds = {
   timeout: ss.sounds('./sounds/timeout_9.ogg', './sounds/timeout_8.ogg', './sounds/timeout_7.ogg', './sounds/timeout_6.ogg', './sounds/timeout_5.ogg', './sounds/timeout_4.ogg', './sounds/timeout_3.ogg', './sounds/timeout_2.ogg', './sounds/timeout_1.ogg')
 }
 
-function die(n){
+function die1(n){
   return function(){
     const rolled = _.randInt(alt.random, n);
     return rolled === 0;
   }
 }
 
+function die2(n, pool){
+  return function(){
+    const rolled = _.randInt(alt.random, pool);
+    return n > rolled;
+  }
+}
+
+const die = _.overload(null, die1, die2);
+
 const budge = die(5);
 
-const params = new URLSearchParams(location.search);
+
 const debug = params.get('debug') == 1;
 const smooth = params.get("smooth") == 1;
 const l = _.maybe(params.get("l"), parseInt) || 1;
@@ -53,7 +66,7 @@ const d = _.maybe(params.get("d"), parseInt) || 1;
 const lvl = _.get(levels, l - 1);
 const {difficulty} = lvl;
 const level = _.absorb(lvl, _.get(difficulty, d - 2, {}));
-const {cave, arrive, time, hint, slowGrowth} = level;
+const {cave, arrive, time, hint, slowGrowth, size, randoms} = level;
 const [width, height] = level.size;
 
 dom.addStyle(el, "width", `${width * 32}px`)
@@ -100,7 +113,7 @@ function entrance(positioned){
   return function(world){
     const {arrive} = _.get(world, vars.stats);
     const becoming = [arrive || 25, poof];
-    return _.assoc(world, uid(), {noun, positioned, indestructible, becoming});
+    return _.assoc(world, vars.entrance, {noun, positioned, indestructible, becoming});
   }
 }
 
@@ -199,6 +212,43 @@ function load(board){
   return _.reduce(function(memo, {coords, piece}){
     return _.chain(memo, piece(coords));
   }, _, parts);
+}
+
+function scan([x,y]){
+  return _.braid(_.array, _.range(x), _.range(y));
+}
+
+const targets = {
+  "vacant": {target: ["dirt", "boulder"], what: _.constantly(_.identity)},
+  "boulder": {target: [undefined, "dirt"], what: boulder},
+  "diamond": {target: [undefined, "dirt", "boulder"], what: diamond},
+  "wall": {target: ["boulder"], what: wall},
+  "firefly": {target: [undefined, "dirt", "boulder"], what: firefly}
+}
+
+function randomize(world){
+  const {randoms, size} = _.get(world, vars.stats);
+  const {positioned} = _.get(world, vars.entrance);
+  const untouched = _.sset(_.toArray(around(positioned)));
+  return _.chain(size,
+    scan,
+    _.map(locate(world), _),
+    _.filter(function(x){
+      return !x.entity?.indestructible && !_.includes(untouched, x.positioned);
+    }, _),
+    _.map(function(was){
+      return _.reducekv(function({was, instead}, noun, [n, pool]){
+        const d = die(n, pool);
+        const {target, what} = _.get(targets, noun, {});
+        return target && _.includes(target, was.entity?.noun) && d() ? _.reduced({was, instead: what}) : {was, instead};
+      }, {was, instead: undefined}, randoms || {});
+    }, _),
+  _.filtera(({instead}) => instead !== undefined, _),
+  _.reduce(function(world, {was, instead}){
+    return _.chain(world,
+      _.dissoc(_, was.id),
+      instead(was.positioned));
+  }, world, _));
 }
 
 function vacancies(world){
@@ -560,7 +610,7 @@ const blank = _.chain(
   w.world(["gravitated", "seeking", "controlled", "growing", "falling", "rolling", "exploding", "becoming", "transitioning", "residue"]),
   w.via("positioned"),
   enchantment(),
-  _.assoc(_, vars.stats, _.merge(level.diamonds, {allotted: time, arrive, time, slowGrowth, ready: false, finished: false, score: 0, collected: 0})));
+  _.assoc(_, vars.stats, _.merge(level.diamonds, {allotted: time, randoms, arrive, size, time, slowGrowth, ready: false, finished: false, score: 0, collected: 0})));
 
 const $state = $.atom(r.reel(blank));
 const $changed = $.map(w.changed, $state);
@@ -712,7 +762,7 @@ $.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
 
 $.sub($changed, $.each($.reset($change, _), _));
 
-$.swap($state, _.fmap(_, _.comp(vacancies, load(level.map))));
+$.swap($state, _.fmap(_, _.comp(vacancies, norandom ? _.identity : randomize, load(level.map))));
 
 $.on(document, "keydown", function(e){
   if (_.includes(["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"], e.key)) {
