@@ -165,6 +165,6 @@ export function augment(...args){
 
 export function system(f, components = []){
   return function(world){
-    return f(augment(_.get(world, _), having(world, components)), world);
+    return f(world, augment(_.get(world, _), having(world, components)));
   }
 }
