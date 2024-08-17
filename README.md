@@ -16,8 +16,9 @@ The protagonist is directed via the keyboard:
 Use the query string to modify how the app is loaded:
 * `l`: the level number, 1 to 20, default is 1
 * `d`: the difficulty rating, 1 to 5, default is 1
-* `debug`: 1 or 0, default is 0 - displays `falling` as a visual cue
+* `debug`: 1 or 0, default is 0 - displays visuals for components `falling`, `rolling`, `enchanted`
 * `smooth`: 1 or 0, default is 0 - allows repositioned elements to glide into place
+* `seed`: an integer seeding all randomizations (affects most maps)
 
 ## License
 MIT
