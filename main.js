@@ -16,7 +16,6 @@ const seed = _.maybe(params.get("seed"), parseInt) || 8675309;
 const norandom = params.get("norandom") == 1;
 const fps = 10;
 const throttle = 1000 / fps;
-const lagging = throttle * 1.2;
 const alt = _.chance(seed);
 const uid = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 const div = dom.tag("div"), span = dom.tag("span");
@@ -27,7 +26,8 @@ const vars = {
   entrance: uid(),
   stats: uid(),
   enchantment: uid(),
-  exit: uid()
+  exit: uid(),
+  level: uid()
 }
 
 const sounds = {
@@ -57,28 +57,14 @@ function die2(n, pool){
 }
 
 const die = _.overload(null, die1, die2);
-
 const budge = die(5);
-
-
 const debug = params.get('debug') == 1;
 const smooth = params.get("smooth") == 1;
 const l = _.maybe(params.get("l"), parseInt) || 1;
 const d = _.maybe(params.get("d"), parseInt) || 1;
-const lvl = _.get(levels, l - 1);
-const {difficulty} = lvl;
-const level = _.absorb(lvl, _.get(difficulty, d - 2, {}));
-const {cave, arrive, time, hint, slowGrowth, size, randoms} = level;
-const [width, height] = level.size;
 
-dom.addStyle(el, "width", `${width * 32}px`)
-dom.addStyle(el, "height", `${height * 32}px`);
-dom.attr(el, "data-cave", _.lowerCase(cave));
 dom.toggleClass(document.body, "smooth", smooth);
 dom.toggleClass(document.body, "debug", debug);
-dom.text(dom.sel1("#hint"), hint);
-
-el.focus();
 
 const vacant = _.constantly(_.identity);
 
@@ -105,7 +91,7 @@ function enchantment(){
 function entrance(positioned){
   const noun = "entrance";
   return function(world){
-    const {arrive} = _.get(world, vars.stats);
+    const {arrive} = _.get(world, vars.level);
     const becoming = [arrive || 25, poof];
     return _.assoc(world, vars.entrance, {noun, positioned, indestructible, becoming});
   }
@@ -197,8 +183,6 @@ function transform(entity){
 
 const spawn = _.get({".": dirt, "X": debug ? rockford : entrance, "P": exit, "q": firefly, "B": butterfly, "a": amoeba, "r": boulder, "w": wall, "m": magicWall, "W": steelWall, "d": diamond}, _, vacant);
 
-const positions = _.braid(_.array, _.range(width), _.range(height));
-
 function load(board){
   const parts = _.chain(board,
     _.split(_, "\n"),
@@ -223,7 +207,7 @@ function scan([x,y]){
 }
 
 function randomize(world){
-  const {randoms, size} = _.get(world, vars.stats);
+  const {randoms, size} = _.get(world, vars.level);
   const {positioned} = _.get(world, vars.entrance);
   const untouched = _.sset(_.toArray(around(positioned)));
   const targets = {
@@ -255,9 +239,10 @@ function randomize(world){
 }
 
 function vacancies(world){
+  const {size} = _.get(world, vars.level);
   const vacancies = _.reduce(function(memo, coords){
     return _.contains(world.db.via.positioned, coords) ? memo : _.conj(memo, coords);
-  }, _.sset([]), positions);
+  }, _.sset([]), scan(size));
   return w.install(["vacated"],
     vacancies,
     _.plug(r.modified, _, {path: ["positioned"], pattern: {touched: _.includes(["updated", "removed"], _)}}),
@@ -630,8 +615,9 @@ function grow(world, area){
 
 function grows(world, entities){
   const size = _.count(entities);
-  const {time, allotted, slowGrowth} = _.get(world, vars.stats);
-  const slow = time >= allotted - slowGrowth;
+  const level = _.get(world, vars.level);
+  const {time} = _.get(world, vars.stats);
+  const slow = time >= level.time - level.slowGrowth;
   const expand = die(slow ? 32 : 4);
   const oversized = size >= 200;
   const area = _.filter(function([id, {positioned}]){
@@ -651,15 +637,23 @@ $.sub($inputs, _.noop); //without subscribers, won't activate
 const blank = _.chain(
   w.world(["gravitated", "seeking", "controlled", "growing", "falling", "rolling", "exploding", "becoming", "transitioning", "residue"]),
   w.via("positioned"),
-  enchantment(),
-  _.assoc(_, vars.stats, _.merge(level.diamonds, {allotted: time, randoms, arrive, size, time, slowGrowth, ready: false, finished: false, score: 0, collected: 0})));
+  enchantment());
 
-const $state = $.atom(r.reel(blank));
-const $changed = $.map(w.changed, $state);
+function boot(data, l){
+  const {levels} = data;
+  const lvl = _.get(levels, l - 1);
+  const {difficulty} = lvl;
+  const level = _.absorb(lvl, _.get(difficulty, d - 2, {}));
+  return _.merge(data, {level});
+}
+
+const $director = $.atom(boot({levels, status: "idle"}, l));
+const $stage = $.atom(r.reel(blank));
+const $changed = $.map(w.changed, $stage);
 const $change = $.atom(null);
 const $anim = animated(function({time, ticks, delta}){
   const inputs = _.deref($inputs);
-  $.swap($state,
+  $.swap($stage,
     _.fmap(_,
       _.pipe(
         w.system(grows, ["growing"]),
@@ -676,7 +670,59 @@ const $anim = animated(function({time, ticks, delta}){
         w.system(countdown(ticks)))));
 }, throttle);
 
-reg({$state, $change, $inputs, $anim, vars, r, w, sounds});
+$.sub($director, function({status}){
+  dom.toggleClass(document.body, "paused", status == "paused");
+  switch(status) {
+    case "loaded":
+      $.swap($director, toggle);
+      break;
+  }
+});
+
+function start(data){
+  const {level} = data;
+  const {size, cave, hint, time, diamonds} = level;
+  const [width, height] = size;
+  const playback = dispenser(play, pause);
+  const status = "loaded";
+  const map = _.chain(blank,
+    r.reel,
+    _.fmap(_,
+      _.comp(
+        vacancies,
+        norandom ? _.identity : randomize,
+        load(level.map),
+        _.assoc(_, vars.level, level),
+        _.assoc(_, vars.stats, _.merge(diamonds, {time, ready: false, finished: false, score: 0, collected: 0})))));
+  $.each(dom.omit, dom.sel("[data-noun]", el));
+  $.reset($stage, map);
+  dom.text(dom.sel1("#hint"), hint);
+  dom.addStyle(el, "width", `${width * 32}px`)
+  dom.addStyle(el, "height", `${height * 32}px`);
+  dom.attr(el, "data-cave", _.lowerCase(cave));
+  el.focus();
+  return _.merge(data, {playback, status});
+}
+
+function toggle(data){ //toggle play/pause
+  const {playback, status} = data;
+  if (_.includes(["loaded", "playing", "paused"], status)) {
+    const f = pop(playback);
+    f($anim);
+    return _.assoc(data, "status", f == play ? "playing" : "paused");
+  } else {
+    return data;
+  }
+}
+
+function advance(data){
+  const {level, levels} = data;
+  const idx = _.indexOf(levels, level);
+  pause($anim);
+  return _.chain(data, _.plug(boot, _, idx + 2), start);
+}
+
+reg({$director, $stage, $change, $inputs, $anim, vars, r, w, start, advance});
 
 function on2(id, prop){
   return _.filter(
@@ -822,8 +868,6 @@ $.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
 
 $.sub($changed, $.each($.reset($change, _), _));
 
-$.swap($state, _.fmap(_, _.comp(vacancies, norandom ? _.identity : randomize, load(level.map))));
-
 function Dispenser(list){
   this.list = list;
 }
@@ -838,17 +882,13 @@ function pop(disp){
   return popped;
 }
 
-const playback = dispenser(play, pause);
-
 $.on(document, "keydown", function(e){
   if (_.includes(["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"], e.key)) {
     e.preventDefault(); //to prevent moving the page around
-  } else if (e.key === " ") { //pause/play toggle
+  } else if (e.key === " ") {
     e.preventDefault();
-    const f = pop(playback);
-    f($anim);
-    dom.toggleClass(document.body, "paused", f === pause);
+    $.swap($director, toggle);
   }
 });
 
-pop(playback)($anim);
+$.swap($director, start);
