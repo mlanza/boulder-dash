@@ -78,6 +78,8 @@ dom.text(dom.sel1("#hint"), hint);
 
 el.focus();
 
+const vacant = _.constantly(_.identity);
+
 const indestructible = true,
       portal = true,
       enchanted = true,
@@ -88,7 +90,7 @@ const indestructible = true,
       falling = true,
       rolling = true,
       exploding = true,
-      explosive = _.constantly(_.identity),
+      explosive = vacant,
       rounded = true,
       pushable = true,
       moving = true;
@@ -96,16 +98,6 @@ const indestructible = true,
 function enchantment(){
   const transitioning = [null, {status: "on", transitioning: [30 * fps, {status: "expired", transitioning: null}]}];
   return _.assoc(_, vars.enchantment, {status: "dormant", transitioning});
-}
-
-function transform(entity){
-  const {transitioning} = entity;
-  if (transitioning) {
-    const [tick, patch] = transitioning;
-    return tick == null ? _.merge(entity, patch) : entity;
-  } else {
-    return entity;
-  }
 }
 
 function entrance(positioned){
@@ -166,7 +158,7 @@ function diamond(positioned, id = uid()){
   return _.assoc(_, id, {noun, collectible, rounded, positioned, gravitated, falling});
 }
 
-function enemy(noun, how, enemies, {going = "left", explosive = _.constantly(_.identity)} = {}){
+function enemy(noun, how, enemies, {going = "left", explosive = vacant} = {}){
   const seeking = {how, enemies};
   return function(positioned){
     return _.assoc(_, uid(), {noun, seeking, going, explosive, positioned});
@@ -191,7 +183,17 @@ function boulder(positioned, id = uid()){
   return _.assoc(_, id, {noun, pushable, rounded, positioned, gravitated, falling});
 }
 
-const spawn = _.get({".": dirt, "X": debug ? rockford : entrance, "P": exit, "q": firefly, "B": butterfly, "a": amoeba, "r": boulder, "w": wall, "m": magicWall, "W": steelWall, "d": diamond}, _, _.constantly(_.identity));
+function transform(entity){
+  const {transitioning} = entity;
+  if (transitioning) {
+    const [tick, patch] = transitioning;
+    return tick == null ? _.merge(entity, patch) : entity;
+  } else {
+    return entity;
+  }
+}
+
+const spawn = _.get({".": dirt, "X": debug ? rockford : entrance, "P": exit, "q": firefly, "B": butterfly, "a": amoeba, "r": boulder, "w": wall, "m": magicWall, "W": steelWall, "d": diamond}, _, vacant);
 
 const positions = _.braid(_.array, _.range(width), _.range(height));
 
@@ -218,18 +220,17 @@ function scan([x,y]){
   return _.braid(_.array, _.range(x), _.range(y));
 }
 
-const targets = {
-  "vacant": {target: ["dirt", "boulder"], what: _.constantly(_.identity)},
-  "boulder": {target: [undefined, "dirt"], what: boulder},
-  "diamond": {target: [undefined, "dirt", "boulder"], what: diamond},
-  "wall": {target: ["boulder"], what: wall},
-  "firefly": {target: [undefined, "dirt", "boulder"], what: firefly}
-}
-
 function randomize(world){
   const {randoms, size} = _.get(world, vars.stats);
   const {positioned} = _.get(world, vars.entrance);
   const untouched = _.sset(_.toArray(around(positioned)));
+  const targets = {
+    "vacant": {target: ["dirt", "boulder"], what: vacant},
+    "boulder": {target: [undefined, "dirt"], what: boulder},
+    "diamond": {target: [undefined, "dirt", "boulder"], what: diamond},
+    "wall": {target: ["boulder"], what: wall},
+    "firefly": {target: [undefined, "dirt", "boulder"], what: firefly}
+  }
   return _.chain(size,
     scan,
     _.map(locate(world), _),
@@ -243,7 +244,7 @@ function randomize(world){
         return target && _.includes(target, was.entity?.noun) && d() ? _.reduced({was, instead: what}) : {was, instead};
       }, {was, instead: undefined}, randoms || {});
     }, _),
-  _.filtera(({instead}) => instead !== undefined, _),
+  _.filter(({instead}) => instead !== undefined, _),
   _.reduce(function(world, {was, instead}){
     return _.chain(world,
       _.dissoc(_, was.id),
