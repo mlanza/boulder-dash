@@ -11,7 +11,7 @@ export function animated(callback, throttle, startTime = 0, lastTime = 0, ticks 
 }
 
 export function play(animated){
-  let {callback, throttle, startTime, lastTime, ticks} = animated;
+  let {callback, throttle, startTime, lastTime, ticks, rafId} = animated;
   function tick(time) {
     if (!startTime) {
       startTime = time;
@@ -23,14 +23,23 @@ export function play(animated){
       const delta = Math.round((elapsed - lastTime) * 100) / 100;
       callback({ time, ticks, delta });
       lastTime = elapsed - (elapsed % throttle);
+      const paused = animated.paused === animated.ticks;
       ticks++;
+      animated.ticks = ticks;
+      if (paused){
+        return;
+      }
     }
 
     animated.rafId = requestAnimationFrame(tick);
+
   }
   animated.rafId = requestAnimationFrame(tick);
 }
 
 export function pause(animated){
-  cancelAnimationFrame(animated.rafId);
+  if (animated.rafId) {
+    cancelAnimationFrame(animated.rafId);
+    animated.paused = animated.ticks;
+  }
 }
