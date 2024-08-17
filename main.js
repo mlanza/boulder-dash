@@ -289,13 +289,13 @@ function around(positioned, immediate = false){
     }, _));
 }
 
-function settles(entities, world){
+function settles(world, entities){
   return _.reduce(function(world, [id, {residue, positioned}]){
     return _.chain(world, _.dissoc(_, id), residue(positioned));
   }, world, entities)
 }
 
-function transitions(entities, world){
+function transitions(world, entities){
   return _.reduce(function(world, [id, {transitioning: [tick, patch]}]){
     return tick == null ? world : tick > 0 ?
       _.chain(world, w.patch(_, id, {transitioning: [tick - 1, patch]})) :
@@ -303,7 +303,7 @@ function transitions(entities, world){
   }, world, entities);
 }
 
-function becomes(entities, world){
+function becomes(world, entities){
   return _.reduce(function(world, [id, {becoming, positioned}]){
     const [tick, become] = becoming;
     return tick == null ? world : tick > 0 ?
@@ -360,7 +360,7 @@ function face(id, direction){
 }
 
 function abort(inputs){
-  return function(entities, world){
+  return function(world, entities){
     const esc = _.chain(inputs.keys, _.includes(_, "Escape"));
     return esc ? _.reduce(function(memo, [id]){
       return w.patch(memo, id, {exploding});
@@ -369,7 +369,7 @@ function abort(inputs){
 }
 
 function control(inputs){
-  return function(entities, world){
+  return function(world, entities){
     const keys = _.chain(inputs.keys, _.omit(_, "Shift"), _.omit(_, "Ctrl"), _.seq);
     const stationary = _.chain(inputs.keys, _.includes(_, "Shift"));
     return _.reduce(function(memo, [id, subject]){
@@ -462,7 +462,7 @@ const loose = _.juxt(
   nearby(_, "up", "left"),
   nearby(_, "up", "right"));
 
-function gravity(entities, world){
+function gravity(world){
   const vacated = alternating(world.db.vacated);
   const surrounding = _.chain(vacated,
     _.mapcat(loose, _),
@@ -510,7 +510,7 @@ function explode(at, explosive, origin = false){
   }
 }
 
-function explodes(entities, world){
+function explodes(world, entities){
   return _.reduce(function(world, [id, {positioned, explosive, exploding}]){
     return exploding && positioned ? _.chain(world,
       explode(positioned, explosive, true),
@@ -565,26 +565,26 @@ function seek(world, id, positioned, seeking, going){
   }
 }
 
-function seeks(entities, world){
+function seeks(world, entities){
   return _.reduce(function(world, [id, {positioned, seeking, going}]){
     return seek(world, id, positioned, seeking, going);
   }, world, entities);
 }
 
-function falls(entities, world){
+function falls(world, entities){
   return _.reduce(function(world, [id]){
     return fall(id)(world);
   }, world, entities);
 }
 
-function rolls(entities, world){
+function rolls(world, entities){
   return _.reduce(function(world, [id]){
     return roll(id)(world);
   }, world, entities);
 }
 
 function countdown(ticks){
-  return function(entities, world){
+  return function(world, entities){
     const hero = _.get(world, vars.R);
     const stats =  _.getIn(world, [vars.stats]);
     const {time, started, finished} = stats;
@@ -598,6 +598,45 @@ function countdown(ticks){
     const tick = (ticks - started) % 10 === 0;
     return time === 0 && !finished ? w.patch(world, vars.R, {exploding}) : time > 0 && tick ? _.updateIn(world, [vars.stats, "time"], _.dec) : world;
   }
+}
+
+const room = _.curry(function(world, at){
+  const adjacent = locate(world, at);
+  return !adjacent.id || adjacent.entity.diggable;
+});
+
+function suffocate(world, entities, what){
+  return _.reduce(function(world, [id]){
+    return w.patch(world, id, {becoming: [0, what]});
+  }, world, entities);
+}
+
+function grow(world, area){
+  const id = _.chain(_.map(_.first, area), _.shuffle(alt.random, _), _.first);
+  const {positioned} = _.maybe(id, _.get(world, _)) || {};
+  const target = _.maybe(
+    positioned,
+    _.plug(around, _, true),
+    _.filter(room(world), _),
+    _.shuffle(alt.random, _),
+    _.first,
+    _.plug(locate, world, _));
+  return _.chain(world,
+    target?.id ? _.dissoc(_, target.id) : _.identity,
+    target ? amoeba(target.positioned) : _.identity);
+}
+
+function grows(world, entities){
+  const size = _.count(entities);
+  const {time, allotted, slowGrowth} = _.get(world, vars.stats);
+  const slow = time >= allotted - slowGrowth;
+  const expand = die(slow ? 32 : 4);
+  const oversized = size >= 200;
+  const area = _.filter(function([id, {positioned}]){
+    return _.detect(room(world), around(positioned, true));
+  }, entities);
+  const suffocated = !_.seq(area);
+  return suffocated || oversized ? suffocate(world, entities, oversized ? boulder : diamond) : expand() ? grow(world, area) : world;
 }
 
 const $keys = dom.depressed(document.body);
@@ -783,7 +822,6 @@ function setRafInterval(callback, throttle) {
     }
 
     const elapsed = time - startTime;
-    const expectedFrames = Math.floor(elapsed / throttle);
 
     if (elapsed - lastTime >= throttle) {
       const delta = Math.round((elapsed - lastTime) * 100) / 100;
@@ -803,45 +841,6 @@ function setRafInterval(callback, throttle) {
   };
 }
 
-const room = _.curry(function(world, at){
-  const adjacent = locate(world, at);
-  return !adjacent.id || adjacent.entity.diggable;
-});
-
-function suffocate(world, entities, what){
-  return _.reduce(function(world, [id]){
-    return w.patch(world, id, {becoming: [0, what]});
-  }, world, entities);
-}
-
-function grow(world, area){
-  const id = _.chain(_.map(_.first, area), _.shuffle(alt.random, _), _.first);
-  const {positioned} = _.maybe(id, _.get(world, _)) || {};
-  const target = _.maybe(
-    positioned,
-    _.plug(around, _, true),
-    _.filter(room(world), _),
-    _.shuffle(alt.random, _),
-    _.first,
-    _.plug(locate, world, _));
-  return _.chain(world,
-    target?.id ? _.dissoc(_, target.id) : _.identity,
-    target ? amoeba(target.positioned) : _.identity);
-}
-
-function grows(entities, world){
-  const size = _.count(entities);
-  const {time, allotted, slowGrowth} = _.get(world, vars.stats);
-  const slow = time >= allotted - slowGrowth;
-  const expand = die(slow ? 32 : 4);
-  const oversized = size >= 200;
-  const area = _.filter(function([id, {positioned}]){
-    return _.detect(room(world), around(positioned, true));
-  }, entities);
-  const suffocated = !_.seq(area);
-  return suffocated || oversized ? suffocate(world, entities, oversized ? boulder : diamond) : expand() ? grow(world, area) : world;
-}
-
 setRafInterval(function({time, ticks, delta}){
   const inputs = _.deref($inputs);
   $.swap($state,
@@ -856,7 +855,7 @@ setRafInterval(function({time, ticks, delta}){
         w.system(seeks, ["seeking"]),
         w.system(falls, ["falling"]),
         w.system(rolls, ["rolling"]),
-        w.system(gravity, ["falling"]),
+        w.system(gravity),
         w.system(explodes, ["exploding"]),
         w.system(countdown(ticks)))));
 }, throttle);
