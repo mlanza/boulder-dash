@@ -501,6 +501,7 @@ function explodes(world, entities){
   return _.reduce(function(world, [id, {positioned, explosive, exploding}]){
     return exploding && positioned ? _.chain(world,
       explode(positioned, explosive, true),
+      id === vars.R ? _.updateIn(_, [vars.stats, "lives"], _.dec) : _.identity,
       _.reduce(function(world, at){
         return explode(at, explosive)(world);
       }, _, _.rest(around(positioned)))) : world;
@@ -660,13 +661,13 @@ const $anim = animated(function({time, ticks, delta}){
         w.system(transitions, ["transitioning"]),
         w.system(becomes, ["becoming"]),
         w.system(settles, ["residue"]),
+        w.system(explodes, ["exploding"]),
         w.system(abort(inputs), ["controlled"]),
         w.system(control(inputs), ["controlled"]),
         w.system(seeks, ["seeking"]),
         w.system(falls, ["falling"]),
         w.system(rolls, ["rolling"]),
         w.system(gravity),
-        w.system(explodes, ["exploding"]),
         w.system(countdown(ticks)))));
 }, throttle);
 
@@ -679,12 +680,16 @@ $.sub($director, function({status}){
   }
 });
 
-function start(data){
+function start(data, init = false){
   const {level} = data;
   const {size, cave, hint, time, diamonds} = level;
   const [width, height] = size;
   const playback = dispenser(play, pause);
   const status = "loaded";
+  const ready = false;
+  const finished = false;
+  const collected = 0;
+  const stats = init ? {score: 0, lives: 3} : _.chain($stage, _.deref, _.deref, _.get(_, vars.stats), _.selectKeys(_, ["score", "lives"]))
   const map = _.chain(blank,
     r.reel,
     _.fmap(_,
@@ -693,7 +698,8 @@ function start(data){
         norandom ? _.identity : randomize,
         load(level.map),
         _.assoc(_, vars.level, level),
-        _.assoc(_, vars.stats, _.merge(diamonds, {time, ready: false, finished: false, score: 0, collected: 0})))));
+        _.assoc(_, vars.stats, _.merge(stats, diamonds, {time, ready, finished, collected})))));
+  pause($anim); //possibly restarting a level?
   $.each(dom.omit, dom.sel("[data-noun]", el));
   $.reset($stage, map);
   dom.text(dom.sel1("#hint"), hint);
@@ -702,6 +708,12 @@ function start(data){
   dom.attr(el, "data-cave", _.lowerCase(cave));
   el.focus();
   return _.merge(data, {playback, status});
+}
+
+function stop(data){
+  pause($anim);
+  const status = "idle";
+  return _.merge(data, {status});
 }
 
 function toggle(data){ //toggle play/pause
@@ -736,6 +748,16 @@ function on1(prop){
 }
 
 const on = _.overload(null, on1, on2);
+
+$.sub($change, on(vars.stats, "lives"), function({id, props: {lives}, compared: [curr, prior]}){
+  if (lives === "updated") {
+    if (curr.lives <= 0) {
+      $.swap($director, stop);
+    } else if (curr.lives < prior.lives) {
+      $.swap($director, start);
+    }
+  }
+});
 
 $.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
   if (id === vars.R && positioned === "updated") {
@@ -891,4 +913,4 @@ $.on(document, "keydown", function(e){
   }
 });
 
-$.swap($director, start);
+$.swap($director, _.plug(start, _, true));
