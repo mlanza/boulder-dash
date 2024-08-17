@@ -5,6 +5,12 @@ body {
   position: relative;
   margin: 0 auto;
 }
+body.paused #stage {
+  opacity: .6;
+}
+body.paused #stage [data-noun] {
+  animation-play-state: paused !important;
+}
 #stats,
 #hint {
   position: relative;
@@ -65,10 +71,6 @@ body.debug .exploding {
   position: absolute;
   height: 32px;
   width: 32px;
-  color: #6a5400;
-  color: #a26d2e;
-  color: #626262;
-  color: #9B6639;
   background-image: url(./images/sprites.png);
 }
 #stage[data-cave='b'] [data-noun] {
