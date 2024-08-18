@@ -513,10 +513,12 @@ function explode(at, explosive, origin = false){
 }
 
 function explodes(world, entities){
+  const die = _.updateIn(_, [vars.stats, "lives"], _.dec);
+  const reboot = w.patch(_, vars.stats, {transitioning: [25, {reboot: true, transitioning: null}]});
   return _.reduce(function(world, [id, {positioned, explosive, exploding}]){
     return exploding && positioned ? _.chain(world,
       explode(positioned, explosive, true),
-      id === vars.R ? _.updateIn(_, [vars.stats, "lives"], _.dec) : _.identity,
+      id === vars.R ? _.comp(reboot, die) : _.identity,
       _.reduce(function(world, at){
         return explode(at, explosive)(world);
       }, _, _.rest(around(positioned)))) : world;
@@ -735,12 +737,12 @@ function start(data, init = false){
     if (lives === "updated") {
       if (curr.lives <= 0) {
         $.swap($director, stop);
-      } else if (curr.lives < prior.lives) {
-        setTimeout(function(){
-          $.swap($director, reboot);
-        }, 5000)
       }
     }
+  });
+
+  s.sub($change, on(vars.stats, "reboot"), function(){
+    $.swap($director, reboot);
   });
 
   s.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
@@ -872,10 +874,11 @@ function start(data, init = false){
         dom.toggleClass(_, "moving", !!curr?.moving)));
   });
 
-  s.sub($changed, $.each($.reset($change, _), _));
 
   dom.html(el, null);
   $.reset($stage, map);
+  s.sub($changed, $.each($.reset($change, _), _));
+
   dom.text(dom.sel1("#hint"), hint);
   dom.addStyle(el, "width", `${width * 32}px`)
   dom.addStyle(el, "height", `${height * 32}px`);
