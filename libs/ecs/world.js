@@ -4,16 +4,18 @@ import * as c from "./icapture.js";
 import * as r from "./reel.js";
 export {capture, frame} from "./icapture.js";
 
-function World(entities, db, hooks){
+function World(entities, random, db, hooks){
   this.entities = entities;
+  this.random = random;
   this.db = db;
   this.hooks = hooks;
 }
 
-export function world(indices){
+export function world(indices, random = Math.random){
   const touching = _.binary(_.conj);
   return _.chain(new World(
     _.pmap([]),
+    random,
     {},
     []),
     install(["components", "touched"], _.sset([]), r.modified, function(id){
@@ -29,13 +31,13 @@ function lookup(self, id){
 }
 
 function assoc(self, id, entity){
-  return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.db, self.hooks),
+  return _.chain(new World(entity == null ? _.dissoc(self.entities, id) : _.assoc(self.entities, id, entity), self.random, self.db, self.hooks),
     hooks(id, self));
 }
 
 function dissoc(self, id){
   const entity = _.get(self, id);
-  return _.chain(new World(_.dissoc(self.entities, id), self.db, self.hooks),
+  return _.chain(new World(_.dissoc(self.entities, id), self.random, self.db, self.hooks),
     hooks(id, self));
 }
 
@@ -47,6 +49,7 @@ export function clear(path){
   return function(self){
     const curr = _.getIn(self.db, path);
     return _.seq(curr) ? new World(self.entities,
+      self.random,
       _.updateIn(self.db, path, _.empty),
       self.hooks) : self;
   }
@@ -55,6 +58,7 @@ export function clear(path){
 function sets(path, value){
   return function(self){
     return new World(self.entities,
+      self.random,
       _.assocIn(self.db, path, value),
       self.hooks);
   }
@@ -70,7 +74,12 @@ function seq(self){
   return _.seq(self.entities);
 }
 
+function conj(self, entity){
+  return assoc(self, uid(self), entity);
+}
+
 $.doto(World,
+  _.implement(_.ICollection, {conj}),
   _.implement(_.IMap, {keys, dissoc}),
   _.implement(_.ILookup, {lookup}),
   _.implement(_.IAssociative, {assoc, contains}),
@@ -78,10 +87,15 @@ $.doto(World,
   _.implement(c.ICapture, {capture}));
 
 //concrete fns
+export function uid(world) {
+  return _.uident(5, world.random);
+}
+
 export function install(path, init, trigger = _.constantly(_.constantly(null)), update = _.noop){
   return function(self){
     return new World(
       self.entities,
+      self.random,
       _.assocIn(self.db, path, init),
       _.conj(self.hooks, {path, trigger, update}));
   }
@@ -92,6 +106,7 @@ function hooks(id, prior){
     const reel = r.edit(self, prior);
     return new World(
       self.entities,
+      self.random,
       _.reduce(function(db, {path, trigger, update}){
         const triggered = trigger(id)(reel);
         return triggered ? _.updateIn(db, path, update(id, {reel, triggered})) : db;

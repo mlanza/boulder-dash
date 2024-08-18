@@ -15,19 +15,16 @@ const params = new URLSearchParams(location.search);
 const seed = _.maybe(params.get("seed"), parseInt) || 8675309;
 const norandom = params.get("norandom") == 1;
 const fps = 10;
-const throttle = 1000 / fps;
-const alt = _.chance(seed);
-const uid = _.pipe(_.nullary(_.uids(5, alt.random)), _.str);
 const div = dom.tag("div"), span = dom.tag("span");
 const el = dom.sel1("#stage");
 
 const vars = {
-  R: uid(),
-  entrance: uid(),
-  stats: uid(),
-  enchantment: uid(),
-  exit: uid(),
-  level: uid()
+  R: "rocky",
+  entrance: "entra",
+  stats: "stats",
+  enchantment: "encha",
+  exit: "exit!",
+  level: "level"
 }
 
 const sounds = {
@@ -42,22 +39,32 @@ const sounds = {
   timeout: ss.sounds('./sounds/timeout_9.ogg', './sounds/timeout_8.ogg', './sounds/timeout_7.ogg', './sounds/timeout_6.ogg', './sounds/timeout_5.ogg', './sounds/timeout_4.ogg', './sounds/timeout_3.ogg', './sounds/timeout_2.ogg', './sounds/timeout_1.ogg')
 }
 
-function die1(n){
+function subs(unsubs = []){
+  function sub(...args){
+    const s = $.sub(...args);
+    unsubs.push(s);
+  }
+  function unsub(){
+    $.each(_.invoke, unsubs);
+  }
+  return {sub, unsub};
+}
+
+function die2(random, n){
   return function(){
-    const rolled = _.randInt(alt.random, n);
+    const rolled = _.randInt(random, n);
     return rolled === 0;
   }
 }
 
-function die2(n, pool){
+function die3(random, n, pool){
   return function(){
-    const rolled = _.randInt(alt.random, pool);
+    const rolled = _.randInt(random, pool);
     return n > rolled;
   }
 }
 
-const die = _.overload(null, die1, die2);
-const budge = die(5);
+const die = _.overload(null, null, die2, die3);
 const debug = params.get('debug') == 1;
 const smooth = params.get("smooth") == 1;
 const l = _.maybe(params.get("l"), parseInt) || 1;
@@ -105,28 +112,28 @@ function exit(positioned){
 function poof(positioned){
   const noun = "poof";
   const becoming = [1, rockford];
-  return _.assoc(_, uid(), {noun, positioned, indestructible, becoming});
+  return _.conj(_, {noun, positioned, indestructible, becoming});
 }
 
 function steelWall(positioned){
   const noun = "steel-wall";
-  return _.assoc(_, uid(), {noun, positioned, indestructible});
+  return _.conj(_, {noun, positioned, indestructible});
 }
 
 function amoeba(positioned){
   const noun = "amoeba";
-  return _.assoc(_, uid(), {noun, positioned, growing});
+  return _.conj(_, {noun, positioned, growing});
 }
 
 function wall(positioned){
   const noun = "wall";
-  return _.assoc(_, uid(), {noun, positioned, rounded});
+  return _.conj(_, {noun, positioned, rounded});
 }
 
 function magicWall(positioned){
   const noun = "magic-wall";
   const transitioning = [5, {enchanted}]
-  return _.assoc(_, uid(), {noun, positioned, transitioning});
+  return _.conj(_, {noun, positioned, transitioning});
 }
 
 function rockford(positioned){
@@ -141,15 +148,17 @@ function rockford(positioned){
   return _.assoc(_, vars.R, {noun, facing, controlled, explosive, positioned});
 }
 
-function diamond(positioned, id = uid()){
+function diamond(positioned, id = null){
   const noun = "diamond";
-  return _.assoc(_, id, {noun, collectible, rounded, positioned, gravitated, falling});
+  return function(world){
+    return _.assoc(world, id || w.uid(world), {noun, collectible, rounded, positioned, gravitated, falling});
+  }
 }
 
 function enemy(noun, how, enemies, {going = "left", explosive = vacant} = {}){
   const seeking = {how, enemies};
   return function(positioned){
-    return _.assoc(_, uid(), {noun, seeking, going, explosive, positioned});
+    return _.conj(_, {noun, seeking, going, explosive, positioned});
   }
 }
 
@@ -158,17 +167,19 @@ const butterfly = enemy("butterfly", "clockwise", ["Rockford", "amoeba", "firefl
 
 function explosion(positioned, residue = explosive){
   const noun = "explosion";
-  return _.assoc(_, uid(), {noun, positioned, residue});
+  return _.conj(_, {noun, positioned, residue});
 }
 
 function dirt(positioned){
   const noun = "dirt";
-  return _.assoc(_, uid(), {noun, diggable, positioned});
+  return _.conj(_, {noun, diggable, positioned});
 }
 
-function boulder(positioned, id = uid()){
+function boulder(positioned, id = null){
   const noun = "boulder";
-  return _.assoc(_, id, {noun, pushable, rounded, positioned, gravitated, falling});
+  return function(world){
+    return _.assoc(world, id || w.uid(world), {noun, pushable, rounded, positioned, gravitated, falling});
+  }
 }
 
 function transform(entity){
@@ -225,7 +236,7 @@ function randomize(world){
     }, _),
     _.map(function(was){
       return _.reducekv(function({was, instead}, noun, [n, pool]){
-        const d = die(n, pool);
+        const d = die(world.random, n, pool);
         const {target, what} = _.get(targets, noun, {});
         return target && _.includes(target, was.entity?.noun) && d() ? _.reduced({was, instead: what}) : {was, instead};
       }, {was, instead: undefined}, randoms || {});
@@ -325,7 +336,11 @@ function move(id, direction, from, to){
 }
 
 function push(id, direction, from, to){
-  return _.includes(["left", "right"], direction) && budge() ? function(world){
+  return _.includes(["left", "right"], direction) ? function(world){
+    const budge = die(world.random, 5);
+    if (!budge()){
+      return world;
+    }
     const {pushable, falling, gravitated} = _.maybe(id, _.get(world, _)) || {};
     const occupied = locate(world, to);
     const beneath = locate(world, to, "down");
@@ -384,7 +399,7 @@ function transmute(id){
     const {status} = _.get(world, vars.enchantment);
     const underneath = locate(world, positioned, "down", "down");
     if (status == "on" && _.includes(["boulder", "diamond"], noun)) {
-      const nid = uid();
+      const nid = w.uid(world);
       const make = noun === "boulder" ? diamond : boulder;
       return _.chain(world, w.patch(_, id, {falling: null, rolling: null}), _.dissoc(_, id), underneath.id ? _.identity : make(underneath.positioned, nid), w.patch(_, nid, {falling, rolling: null}));
     } else {
@@ -600,13 +615,13 @@ function suffocate(world, entities, what){
 }
 
 function grow(world, area){
-  const id = _.chain(_.map(_.first, area), _.shuffle(alt.random, _), _.first);
+  const id = _.chain(_.map(_.first, area), _.shuffle(world.random, _), _.first);
   const {positioned} = _.maybe(id, _.get(world, _)) || {};
   const target = _.maybe(
     positioned,
     _.plug(around, _, true),
     _.filter(room(world), _),
-    _.shuffle(alt.random, _),
+    _.shuffle(world.random, _),
     _.first,
     _.plug(locate, world, _));
   return _.chain(world,
@@ -619,7 +634,7 @@ function grows(world, entities){
   const level = _.get(world, vars.level);
   const {time} = _.get(world, vars.stats);
   const slow = time >= level.time - level.slowGrowth;
-  const expand = die(slow ? 32 : 4);
+  const expand = die(world.random, slow ? 32 : 4);
   const oversized = size >= 200;
   const area = _.filter(function([id, {positioned}]){
     return _.detect(room(world), around(positioned, true));
@@ -635,10 +650,12 @@ const $inputs = $.map(function(keys){
 const inputs = _.partial(_.deref, $inputs);
 $.sub($inputs, _.noop); //without subscribers, won't activate
 
-const blank = _.chain(
-  w.world(["gravitated", "seeking", "controlled", "growing", "falling", "rolling", "exploding", "becoming", "transitioning", "residue"]),
-  w.via("positioned"),
-  enchantment());
+function blank(){
+  return _.chain(
+    w.world(["gravitated", "seeking", "controlled", "growing", "falling", "rolling", "exploding", "becoming", "transitioning", "residue"], _.chance(seed).random),
+    w.via("positioned"),
+    enchantment());
+}
 
 function boot(data, l){
   const {levels} = data;
@@ -648,28 +665,7 @@ function boot(data, l){
   return _.merge(data, {level});
 }
 
-const $director = $.atom(boot({levels, status: "idle"}, l));
-const $stage = $.atom(r.reel(blank));
-const $changed = $.map(w.changed, $stage);
-const $change = $.atom(null);
-const $anim = animated(function({time, ticks, delta}){
-  const inputs = _.deref($inputs);
-  $.swap($stage,
-    _.fmap(_,
-      _.pipe(
-        w.system(grows, ["growing"]),
-        w.system(transitions, ["transitioning"]),
-        w.system(becomes, ["becoming"]),
-        w.system(settles, ["residue"]),
-        w.system(explodes, ["exploding"]),
-        w.system(abort(inputs), ["controlled"]),
-        w.system(control(inputs), ["controlled"]),
-        w.system(seeks, ["seeking"]),
-        w.system(falls, ["falling"]),
-        w.system(rolls, ["rolling"]),
-        w.system(gravity),
-        w.system(countdown(ticks)))));
-}, throttle);
+const $director = $.atom(boot({levels, status: "idle", $stage: $.atom(r.reel(blank()))}, l));
 
 $.sub($director, function({status}){
   dom.toggleClass(document.body, "paused", status == "paused");
@@ -677,11 +673,22 @@ $.sub($director, function({status}){
     case "loaded":
       $.swap($director, toggle);
       break;
+    case "rebooted":
+      $.swap($director, start);
+      break;
   }
 });
 
+function reboot(data){
+  const {$anim, unsub} = data;
+  const status = "rebooted";
+  unsub();
+  pause($anim); //possibly restarting a level?
+  return _.merge(data, {status});
+}
+
 function start(data, init = false){
-  const {level} = data;
+  const {$stage, level} = data;
   const {size, cave, hint, time, diamonds} = level;
   const [width, height] = size;
   const playback = dispenser(play, pause);
@@ -690,7 +697,29 @@ function start(data, init = false){
   const finished = false;
   const collected = 0;
   const stats = init ? {score: 0, lives: 3} : _.chain($stage, _.deref, _.deref, _.get(_, vars.stats), _.selectKeys(_, ["score", "lives"]))
-  const map = _.chain(blank,
+
+  const $changed = $.map(w.changed, $stage);
+  const $change = $.atom(null);
+  const $anim = animated(function({time, ticks, delta}){
+    const inputs = _.deref($inputs);
+    $.swap($stage,
+      _.fmap(_,
+        _.pipe(
+          w.system(grows, ["growing"]),
+          w.system(transitions, ["transitioning"]),
+          w.system(becomes, ["becoming"]),
+          w.system(settles, ["residue"]),
+          w.system(explodes, ["exploding"]),
+          w.system(abort(inputs), ["controlled"]),
+          w.system(control(inputs), ["controlled"]),
+          w.system(seeks, ["seeking"]),
+          w.system(falls, ["falling"]),
+          w.system(rolls, ["rolling"]),
+          w.system(gravity),
+          w.system(countdown(ticks)))));
+  }, 1000 / fps);
+
+  const map = _.chain(blank(),
     r.reel,
     _.fmap(_,
       _.comp(
@@ -699,24 +728,175 @@ function start(data, init = false){
         load(level.map),
         _.assoc(_, vars.level, level),
         _.assoc(_, vars.stats, _.merge(stats, diamonds, {time, ready, finished, collected})))));
-  pause($anim); //possibly restarting a level?
-  $.each(dom.omit, dom.sel("[data-noun]", el));
+
+  const s = subs();
+
+  s.sub($change, on(vars.stats, "lives"), function({id, props: {lives}, compared: [curr, prior]}){
+    if (lives === "updated") {
+      if (curr.lives <= 0) {
+        $.swap($director, stop);
+      } else if (curr.lives < prior.lives) {
+        setTimeout(function(){
+          $.swap($director, reboot);
+        }, 5000)
+      }
+    }
+  });
+
+  s.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
+    if (id === vars.R && positioned === "updated") {
+      a.play(sounds.walk);
+    }
+    switch(positioned){
+      case "added": {
+        if (curr.noun == "explosion") {
+          a.play(sounds.exploded);
+        }
+        const [x, y] = curr.positioned;
+        dom.append(el,
+          $.doto(div({"data-noun": curr.noun, id}),
+            dom.attr(_, "data-x", x),
+            dom.attr(_, "data-y", y)));
+        break;
+      }
+
+      case "removed": {
+        _.maybe(document.getElementById(id), dom.omit(el, _));
+        break;
+      }
+
+      case "updated": {
+        const [x, y] = curr.positioned;
+        $.doto(document.getElementById(id),
+          dom.attr(_, "data-x", x),
+          dom.attr(_, "data-y", y));
+        break;
+      }
+    }
+  });
+
+  s.sub($change, on(vars.R, "positioned"), function({touched, props: {positioned}}){
+    if (positioned === "added"){
+      a.play(sounds.crack);
+    }
+  });
+
+  s.sub($change, on("growing"), function({touched, props: {growing}, reel}){
+    if (growing === "added"){
+      a.play(sounds.amoeba, true);
+    } else if (growing === "removed") {
+      const world = r.current(reel);
+      if (!_.seq(world.db.components.growing)){
+        a.pause(sounds.amoeba);
+      }
+    }
+  });
+
+  s.sub($change, on(vars.stats, "collected"), function({props: {collected}}){
+    if (collected === "updated"){
+      a.play(sounds.collected);
+    }
+  });
+
+  s.sub($change, on(vars.stats, "finished"), function({props: {finished}}){
+    if (finished === "updated"){
+      a.play(sounds.finished);
+    }
+  });
+
+  s.sub($change, on(vars.stats, "time"), function({props: {time}, compared: [curr], reel}){
+    if (time === "updated" && curr.time < 10 && curr.time > 0 && !_.chain(reel, r.current, _.getIn(_, [vars.stats, "finished"]))) {
+      a.play(sounds.timeout);
+    }
+  });
+
+  $.eachkv(function(key, digits){
+    s.sub($change, on(vars.stats, key), function({compared: [curr]}){
+      dom.html(dom.sel1(`#${key}`), _.map(function(char){
+        return span({"data-char": char});
+      }, _.lpad(_.get(curr, key), digits, 0)));
+    });
+  }, {needed: 2, worth: 2, extras: 2, collected: 2, time: 3, score: 6});
+
+  s.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
+    _.maybe(document.getElementById(id),
+      _.includes(["added", "updated"], facing) ?
+        dom.attr(_, "data-facing", curr.facing) :
+        dom.removeAttr(_, "data-facing"));
+  });
+
+  s.sub($change, on("falling"), function({id, props: {falling}}){
+    if (falling == "removed") {
+      a.play(sounds.stone);
+    }
+    _.maybe(document.getElementById(id),
+      _.includes(["added"], falling) ?
+        dom.addClass(_, "falling") :
+        dom.removeClass(_, "falling"));
+  });
+
+  s.sub($change, on("rolling"), function({id, props: {rolling}}){
+    _.maybe(document.getElementById(id),
+      _.includes(["added"], rolling) ?
+        dom.addClass(_, "rolling") :
+        dom.removeClass(_, "rolling"));
+  });
+
+  s.sub($change, on("exploding"), function({id, props: {exploding}}){
+    _.maybe(document.getElementById(id),
+      _.includes(["added"], exploding) ?
+        dom.addClass(_, "exploding") :
+        dom.removeClass(_, "exploding"));
+  });
+
+  s.sub($change, on(vars.enchantment, "status"), function({id, props: {status}, compared: [curr]}){
+    switch(curr.status) {
+      case "on":
+        a.play(sounds.magicWall, true);
+        break;
+      case "expired":
+        a.pause(sounds.magicWall);
+        break;
+    }
+    dom.attr(el, "data-enchantment", curr.status);
+  });
+
+  s.sub($change, on(vars.exit, "portal"), function({id, props: {portal}, compared: [curr]}){
+    _.maybe(document.body, dom.toggleClass(_, "portal", curr?.portal));
+  });
+
+  s.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
+    _.maybe(document.getElementById(id),
+      $.doto(_,
+        dom.toggleClass(_, "idle", !curr?.moving),
+        dom.toggleClass(_, "moving", !!curr?.moving)));
+  });
+
+  s.sub($changed, $.each($.reset($change, _), _));
+
+  dom.html(el, null);
   $.reset($stage, map);
   dom.text(dom.sel1("#hint"), hint);
   dom.addStyle(el, "width", `${width * 32}px`)
   dom.addStyle(el, "height", `${height * 32}px`);
   dom.attr(el, "data-cave", _.lowerCase(cave));
+
   el.focus();
-  return _.merge(data, {playback, status});
+
+  const {unsub} = s;
+
+  return _.merge(data, {unsub, $anim, $stage, playback, status});
 }
 
 function stop(data){
+  const {$anim} = data;
   pause($anim);
   const status = "idle";
   return _.merge(data, {status});
 }
 
 function toggle(data){ //toggle play/pause
+  const {$anim} = data;
   const {playback, status} = data;
   if (_.includes(["loaded", "playing", "paused"], status)) {
     const f = pop(playback);
@@ -728,13 +908,13 @@ function toggle(data){ //toggle play/pause
 }
 
 function advance(data){
-  const {level, levels} = data;
+  const {level, levels, $anim} = data;
   const idx = _.indexOf(levels, level);
   pause($anim);
   return _.chain(data, _.plug(boot, _, idx + 2), start);
 }
 
-reg({$director, $stage, $change, $inputs, $anim, vars, r, w, start, advance});
+reg({$director, $inputs, vars, r, w, start, advance});
 
 function on2(id, prop){
   return _.filter(
@@ -748,147 +928,6 @@ function on1(prop){
 }
 
 const on = _.overload(null, on1, on2);
-
-$.sub($change, on(vars.stats, "lives"), function({id, props: {lives}, compared: [curr, prior]}){
-  if (lives === "updated") {
-    if (curr.lives <= 0) {
-      $.swap($director, stop);
-    } else if (curr.lives < prior.lives) {
-      $.swap($director, start);
-    }
-  }
-});
-
-$.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
-  if (id === vars.R && positioned === "updated") {
-    a.play(sounds.walk);
-  }
-  switch(positioned){
-    case "added": {
-      if (curr.noun == "explosion") {
-        a.play(sounds.exploded);
-      }
-      const [x, y] = curr.positioned;
-      dom.append(el,
-        $.doto(div({"data-noun": curr.noun, id}),
-          dom.attr(_, "data-x", x),
-          dom.attr(_, "data-y", y)));
-      break;
-    }
-
-    case "removed": {
-      _.maybe(document.getElementById(id), dom.omit(el, _));
-      break;
-    }
-
-    case "updated": {
-      const [x, y] = curr.positioned;
-      $.doto(document.getElementById(id),
-        dom.attr(_, "data-x", x),
-        dom.attr(_, "data-y", y));
-      break;
-    }
-  }
-});
-
-$.sub($change, on(vars.R, "positioned"), function({touched, props: {positioned}}){
-  if (positioned === "added"){
-    a.play(sounds.crack);
-  }
-});
-
-$.sub($change, on("growing"), function({touched, props: {growing}, reel}){
-  if (growing === "added"){
-    a.play(sounds.amoeba, true);
-  } else if (growing === "removed") {
-    const world = r.current(reel);
-    if (!_.seq(world.db.components.growing)){
-      a.pause(sounds.amoeba);
-    }
-  }
-});
-
-$.sub($change, on(vars.stats, "collected"), function({props: {collected}}){
-  if (collected === "updated"){
-    a.play(sounds.collected);
-  }
-});
-
-$.sub($change, on(vars.stats, "finished"), function({props: {finished}}){
-  if (finished === "updated"){
-    a.play(sounds.finished);
-  }
-});
-
-$.sub($change, on(vars.stats, "time"), function({props: {time}, compared: [curr], reel}){
-  if (time === "updated" && curr.time < 10 && curr.time > 0 && !_.chain(reel, r.current, _.getIn(_, [vars.stats, "finished"]))) {
-    a.play(sounds.timeout);
-  }
-});
-
-$.eachkv(function(key, digits){
-  $.sub($change, on(vars.stats, key), function({compared: [curr]}){
-    dom.html(dom.sel1(`#${key}`), _.map(function(char){
-      return span({"data-char": char});
-    }, _.lpad(_.get(curr, key), digits, 0)));
-  });
-}, {needed: 2, worth: 2, extras: 2, collected: 2, time: 3, score: 6});
-
-$.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
-  _.maybe(document.getElementById(id),
-    _.includes(["added", "updated"], facing) ?
-      dom.attr(_, "data-facing", curr.facing) :
-      dom.removeAttr(_, "data-facing"));
-});
-
-$.sub($change, on("falling"), function({id, props: {falling}}){
-  if (falling == "removed") {
-    a.play(sounds.stone);
-  }
-  _.maybe(document.getElementById(id),
-    _.includes(["added"], falling) ?
-      dom.addClass(_, "falling") :
-      dom.removeClass(_, "falling"));
-});
-
-$.sub($change, on("rolling"), function({id, props: {rolling}}){
-  _.maybe(document.getElementById(id),
-    _.includes(["added"], rolling) ?
-      dom.addClass(_, "rolling") :
-      dom.removeClass(_, "rolling"));
-});
-
-$.sub($change, on("exploding"), function({id, props: {exploding}}){
-  _.maybe(document.getElementById(id),
-    _.includes(["added"], exploding) ?
-      dom.addClass(_, "exploding") :
-      dom.removeClass(_, "exploding"));
-});
-
-$.sub($change, on(vars.enchantment, "status"), function({id, props: {status}, compared: [curr]}){
-  switch(curr.status) {
-    case "on":
-      a.play(sounds.magicWall, true);
-      break;
-    case "expired":
-      a.pause(sounds.magicWall);
-      break;
-  }
-  dom.attr(el, "data-enchantment", curr.status);
-});
-
-$.sub($change, on(vars.exit, "portal"), function({id, props: {portal}, compared: [curr]}){
-  _.maybe(document.body, dom.toggleClass(_, "portal", curr?.portal));
-});
-
-$.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
-  _.maybe(document.getElementById(id),
-    $.doto(_,
-      dom.toggleClass(_, "idle", !curr?.moving),
-      dom.toggleClass(_, "moving", !!curr?.moving)));
-});
-
-$.sub($changed, $.each($.reset($change, _), _));
 
 function Dispenser(list){
   this.list = list;
