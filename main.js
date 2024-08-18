@@ -22,6 +22,7 @@ const vars = {
   R: "rocky",
   entrance: "entra",
   stats: "stats",
+  cues: "cues!",
   enchantment: "encha",
   exit: "exit!",
   level: "level"
@@ -514,11 +515,12 @@ function explode(at, explosive, origin = false){
 
 function explodes(world, entities){
   const die = _.updateIn(_, [vars.stats, "lives"], _.dec);
-  const reboot = w.patch(_, vars.stats, {transitioning: [25, {reboot: true, transitioning: null}]});
+  const reboot = w.patch(_, vars.cues, {transitioning: [25, {reboot: true, transitioning: null}]});
+  const end = w.patch(_, vars.cues, {transitioning: [25, {end: true, transitioning: null}]});
   return _.reduce(function(world, [id, {positioned, explosive, exploding}]){
     return exploding && positioned ? _.chain(world,
       explode(positioned, explosive, true),
-      id === vars.R ? _.comp(reboot, die) : _.identity,
+      id === vars.R ? _.comp(_.getIn(world, [vars.stats, "lives"]) == 1 ? end : reboot, die) : _.identity,
       _.reduce(function(world, at){
         return explode(at, explosive)(world);
       }, _, _.rest(around(positioned)))) : world;
@@ -729,19 +731,16 @@ function start(data, init = false){
         norandom ? _.identity : randomize,
         load(level.map),
         _.assoc(_, vars.level, level),
+        _.assoc(_, vars.cues, {}),
         _.assoc(_, vars.stats, _.merge(stats, diamonds, {time, ready, finished, collected})))));
 
   const s = subs();
 
-  s.sub($change, on(vars.stats, "lives"), function({id, props: {lives}, compared: [curr, prior]}){
-    if (lives === "updated") {
-      if (curr.lives <= 0) {
-        $.swap($director, stop);
-      }
-    }
+  s.sub($change, on(vars.cues, "end"), function(){
+    $.swap($director, end);
   });
 
-  s.sub($change, on(vars.stats, "reboot"), function(){
+  s.sub($change, on(vars.cues, "reboot"), function(){
     $.swap($director, reboot);
   });
 
@@ -891,7 +890,7 @@ function start(data, init = false){
   return _.merge(data, {unsub, $anim, $stage, playback, status});
 }
 
-function stop(data){
+function end(data){
   const {$anim} = data;
   pause($anim);
   const status = "idle";
