@@ -37,18 +37,34 @@ body.paused #stage [data-noun] {
   visibility: visible;
 }
 #scoring, #extra-scoring {
-  left: 96px;
+  left: 0;
   width: 192px;
 }
+#game-over {
+  left: 448px;
+  width: 416px;
+  margin-top: 2px;
+  visibility: hidden;
+}
+[data-lives='0'] #game-over {
+  visibility: visible;
+}
 #time {
-  left: 800px;
+  left: 896px;
 }
 #score {
-  left: 992px;
+  left: 1088px;
+}
+#lives {
+  left: 736px;
+  width: 64px;
+}
+[data-lives='0'] #lives {
+  visibility: hidden;
 }
 #collected {
   position: absolute;
-  left: 416px;
+  left: 256px;
   width: 64px;
   height: 16px;
 }
@@ -511,6 +527,12 @@ body.smooth [data-noun] {
 .bright [data-char='0']{
   background-position: -256px -256px;
 }
+[data-char='life'] {
+  background-position: -288px -512px;
+}
+[data-char=' '] {
+  background-position: -288px -480px;
+}
 [data-char='1']{
   background-position: -288px -272px;
 }
@@ -565,6 +587,87 @@ body.smooth [data-noun] {
 .bright [data-char='9']{
   background-position: -256px -400px;
 }
+
+[data-char='a'] {
+  background-position: -288px -530px;
+}
+[data-char='b'] {
+  background-position: -288px -546px;
+}
+[data-char='c'] {
+  background-position: -288px -562px;
+}
+[data-char='d'] {
+  background-position: -288px -578px;
+}
+[data-char='e'] {
+  background-position: -288px -594px;
+}
+[data-char='f'] {
+  background-position: -288px -610px;
+}
+[data-char='g'] {
+  background-position: -288px -626px;
+}
+[data-char='h'] {
+  background-position: -288px -642px;
+}
+[data-char='i'] {
+  background-position: -288px -658px;
+}
+[data-char='j'] {
+  background-position: -288px -674px;
+}
+[data-char='k'] {
+  background-position: -288px -690px;
+}
+[data-char='l'] {
+  background-position: -288px -706px;
+}
+[data-char='m'] {
+  background-position: -288px -722px;
+}
+[data-char='n'] {
+  background-position: -288px -738px;
+}
+[data-char='o'] {
+  background-position: -288px -754px;
+}
+[data-char='p'] {
+  background-position: -288px -770px;
+}
+[data-char='q'] {
+  background-position: -288px -786px;
+}
+[data-char='r'] {
+  background-position: -288px -802px;
+}
+[data-char='s'] {
+  background-position: -288px -818px;
+}
+[data-char='t'] {
+  background-position: -288px -834px;
+}
+[data-char='u'] {
+  background-position: -288px -850px;
+}
+[data-char='v'] {
+  background-position: -288px -866px;
+}
+[data-char='w'] {
+  background-position: -288px -882px;
+}
+[data-char='x'] {
+  background-position: -288px -898px;
+}
+[data-char='y'] {
+  background-position: -288px -914px;
+}
+[data-char='z'] {
+  background-position: -288px -930px;
+}
+
+
 @keyframes flash {
   0%, 50% {
     background-position: -64px -192px;

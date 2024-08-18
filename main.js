@@ -819,6 +819,12 @@ function start(data, init = false){
     });
   }, {needed: 2, worth: 2, extras: 2, collected: 2, time: 3, score: 6});
 
+  s.sub($change, on(vars.stats, "lives"), function({compared: [curr]}){
+    const {lives} = curr;
+    dom.attr(dom.sel1(`#stats`), "data-lives", lives);
+    dom.html(dom.sel1(`#lives`), [span({"data-char": lives}), span({"data-char": "life"})]);
+  });
+
   s.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
     _.maybe(document.getElementById(id),
       _.includes(["added", "updated"], facing) ?
