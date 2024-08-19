@@ -11,6 +11,45 @@ body.paused #stage {
 body.paused #stage [data-noun] {
   animation-play-state: paused !important;
 }
+#game {
+  background-color: black;
+  color: white;
+  position: absolute;
+  left: calc(vw - 320px);
+  top: 96px;
+  width: 640px;
+  height: 320px;
+  margin: 0 auto;
+  border: solid 3px white;
+  z-index: 99;
+  border-radius: .75em;
+}
+#game a, #game article span {
+  color: #d9d325;
+}
+#game article span {
+  text-transform: uppercase;
+}
+#game-title {
+  margin: 0 auto;
+  width: 448px;
+}
+#game article {
+  text-align: center;
+  font-family: Tahoma;
+  font-size: 1.25em;
+  margin-top: 1em;
+}
+::backdrop {
+  background-image: linear-gradient(
+    45deg,
+    magenta,
+    rebeccapurple,
+    dodgerblue,
+    green
+  );
+  opacity: 0.5;
+}
 #stats,
 #hint,
 #title {

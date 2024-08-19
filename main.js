@@ -19,12 +19,12 @@ const div = dom.tag("div"), span = dom.tag("span");
 const el = dom.sel1("#stage");
 
 const vars = {
-  R: "rocky",
-  entrance: "entra",
+  R: "rockford",
+  entrance: "entrance",
   stats: "stats",
-  cues: "cues!",
-  enchantment: "encha",
-  exit: "exit!",
+  cues: "cues",
+  enchantment: "enchantment",
+  exit: "exit",
   level: "level"
 }
 
@@ -40,9 +40,9 @@ const sounds = {
   timeout: ss.sounds('./sounds/timeout_9.ogg', './sounds/timeout_8.ogg', './sounds/timeout_7.ogg', './sounds/timeout_6.ogg', './sounds/timeout_5.ogg', './sounds/timeout_4.ogg', './sounds/timeout_3.ogg', './sounds/timeout_2.ogg', './sounds/timeout_1.ogg')
 }
 
-function subs(unsubs = []){
+function subs(f, unsubs = []){
   function sub(...args){
-    const s = $.sub(...args);
+    const s = f(...args);
     unsubs.push(s);
   }
   function unsub(){
@@ -734,7 +734,7 @@ function start(data, init = false){
         _.assoc(_, vars.cues, {}),
         _.assoc(_, vars.stats, _.merge(stats, diamonds, {time, ready, finished, collected})))));
 
-  const s = subs();
+  const s = subs($.sub);
 
   s.sub($change, on(vars.cues, "end"), function(){
     $.swap($director, end);
@@ -955,13 +955,20 @@ function pop(disp){
   return popped;
 }
 
+const dialog = document.getElementById("game");
+
 $.on(document, "keydown", function(e){
   if (_.includes(["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"], e.key)) {
     e.preventDefault(); //to prevent moving the page around
   } else if (e.key === " ") {
     e.preventDefault();
     $.swap($director, toggle);
+  } else if (e.key == "Enter") {
+    dialog.close();
+    $.swap($director, toggle);
   }
 });
 
 $.swap($director, _.plug(start, _, true));
+$.swap($director, toggle);
+document.body.focus();
