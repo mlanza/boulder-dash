@@ -55,7 +55,7 @@ export function clear(path){
   }
 }
 
-function sets(path, value){
+export function sets(path, value){
   return function(self){
     return new World(self.entities,
       self.random,

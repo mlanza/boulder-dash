@@ -647,6 +647,11 @@ function grows(world, entities){
   return suffocated || oversized ? suffocate(world, entities, oversized ? boulder : diamond) : expand() ? grow(world, area) : world;
 }
 
+function extraLife(world){
+  return _.chain(world,
+    world.db["extra-life"] ? _.comp(_.assocIn(_, [vars.cues, "extra-life"], true), _.updateIn(_, [vars.stats, "lives"], _.inc), w.sets(["extra-life"], false)) : _.identity);
+}
+
 const $keys = dom.depressed(document.body);
 const $inputs = $.map(function(keys){
   return {keys};
@@ -658,6 +663,10 @@ function blank(){
   return _.chain(
     w.world(["gravitated", "seeking", "controlled", "growing", "falling", "rolling", "exploding", "becoming", "transitioning", "residue"], _.chance(seed).random),
     w.via("positioned"),
+    w.install(["extra-life"], false, _.plug(r.modified, _, {path: ["score"], props: ["score"]}), function(id, {triggered: {compared: [curr, prior]}}){
+      const goal = 500;
+      return id === vars.stats && curr >= goal && (prior || 0) < goal ? _.constantly(true) : _.identity;
+    }),
     enchantment());
 }
 
@@ -714,6 +723,7 @@ function start(data, init = false){
           w.system(becomes, ["becoming"]),
           w.system(settles, ["residue"]),
           w.system(explodes, ["exploding"]),
+          w.system(extraLife),
           w.system(abort(inputs), ["controlled"]),
           w.system(control(inputs), ["controlled"]),
           w.system(seeks, ["seeking"]),
@@ -735,6 +745,10 @@ function start(data, init = false){
         _.assoc(_, vars.stats, _.merge(stats, diamonds, {time, ready, finished, collected})))));
 
   const s = subs($.sub);
+
+  s.sub($change, on(vars.cues, "extra-life"), function(){
+    dom.addClass(document.body, "extra-life");
+  });
 
   s.sub($change, on(vars.cues, "end"), function(){
     $.swap($director, end);
