@@ -12,6 +12,7 @@ export function animated(callback, throttle, startTime = 0, lastTime = 0, ticks 
 
 export function play(animated){
   let {callback, throttle, startTime, lastTime, ticks, rafId} = animated;
+  delete animated.paused;
   function tick(time) {
     if (!startTime) {
       startTime = time;
