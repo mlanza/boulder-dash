@@ -12,15 +12,19 @@ body.paused #stage [data-noun] {
   animation-play-state: paused !important;
 }
 #stats,
-#hint {
+#hint,
+#title {
   position: relative;
   width: 1280px;
   height: 16px;
   margin: 5px auto;
   color: white;
 }
+#title {
+  margin-top: -1em;
+}
 #hint {
-  text-align: center;
+  text-align: right;
   font-family: Tahoma;
 }
 #stats * {
@@ -521,14 +525,11 @@ body.smooth [data-noun] {
 [data-char='diamond']{
   background-position: -256px -64px;
 }
-[data-char='0']{
-  background-position: -288px -256px;
-}
-.bright [data-char='0']{
-  background-position: -256px -256px;
-}
 [data-char='life'] {
   background-position: -288px -512px;
+}
+[data-char='0']{
+  background-position: -288px -256px;
 }
 [data-char=' '] {
   background-position: -288px -480px;
@@ -536,58 +537,30 @@ body.smooth [data-noun] {
 [data-char='1']{
   background-position: -288px -272px;
 }
-.bright [data-char='1']{
-  background-position: -256px -272px;
-}
 [data-char='2']{
   background-position: -288px -288px;
-}
-.bright [data-char='2']{
-  background-position: -256px -288px;
 }
 [data-char='3']{
   background-position: -288px -304px;
 }
-.bright [data-char='3']{
-  background-position: -256px -304px;
-}
 [data-char='4']{
   background-position: -288px -320px;
-}
-.bright [data-char='4']{
-  background-position: -256px -320px;
 }
 [data-char='5']{
   background-position: -288px -336px;
 }
-.bright [data-char='5']{
-  background-position: -256px -336px;
-}
 [data-char='6']{
   background-position: -288px -352px;
-}
-.bright [data-char='6']{
-  background-position: -256px -352px;
 }
 [data-char='7']{
   background-position: -288px -368px;
 }
-.bright [data-char='7']{
-  background-position: -256px -368px;
-}
 [data-char='8']{
   background-position: -288px -384px;
-}
-.bright [data-char='8']{
-  background-position: -256px -384px;
 }
 [data-char='9']{
   background-position: -288px -400px;
 }
-.bright [data-char='9']{
-  background-position: -256px -400px;
-}
-
 [data-char='a'] {
   background-position: -288px -530px;
 }
@@ -666,8 +639,10 @@ body.smooth [data-noun] {
 [data-char='z'] {
   background-position: -288px -930px;
 }
-
-
+[data-char].bright,
+.bright [data-char] {
+  background-position-x: -256px;
+}
 @keyframes flash {
   0%, 50% {
     background-position: -64px -192px;
