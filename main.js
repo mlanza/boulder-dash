@@ -693,7 +693,7 @@ function reboot(data){
 
 function start(data, init = false){
   const {$stage, level} = data;
-  const {size, cave, hint, time, diamonds} = level;
+  const {size, cave, title, hint, time, diamonds} = level;
   const [width, height] = size;
   const playback = dispenser(play, pause);
   const status = "loaded";
@@ -879,10 +879,14 @@ function start(data, init = false){
         dom.toggleClass(_, "moving", !!curr?.moving)));
   });
 
-
   dom.html(el, null);
   $.reset($stage, map);
   s.sub($changed, $.each($.reset($change, _), _));
+
+  dom.html(dom.sel1(`#title`), _.map(function(char){
+    return span({"data-char": char});
+  }, _.lowerCase(title)));
+  dom.text(dom.sel1("title"), `Boulder Dash: ${title}`);
 
   dom.text(dom.sel1("#hint"), hint);
   dom.addStyle(el, "width", `${width * 32}px`)
