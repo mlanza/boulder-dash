@@ -17,7 +17,7 @@ function play(sound, loop = false){
 }
 
 function pause(sound){
-  sound.audio.pause();
+  sound.audio?.pause();
 }
 
 $.doto(Sound,
