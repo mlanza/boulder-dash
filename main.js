@@ -718,6 +718,10 @@ function start(data, init = false){
   const collected = 0;
   const stats = init ? {score: 0, lives: 3} : _.chain($stage, _.deref, _.deref, _.get(_, vars.stats), _.selectKeys(_, ["score", "lives"]))
 
+  //halt leftover sound loops, if any
+  a.pause(sounds.amoeba);
+  a.pause(sounds.magicWall);
+
   const $changed = $.map(w.changed, $stage);
   const $change = $.atom(null);
   const $anim = animated(function({time, ticks, delta}){
@@ -751,25 +755,25 @@ function start(data, init = false){
         _.assoc(_, vars.cues, {}),
         _.assoc(_, vars.stats, _.merge(stats, diamonds, {time, ready, finished, collected})))));
 
-  const s = subs($.sub);
+  const {sub, unsub} = subs($.sub);
 
-  s.sub($change, on(vars.cues, "extra-life"), function(){
+  sub($change, on(vars.cues, "extra-life"), function(){
     dom.addClass(document.body, "extra-life");
   });
 
-  s.sub($change, on(vars.cues, "end"), function(){
+  sub($change, on(vars.cues, "end"), function(){
     $.swap($director, end);
   });
 
-  s.sub($change, on(vars.cues, "reboot"), function(){
+  sub($change, on(vars.cues, "reboot"), function(){
     $.swap($director, reboot);
   });
 
-  s.sub($change, on(vars.cues, "advance"), function(){
+  sub($change, on(vars.cues, "advance"), function(){
     $.swap($director, advance);
   });
 
-  s.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
+  sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
     if (id === vars.R && positioned === "updated") {
       a.play(sounds.walk);
     }
@@ -801,13 +805,13 @@ function start(data, init = false){
     }
   });
 
-  s.sub($change, on(vars.R, "positioned"), function({touched, props: {positioned}}){
+  sub($change, on(vars.R, "positioned"), function({touched, props: {positioned}}){
     if (positioned === "added"){
       a.play(sounds.crack);
     }
   });
 
-  s.sub($change, on("growing"), function({touched, props: {growing}, reel}){
+  sub($change, on("growing"), function({touched, props: {growing}, reel}){
     if (growing === "added"){
       a.play(sounds.amoeba, true);
     } else if (growing === "removed") {
@@ -818,46 +822,46 @@ function start(data, init = false){
     }
   });
 
-  s.sub($change, on(vars.stats, "collected"), function({props: {collected}}){
+  sub($change, on(vars.stats, "collected"), function({props: {collected}}){
     if (collected === "updated"){
       a.play(sounds.collected);
     }
   });
 
-  s.sub($change, on(vars.stats, "finished"), function({props: {finished}}){
+  sub($change, on(vars.stats, "finished"), function({props: {finished}}){
     if (finished === "updated"){
       a.play(sounds.finished);
     }
   });
 
-  s.sub($change, on(vars.stats, "time"), function({props: {time}, compared: [curr], reel}){
+  sub($change, on(vars.stats, "time"), function({props: {time}, compared: [curr], reel}){
     if (time === "updated" && curr.time < 10 && curr.time > 0 && !_.chain(reel, r.current, _.getIn(_, [vars.stats, "finished"]))) {
       a.play(sounds.timeout);
     }
   });
 
   $.eachkv(function(key, digits){
-    s.sub($change, on(vars.stats, key), function({compared: [curr]}){
+    sub($change, on(vars.stats, key), function({compared: [curr]}){
       dom.html(dom.sel1(`#${key}`), _.map(function(char){
         return span({"data-char": char});
       }, _.lpad(_.get(curr, key), digits, 0)));
     });
   }, {needed: 2, worth: 2, extras: 2, collected: 2, time: 3, score: 6});
 
-  s.sub($change, on(vars.stats, "lives"), function({compared: [curr]}){
+  sub($change, on(vars.stats, "lives"), function({compared: [curr]}){
     const {lives} = curr;
     dom.attr(dom.sel1(`#stats`), "data-lives", lives);
     dom.html(dom.sel1(`#lives`), [span({"data-char": lives}), span({"data-char": "life"})]);
   });
 
-  s.sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
+  sub($change, on("facing"), function({id, props: {facing}, compared: [curr]}){
     _.maybe(document.getElementById(id),
       _.includes(["added", "updated"], facing) ?
         dom.attr(_, "data-facing", curr.facing) :
         dom.removeAttr(_, "data-facing"));
   });
 
-  s.sub($change, on("falling"), function({id, props: {falling}}){
+  sub($change, on("falling"), function({id, props: {falling}}){
     if (falling == "removed") {
       a.play(sounds.stone);
     }
@@ -867,21 +871,21 @@ function start(data, init = false){
         dom.removeClass(_, "falling"));
   });
 
-  s.sub($change, on("rolling"), function({id, props: {rolling}}){
+  sub($change, on("rolling"), function({id, props: {rolling}}){
     _.maybe(document.getElementById(id),
       _.includes(["added"], rolling) ?
         dom.addClass(_, "rolling") :
         dom.removeClass(_, "rolling"));
   });
 
-  s.sub($change, on("exploding"), function({id, props: {exploding}}){
+  sub($change, on("exploding"), function({id, props: {exploding}}){
     _.maybe(document.getElementById(id),
       _.includes(["added"], exploding) ?
         dom.addClass(_, "exploding") :
         dom.removeClass(_, "exploding"));
   });
 
-  s.sub($change, on(vars.enchantment, "status"), function({id, props: {status}, compared: [curr]}){
+  sub($change, on(vars.enchantment, "status"), function({id, props: {status}, compared: [curr]}){
     switch(curr.status) {
       case "on":
         a.play(sounds.magicWall, true);
@@ -893,11 +897,11 @@ function start(data, init = false){
     dom.attr(el, "data-enchantment", curr.status);
   });
 
-  s.sub($change, on(vars.exit, "portal"), function({id, props: {portal}, compared: [curr]}){
+  sub($change, on(vars.exit, "portal"), function({id, props: {portal}, compared: [curr]}){
     _.maybe(document.body, dom.toggleClass(_, "portal", curr?.portal));
   });
 
-  s.sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
+  sub($change, on("moving"), function({id, props: {moving}, compared: [curr]}){
     _.maybe(document.getElementById(id),
       $.doto(_,
         dom.toggleClass(_, "idle", !curr?.moving),
@@ -906,7 +910,7 @@ function start(data, init = false){
 
   dom.html(el, null);
   $.reset($stage, map);
-  s.sub($changed, $.each($.reset($change, _), _));
+  sub($changed, $.each($.reset($change, _), _));
 
   dom.html(dom.sel1(`#title`), _.map(function(char){
     return span({"data-char": char});
@@ -921,14 +925,14 @@ function start(data, init = false){
 
   el.focus();
 
-  const {unsub} = s;
-
   return _.merge(data, {unsub, $anim, $stage, playback, status});
 }
 
 function end(data){
   const {$anim} = data;
   pause($anim);
+  a.pause(sounds.amoeba);
+  a.pause(sounds.magicWall);
   const status = "idle";
   return _.merge(data, {status});
 }
