@@ -51,6 +51,9 @@ body.paused #stage [data-noun] {
 #title {
   margin-top: -1em;
 }
+.intermission #title {
+  text-align: center;
+}
 #hint {
   text-align: right;
   font-family: Tahoma;
