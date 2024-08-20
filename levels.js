@@ -136,6 +136,7 @@ export default [{
   author: "Peter Liepa",
   time: 10,
   size: [21, 12],
+  intermission: true,
   diamonds: { needed: 6, worth: 30, extras: 0 },
   randoms: {diamond: [9, 256]},
   map: `
@@ -289,6 +290,7 @@ export default [{
   author: "Peter Liepa",
   time: 15,
   size: [21, 12],
+  intermission: true,
   diamonds: { needed: 16, worth: 50, extras: 0 },
   map: `
     WWWWWWWWWWWWWWWWWWWWW
@@ -441,6 +443,7 @@ export default [{
   time: 20,
   arrive: 5,
   size: [20, 12],
+  intermission: true,
   diamonds: { needed: 14, worth: 10, extras: 0 },
   map: `
     WWWWWWWWWWWWWWWWWWWW
@@ -594,6 +597,7 @@ export default [{
   author: "Peter Liepa",
   time: 20,
   size: [21, 12],
+  intermission: true,
   diamonds: { needed: 6, worth: 30, extras: 0 },
   map: `
     WWWWWWWWWWWWWWWWWWWWW

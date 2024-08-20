@@ -516,13 +516,15 @@ function explode(at, explosive, origin = false){
 }
 
 function explodes(world, entities){
+  const intermission = _.getIn(world, [vars.level, "intermission"]);
   const die = _.updateIn(_, [vars.stats, "lives"], _.dec);
   const reboot = w.patch(_, vars.cues, {transitioning: [25, {reboot: true, transitioning: null}]});
   const end = w.patch(_, vars.cues, {transitioning: [25, {end: true, transitioning: null}]});
+  const advance = w.patch(_, vars.cues, {transitioning: [25, {advance: true}]});
   return _.reduce(function(world, [id, {positioned, explosive, exploding}]){
     return exploding && positioned ? _.chain(world,
       explode(positioned, explosive, true),
-      id === vars.R ? _.comp(_.getIn(world, [vars.stats, "lives"]) == 1 ? end : reboot, die) : _.identity,
+      id === vars.R ? (intermission ? advance : _.comp(_.getIn(world, [vars.stats, "lives"]) == 1 ? end : reboot, die)) : _.identity,
       _.reduce(function(world, at){
         return explode(at, explosive)(world);
       }, _, _.rest(around(positioned)))) : world;
@@ -707,7 +709,7 @@ function reboot(data){
 
 function start(data, init = false){
   const {$stage, level} = data;
-  const {size, cave, title, hint, time, diamonds} = level;
+  const {size, cave, title, hint, time, diamonds, intermission} = level;
   const [width, height] = size;
   const playback = dispenser(play, pause);
   const status = "loaded";
@@ -912,6 +914,7 @@ function start(data, init = false){
   dom.text(dom.sel1("title"), `Boulder Dash: ${title}`);
 
   dom.text(dom.sel1("#hint"), hint);
+  dom.toggleClass(document.body, "intermission", intermission);
   dom.addStyle(el, "width", `${width * 32}px`)
   dom.addStyle(el, "height", `${height * 32}px`);
   dom.attr(el, "data-cave", _.lowerCase(cave));
