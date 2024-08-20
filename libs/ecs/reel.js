@@ -43,6 +43,19 @@ export function modified(id, {path = [], props = null, pattern = null} = {}){
   }
 }
 
+function on2(id, prop){
+  return _.filter(
+    _.and(
+      _.pipe(_.get(_, "id"), _.eq(_, id)),
+      _.getIn(_, ["props", prop])));
+}
+
+function on1(prop){
+  return _.filter(_.getIn(_, ["props", prop]));
+}
+
+export const on = _.overload(null, on1, on2);
+
 export function frame(self, offset = 0){
   return _.get(self.frames, offset * -1, null);
 }
