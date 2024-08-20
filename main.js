@@ -10,6 +10,7 @@ import s from "./libs/ecs_/sound.js";
 import ss from "./libs/ecs_/sounds.js";
 import {reg} from "./libs/cmd.js";
 
+const {on} = r;
 const {animated, play, pause} = anim;
 const params = new URLSearchParams(location.search);
 const seed = _.maybe(params.get("seed"), parseInt) || 8675309;
@@ -325,13 +326,14 @@ function collect(id){
 }
 
 function move(id, direction, from, to){
+  const advance = w.patch(_, vars.cues, {transitioning: [25, {advance: true}]});
   return function(world){
     const {exploding} = _.get(world, id);
     const there = locate(world, to);
     const portal = there.entity?.portal;
     const collision = !!there.id && !portal;
     return _.chain(world,
-      portal ? _.comp(_.dissoc(_, there.id), w.patch(_, id, {moving: false, indestructible, facing: null, controlled: null}), _.assocIn(_, [vars.stats, "finished"], true)) : _.identity,
+      portal ? _.comp(_.dissoc(_, there.id), advance, w.patch(_, id, {moving: false, indestructible, facing: null, controlled: null}), _.assocIn(_, [vars.stats, "finished"], true)) : _.identity,
       collision || exploding ? _.identity : w.patch(_, id, {positioned: to}));
   };
 }
@@ -649,7 +651,10 @@ function grows(world, entities){
 
 function extraLife(world){
   return _.chain(world,
-    world.db["extra-life"] ? _.comp(_.assocIn(_, [vars.cues, "extra-life"], true), _.updateIn(_, [vars.stats, "lives"], _.inc), w.sets(["extra-life"], false)) : _.identity);
+    world.db["extra-life"] ? _.comp(
+      _.assocIn(_, [vars.cues, "extra-life"], true),
+      _.updateIn(_, [vars.stats, "lives"], _.inc),
+      w.sets(["extra-life"], false)) : _.identity);
 }
 
 const $keys = dom.depressed(document.body);
@@ -665,7 +670,7 @@ function blank(){
     w.via("positioned"),
     w.install(["extra-life"], false, _.plug(r.modified, _, {path: ["score"], props: ["score"]}), function(id, {triggered: {compared: [curr, prior]}}){
       const goal = 500;
-      return id === vars.stats && curr >= goal && (prior || 0) < goal ? _.constantly(true) : _.identity;
+      return id === vars.stats && prior != null && curr >= goal && prior < goal ? _.constantly(true) : _.identity;
     }),
     enchantment());
 }
@@ -718,9 +723,9 @@ function start(data, init = false){
     $.swap($stage,
       _.fmap(_,
         _.pipe(
-          w.system(grows, ["growing"]),
           w.system(transitions, ["transitioning"]),
           w.system(becomes, ["becoming"]),
+          w.system(grows, ["growing"]),
           w.system(settles, ["residue"]),
           w.system(explodes, ["exploding"]),
           w.system(extraLife),
@@ -756,6 +761,10 @@ function start(data, init = false){
 
   s.sub($change, on(vars.cues, "reboot"), function(){
     $.swap($director, reboot);
+  });
+
+  s.sub($change, on(vars.cues, "advance"), function(){
+    $.swap($director, advance);
   });
 
   s.sub($change, on("positioned"), function({id, props: {positioned}, compared: [curr]}){
@@ -934,26 +943,14 @@ function toggle(data){ //toggle play/pause
 }
 
 function advance(data){
-  const {level, levels, $anim} = data;
+  const {level, levels, unsub, $anim} = data;
   const idx = _.indexOf(levels, level);
+  unsub();
   pause($anim);
   return _.chain(data, _.plug(boot, _, idx + 2), start);
 }
 
 reg({$director, $inputs, vars, r, w, start, advance});
-
-function on2(id, prop){
-  return _.filter(
-    _.and(
-      _.pipe(_.get(_, "id"), _.eq(_, id)),
-      _.getIn(_, ["props", prop])));
-}
-
-function on1(prop){
-  return _.filter(_.getIn(_, ["props", prop]));
-}
-
-const on = _.overload(null, on1, on2);
 
 function Dispenser(list){
   this.list = list;
