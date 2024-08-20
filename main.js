@@ -70,7 +70,7 @@ const die = _.overload(null, null, die2, die3);
 const debug = params.get('debug') == 1;
 const smooth = params.get("smooth") == 1;
 const l = _.maybe(params.get("l"), parseInt) || 1;
-const d = _.maybe(params.get("d"), parseInt) || 1;
+const difficulty = _.maybe(params.get("d"), parseInt) || 1;
 
 dom.toggleClass(document.body, "smooth", smooth);
 dom.toggleClass(document.body, "debug", debug);
@@ -678,14 +678,14 @@ function blank(){
 }
 
 function boot(data, l){
-  const {levels} = data;
-  const lvl = _.get(levels, l - 1);
-  const {difficulty} = lvl;
-  const level = _.absorb(lvl, _.get(difficulty, d - 2, {}));
-  return _.merge(data, {level});
+  const {levels, difficulty} = data;
+  const lapped = l > _.count(levels);
+  const lvl = _.get(levels, lapped ? 0 : l - 1);
+  const level = _.absorb(lvl, _.get(lvl.difficulty, difficulty - 2, {}));
+  return _.merge(data, {level}, lapped ? {difficulty: _.min(difficulty + 1, 4)} : null);
 }
 
-const $director = $.atom(boot({levels, status: "idle", $stage: $.atom(r.reel(blank()))}, l));
+const $director = $.atom(boot({levels, difficulty, status: "idle", $stage: $.atom(r.reel(blank()))}, l));
 
 $.sub($director, function({status}){
   dom.toggleClass(document.body, "paused", status == "paused");
