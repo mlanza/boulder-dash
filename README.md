@@ -8,17 +8,13 @@ I've had a longtime fascination with [Entity Component Systems](Entity_component
 
 As usual my early commits especially are experimental, figuring out how best to proceed.
 
-The protagonist is directed via the keyboard:
-* Arrow Keys to move
-* Shift is used with Arrow Keys to dig or collect without moving
-* Escape to abort
-
 Use the query string to modify how the app is loaded:
 * `l`: the level number, 1 to 20, default is 1
 * `d`: the difficulty rating, 1 to 5, default is 1
 * `debug`: 1 or 0, default is 0 - displays visuals for components `falling`, `rolling`, `enchanted`
 * `smooth`: 1 or 0, default is 0 - allows repositioned elements to glide into place
 * `seed`: an integer seeding all randomizations (affects most maps)
+* `norandom`: 1 or 0, default is 0 - determines whether or not random changes are applied to level
 
 ## License
 MIT
