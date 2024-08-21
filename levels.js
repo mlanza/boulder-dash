@@ -93,7 +93,7 @@ export default [{
     Ww...wwr..w.d...wr..r.r...r.wr......w..W
     Ww.d....r.ww..r.wwr.......r.wr......w..W
     W..r....w...r......r.rr......w..r.w...wW
-    Wr.ww..r.ww...w....r.rr......w..rd..r..W
+    Wr.ww..r.ww...w....r.rr......w..rd..r..P
     Ww...r......r.rd......r...ww..wr..d.w..W
     Wrr...w.....r.rd......w..r.wd.d.rw.r...W
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW`
@@ -182,7 +182,7 @@ export default [{
     W......................................W
     W......................................W
     W......................................W
-    W......................................W
+    W......................................P
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW`
 }, {
   cave: "F",
@@ -234,7 +234,7 @@ export default [{
     W ..r. .. .  .... .r.r. ...  r..r.d.. .W
     Wr.....  .q.  ... .r.r. ... wwwwwwwwwwwW
     W.r.d... .  ...... ..rr..r.... . ... . W
-    Wwwwwwwwwwwww.r. ..   r.. .... ...r....W
+    Wwwwwwwwwwwww.r. ..   r.. .... ...r....P
     Wr. r...... ..r. ... ..r.  ..r.  q.....W
     Wr. r...... .. r..r.... ...r......r.rr.W
     W... ..r  ... ..r.  ..r.  ... ....r.rr.W
@@ -265,7 +265,7 @@ export default [{
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
     W . r.. . .. ..r. ..X ..r.  ..r. r... .W
     W.r.rr...... ..r...r.... ...r.....dr.r.W
-    W r..r...  ...r..r. ..r.r...wwwwwwwwwwwW
+    P r..r...  ...r..r. ..r.r...wwwwwwwwwwwW
     W...d ..r. q.....r..... ........rr r..rW
     Wwwwwwwwwwwww..r.r.... .  ......r  r..rW
     W.  ... ..r.  ..r.  .... rrr.....  r.. W
@@ -488,7 +488,7 @@ export default [{
     W.......... . . .B. . .................W
     W.......... . . . . . .................W
     W.......... . . . .B. .................W
-    W.......... . . . . . .................W
+    W.......... . . . . . .................P
     W.......... . . . . .B.................W
     W......................................W
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW`
