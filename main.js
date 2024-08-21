@@ -226,7 +226,7 @@ function randomize(world){
   const noFreefall = _.pipe(_.plug(locate, world, _, "down"), _.get(_, "id"));
   function dontDropRocks(position){
     const above = locate(world, position, "up");
-    return above?.noun !== "boulder" && !above.id;
+    return above?.noun !== "boulder";
   }
   function noAdjacentRocks(positioned){
     return !_.detect(function(positioned){
@@ -244,7 +244,7 @@ function randomize(world){
     "boulder": {target: ["dirt"], what: boulder, valid: _.and(noFreefall, noAdjacentRocks, fewWalls)},
     "diamond": {target: [undefined, "dirt", "boulder"], what: diamond},
     "wall": {target: ["boulder"], what: wall},
-    "firefly": {target: [undefined, "dirt", "boulder"], what: firefly}
+    "firefly": {target: [undefined, "dirt", "boulder"], what: firefly, valid: dontDropRocks}
   }
   return _.chain(size,
     scan,
