@@ -223,15 +223,32 @@ function randomize(world){
   const {randoms, size} = _.get(world, vars.level);
   const {positioned} = _.get(world, vars.entrance);
   const untouched = _.sset(_.toArray(around(positioned)));
+  const noFreefall = _.pipe(_.plug(locate, world, _, "down"), _.get(_, "id"));
+  function dontDropRocks(position){
+    const above = locate(world, position, "up");
+    return above?.noun !== "boulder" && !above.id;
+  }
+  function noAdjacentRocks(positioned){
+    return !_.detect(function(positioned){
+      return locate(world, positioned)?.entity?.noun === "boulder";
+    }, around(positioned, false));
+  }
+  function fewWalls(positioned){
+    const hits = _.chain(around(positioned), _.map(locate(world), _), _.filter(function(part){
+      return _.includes(["wall", "steel-wall", "magic-wall"], part?.entity?.noun);
+    }, _), _.take(3, _));
+    return _.count(hits) < 2;
+  }
   const targets = {
-    "vacant": {target: ["dirt", "boulder"], what: vacant},
-    "boulder": {target: [undefined, "dirt"], what: boulder},
+    "vacant": {target: ["dirt", "boulder"], what: vacant, valid: dontDropRocks},
+    "boulder": {target: ["dirt"], what: boulder, valid: _.and(noFreefall, noAdjacentRocks, fewWalls)},
     "diamond": {target: [undefined, "dirt", "boulder"], what: diamond},
     "wall": {target: ["boulder"], what: wall},
     "firefly": {target: [undefined, "dirt", "boulder"], what: firefly}
   }
   return _.chain(size,
     scan,
+    _.shuffle(world.random, _), //don't process map in order
     _.map(locate(world), _),
     _.filter(function(x){
       return !x.entity?.indestructible && !_.includes(untouched, x.positioned);
@@ -239,8 +256,8 @@ function randomize(world){
     _.map(function(was){
       return _.reducekv(function({was, instead}, noun, [n, pool]){
         const d = die(world.random, n, pool);
-        const {target, what} = _.get(targets, noun, {});
-        return target && _.includes(target, was.entity?.noun) && d() ? _.reduced({was, instead: what}) : {was, instead};
+        const {target, what, valid = _.constantly(true)} = _.get(targets, noun, {});
+        return target && _.includes(target, was.entity?.noun) && valid(was.positioned) && d() ? _.reduced({was, instead: what}) : {was, instead};
       }, {was, instead: undefined}, randoms || {});
     }, _),
   _.filter(({instead}) => instead !== undefined, _),
