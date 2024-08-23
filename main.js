@@ -3,6 +3,7 @@ import $ from "./libs/atomic_/shell.js";
 import dom from "./libs/atomic_/dom.js";
 import r from "./libs/ecs_/reel.js";
 import w from "./libs/ecs_/world.js";
+import d from "./libs/ecs_/dispenser.js";
 import levels from "./levels.js";
 import a from "./libs/ecs_/iaudible.js";
 import anim from "./libs/ecs_/animated.js";
@@ -11,13 +12,31 @@ import ss from "./libs/ecs_/sounds.js";
 import {init, blank, vars, loop, fps} from "./boulder-dash.js";
 import {reg} from "./libs/cmd.js";
 
-const {on} = r;
 const {animated, play, pause} = anim;
 const params = new URLSearchParams(location.search);
 const seed = _.maybe(params.get("seed"), parseInt) || 8675309;
 const norandom = params.get("norandom") == 1;
-const div = dom.tag("div"), span = dom.tag("span");
+const debug = params.get('debug') == 1;
+const smooth = params.get("smooth") == 1;
+const l = _.maybe(params.get("l"), parseInt) || 1;
+const difficulty = _.maybe(params.get("d"), parseInt) || 1;
+const random = () => _.chance(seed).random;
+const status = "idle";
+
 const el = dom.sel1("#stage");
+const dialog = document.getElementById("game");
+
+dom.toggleClass(document.body, "smooth", smooth);
+dom.toggleClass(document.body, "debug", debug);
+
+const $keys = dom.depressed(document.body);
+const $inputs = $.map(function(keys){
+  return {keys};
+}, $keys);
+const $stage = $.atom(r.reel(blank(random)));
+const $director = $.atom(boot({levels, difficulty, status, $stage}, l));
+
+reg({$director, $inputs, vars, r, w, start, advance});
 
 const sounds = {
   walk: ss.sounds('./sounds/walk_d.ogg', './sounds/walk_e.ogg'),
@@ -31,6 +50,7 @@ const sounds = {
   timeout: ss.sounds('./sounds/timeout_9.ogg', './sounds/timeout_8.ogg', './sounds/timeout_7.ogg', './sounds/timeout_6.ogg', './sounds/timeout_5.ogg', './sounds/timeout_4.ogg', './sounds/timeout_3.ogg', './sounds/timeout_2.ogg', './sounds/timeout_1.ogg')
 }
 
+//faciliate unsubscribing
 function subs(f, unsubs = []){
   function sub(...args){
     const s = f(...args);
@@ -41,36 +61,6 @@ function subs(f, unsubs = []){
   }
   return {sub, unsub};
 }
-
-const debug = params.get('debug') == 1;
-const smooth = params.get("smooth") == 1;
-const l = _.maybe(params.get("l"), parseInt) || 1;
-const difficulty = _.maybe(params.get("d"), parseInt) || 1;
-const random = () => _.chance(seed).random;
-
-dom.toggleClass(document.body, "smooth", smooth);
-dom.toggleClass(document.body, "debug", debug);
-
-const $keys = dom.depressed(document.body);
-const $inputs = $.map(function(keys){
-  return {keys};
-}, $keys);
-const inputs = _.partial(_.deref, $inputs);
-$.sub($inputs, _.noop); //without subscribers, won't activate
-
-const $director = $.atom(boot({levels, difficulty, status: "idle", $stage: $.atom(r.reel(blank(random)))}, l));
-
-$.sub($director, function({status}){
-  dom.toggleClass(document.body, "paused", status == "paused");
-  switch(status) {
-    case "loaded":
-      $.swap($director, toggle);
-      break;
-    case "rebooted":
-      $.swap($director, start);
-      break;
-  }
-});
 
 function boot(data, l){
   const {levels, difficulty} = data;
@@ -92,9 +82,13 @@ function start(data, initial = false){
   const {$stage, level} = data;
   const {size, cave, title, hint, time, intermission} = level;
   const [width, height] = size;
-  const playback = dispenser(play, pause);
+  const playback = d.dispenser(play, pause);
   const status = "loaded";
   const stats = initial ? {score: 0, lives: 3} : _.chain($stage, _.deref, _.deref, _.get(_, vars.stats), _.selectKeys(_, ["score", "lives"]))
+  const {on} = r;
+
+  const div = dom.tag("div"),
+        span = dom.tag("span");
 
   dom.html(dom.sel1(`#title`), _.map(function(char){
     return span({"data-char": char});
@@ -289,7 +283,7 @@ function toggle(data){ //toggle play/pause
   const {$anim} = data;
   const {playback, status} = data;
   if (_.includes(["loaded", "playing", "paused"], status)) {
-    const f = pop(playback);
+    const f = d.pop(playback);
     f($anim);
     return _.assoc(data, "status", f == play ? "playing" : "paused");
   } else {
@@ -305,23 +299,17 @@ function advance(data){
   return _.chain(data, _.plug(boot, _, idx + 2), start);
 }
 
-reg({$director, $inputs, vars, r, w, start, advance});
-
-function Dispenser(list){
-  this.list = list;
-}
-
-function dispenser(...list){
-  return new Dispenser(_.cycle(list));
-}
-
-function pop(disp){
-  const popped = _.first(disp.list);
-  disp.list = _.rest(disp.list);
-  return popped;
-}
-
-const dialog = document.getElementById("game");
+$.sub($director, function({status}){
+  dom.toggleClass(document.body, "paused", status == "paused");
+  switch(status) {
+    case "loaded":
+      $.swap($director, toggle);
+      break;
+    case "rebooted":
+      $.swap($director, start);
+      break;
+  }
+});
 
 $.on(document, "keydown", function(e){
   if (_.includes(["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"], e.key)) {
@@ -335,6 +323,7 @@ $.on(document, "keydown", function(e){
   }
 });
 
+$.sub($inputs, _.noop); //without subscribers, won't activate
 $.swap($director, _.plug(start, _, true));
 $.swap($director, toggle);
 
