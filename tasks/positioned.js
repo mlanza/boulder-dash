@@ -1,5 +1,5 @@
-import _ from "./libs/atomic_/core.js";
-import $ from "./libs/atomic_/shell.js";
+import _ from "../libs/atomic_/core.js";
+import $ from "../libs/atomic_/shell.js";
 
 $.dorun(_.map(function(x){
   const left = 32 * x;
