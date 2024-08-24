@@ -4,7 +4,7 @@ Demo building a real-time 2D game using [Atomic](https://github.com/mlanza/atomi
 
 ![Screenshot](./images/screenshot.png)
 
-I've had a longtime fascination with [Entity Component Systems](Entity_component_system) and this felt a good opportunity to scratch that itch.  Although the concept came about to facilitate better performance, I wanted to model mine as a simulation using persistent data structures to see how well it might fit the functional paradigm.
+I've had a longtime fascination with [Entity Component Systems](https://en.wikipedia.org/wiki/Entity_component_system) and this felt a good opportunity to scratch that itch.  Although the concept originated as a means to facilitating performance, I wanted to model an ECS first as a simulation inside a functional core (i.e., stick to my usual approach).
 
 As usual my early commits especially are experimental, figuring out how best to proceed.
 
