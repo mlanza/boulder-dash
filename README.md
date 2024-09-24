@@ -16,7 +16,7 @@ Use the query string to modify how the app is loaded:
 * `seed`: an integer seeding all randomizations (affects most maps)
 * `norandom`: 1 or 0, default is 0 - determines whether or not random changes are applied to level
 
-See [demo](https://doesideas.com/boulder-dash/?monitor=*).
+See [demo](https://mlanza.com/boulder-dash/?monitor=*).
 
 ## License
 MIT
