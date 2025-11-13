@@ -367,7 +367,7 @@ export default [{
     Ww.wdw.wwwwwwwwwwwww.w.................W
     Ww.wdwd.............dw.................W
     Wwwwwwwwwwwwwwwwwwwwww.................W
-    W......................................W
+    W.....................................PW
     W......................................W
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW`
 }, {
@@ -434,7 +434,7 @@ export default [{
     W..r......w.r.w...wr.rw...... ..r......W
     Wr.X...r. w...w...wr.rw.........rd..r..W
     W....r....w.r.wd..w...w.... ...r..d. ..W
-    Wrr.......w.r.wd..w...w..r..d.d.r..r...W
+    Wrr.......w.r.wd..w...w..r..d.d.r..r..PW
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW`
 }, {
   cave: "3",
@@ -589,7 +589,7 @@ export default [{
     W.............r........r.....r........rW
     W..r..r.  q ....  q ...r  q .r..  q ..rW
     Wr.....r    ....    ....    .r..    ..rW
-    W......r.......................r....r..W
+    W......r...........P...........r....r..W
     WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW`
 }, {
   cave: "4",
