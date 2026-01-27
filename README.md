@@ -18,6 +18,11 @@ Use the query string to modify how the app is loaded:
 
 See [demo](https://mlanza.com/boulder-dash/?monitor=*).
 
+## Credits
+
+Originally designed by **Peter Liepa** and **Chris Gray**.
+
 ## License
-MIT
+
+[MIT](./LICENSE.md)
 
